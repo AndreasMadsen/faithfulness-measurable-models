@@ -1,8 +1,9 @@
 import argparse
 import os.path as path
 
-from datasets import load_dataset
-from transformers import BertTokenizerFast, TFBertForSequenceClassification
+from transformers import TFBertForSequenceClassification
+from ecoroar.dataset import IMDBDataset
+from ecoroar.tokenizer import BertTokenizer
 
 thisdir = path.dirname(path.realpath(__file__))
 parser = argparse.ArgumentParser()
@@ -15,6 +16,8 @@ parser.add_argument('--persistent-dir',
 if __name__ == "__main__":
     args = parser.parse_args()
 
-    load_dataset("imdb", cache_dir=f'{args.persistent_dir}/cache/datasets')
-    BertTokenizerFast.from_pretrained("bert-base-cased", cache_dir=f'{args.persistent_dir}/cache/tokenizer')
-    TFBertForSequenceClassification.from_pretrained("bert-base-cased", num_labels=2, cache_dir=f'{args.persistent_dir}/cache/transformers')
+    dataset = IMDBDataset(persistent_dir=args.persistent_dir)
+    dataset.download()
+    tokenizer = BertTokenizer('bert-base-cased', persistent_dir=args.persistent_dir)
+    model = TFBertForSequenceClassification.from_pretrained('bert-base-cased',
+        num_labels=dataset.num_classes, cache_dir=f'{args.persistent_dir}/cache/transformers')

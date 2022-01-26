@@ -6,6 +6,7 @@ import tensorflow_datasets as tfds
 
 class IMDBDataset:
     def __init__(self, persistent_dir, seed=0):
+        self._persistent_dir = persistent_dir
         self._builder = tfds.builder("imdb_reviews", try_gcs=False, data_dir=f'{persistent_dir}/cache/tfds/')
         self._seed = seed
 
@@ -18,7 +19,7 @@ class IMDBDataset:
         return self.info.features['label'].num_classes
 
     def download(self):
-        self._builder.download_and_prepare()
+        self._builder.download_and_prepare(download_dir=f'{self._persistent_dir}/cache/tfds/downloads/')
 
     @cached_property
     def datasets(self):
