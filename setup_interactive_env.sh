@@ -8,6 +8,7 @@
 module load python/3.8.10 gcc/9.3.0 arrow/5.0.0 cuda/11.4
 
 # Create environment
+rm -rf $SLURM_TMPDIR/env
 virtualenv --no-download $SLURM_TMPDIR/env
 source $SLURM_TMPDIR/env/bin/activate
 
@@ -19,4 +20,6 @@ python -m pip install --no-index --find-links $HOME/python_wheels -e .
 # Run code
 export HF_DATASETS_OFFLINE=1
 export TRANSFORMERS_OFFLINE=1
-cd $SLURM_TMPDIR
+export NO_GCE_CHECK=true
+
+cd $HOME/workspace/economical-roar
