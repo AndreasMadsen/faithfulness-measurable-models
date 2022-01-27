@@ -10,6 +10,7 @@ from ecoroar.util import generate_experiment_id
 from ecoroar.dataset import IMDBDataset
 from ecoroar.tokenizer import BertTokenizer
 from ecoroar.metric import AUROC
+from ecoroar.transform import RandomMasking
 
 thisdir = path.dirname(path.realpath(__file__))
 parser = argparse.ArgumentParser()
@@ -30,38 +31,49 @@ parser.add_argument('--max-epochs',
                     help='The max number of epochs to use')
 parser.add_argument('--model',
                     action='store',
-                    default='base-cased',
+                    default='base-cased', # bert_uncased_L-2_H-128_A-2
                     type=str,
                     help='Model type to use')
+parser.add_argument('--max-masking-ratio',
+                    action='store',
+                    default=0,
+                    type=float,
+                    help='The maximum masking ratio to apply on the training dataset')
 
 if __name__ == '__main__':
     args = parser.parse_args()
+    # tf.config.experimental.enable_op_determinism()
+    os.environ['TF_DETERMINISTIC_OPS'] = '1'
     tf.keras.utils.set_random_seed(args.seed)
+
     experiment_id = generate_experiment_id('imdb', seed=args.seed)
 
     dataset = IMDBDataset(persistent_dir=args.persistent_dir, seed=args.seed)
     tokenizer = BertTokenizer(f'bert-{args.model}', persistent_dir=args.persistent_dir)
     model = TFBertForSequenceClassification.from_pretrained(f'bert-{args.model}',
         num_labels=dataset.num_classes, cache_dir=f'{args.persistent_dir}/cache/transformers')
+    masker = RandomMasking(args.max_masking_ratio, tokenizer, seed=args.seed)
 
     dataset_train = dataset.train \
         .map(lambda item: (tokenizer(item['text']), item['label']),
-             num_parallel_calls=tf.data.AUTOTUNE, deterministic=True) \
+             num_parallel_calls=tf.data.AUTOTUNE) \
         .cache() \
         .shuffle(dataset.train_num_examples, seed=args.seed) \
+        .map(lambda x, y: (masker(x), y),
+             num_parallel_calls=tf.data.AUTOTUNE) \
         .padded_batch(8, padding_values=(tokenizer.padding_values, None)) \
         .prefetch(tf.data.AUTOTUNE)
 
     dataset_valid = dataset.valid \
         .map(lambda item: (tokenizer(item['text']), item['label']),
-             num_parallel_calls=tf.data.AUTOTUNE, deterministic=True) \
+             num_parallel_calls=tf.data.AUTOTUNE) \
         .cache() \
         .padded_batch(8, padding_values=(tokenizer.padding_values, None)) \
         .prefetch(tf.data.AUTOTUNE)
 
     dataset_test = dataset.test \
         .map(lambda item: (tokenizer(item['text']), item['label']),
-             num_parallel_calls=tf.data.AUTOTUNE, deterministic=True) \
+             num_parallel_calls=tf.data.AUTOTUNE) \
         .cache() \
         .padded_batch(8, padding_values=(tokenizer.padding_values, None)) \
         .prefetch(tf.data.AUTOTUNE)
