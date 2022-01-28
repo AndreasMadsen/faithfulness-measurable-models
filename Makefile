@@ -1,5 +1,5 @@
 
-.PHONY: sync upload-code-narval download-code-narval upload-code-graham download-code-graham
+.PHONY: noop upload-code-narval download-code-narval upload-code-graham download-code-graham
 
 noop:
 	echo "preventing default action"
