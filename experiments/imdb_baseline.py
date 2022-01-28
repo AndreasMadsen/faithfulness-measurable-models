@@ -9,7 +9,7 @@ from transformers import TFBertForSequenceClassification
 from ecoroar.util import generate_experiment_id
 from ecoroar.dataset import IMDBDataset
 from ecoroar.tokenizer import BertTokenizer
-from ecoroar.metric import AUROC
+from ecoroar.metric import AUROC, F1Score
 from ecoroar.transform import RandomMasking
 
 thisdir = path.dirname(path.realpath(__file__))
@@ -36,7 +36,7 @@ parser.add_argument('--model',
                     help='Model type to use')
 parser.add_argument('--max-masking-ratio',
                     action='store',
-                    default=0,
+                    default=0.0,
                     type=float,
                     help='The maximum masking ratio to apply on the training dataset')
 
@@ -84,7 +84,9 @@ if __name__ == '__main__':
         loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True, name='ce'),
         metrics=[
             tf.keras.metrics.SparseCategoricalAccuracy(name='acc'),
-            AUROC(name='auroc', from_logits=True)
+            AUROC(name='auroc', from_logits=True),
+            F1Score(num_classes=dataset.num_classes, average='macro', name='macro_f1'),
+            F1Score(num_classes=dataset.num_classes, average='micro', name='micro_f1')
         ]
     )
 
