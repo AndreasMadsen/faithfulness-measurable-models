@@ -18,46 +18,34 @@ def test_padding_values():
                                   np.array(0, np.int8))
 
 
-def test_tokenizer_consistency_single():
+def test_tokenizer_consistency():
     tokenizer_ref = BertTokenizerFast.from_pretrained("bert-base-cased", cache_dir='./cache/tokenizer')
     tokenizer_tf = BertTokenizer('bert-base-cased', persistent_dir='.')
     dataset = IMDBDataset(persistent_dir='.')
 
     for split in [dataset.train, dataset.valid, dataset.test]:
-        for example in split.take(10):
-            out_tf = tokenizer_tf(example['text'])
+        for example in split.take(2):
+            out_tf_single = tokenizer_tf(example['text'])
+            out_tf_batch = tokenizer_tf(tf.expand_dims(example['text'], 0))
             out_ref = tokenizer_ref(
                 example['text'].numpy().decode('utf-8'),
                 truncation=True, return_tensors='np'
             )
 
-            np.testing.assert_array_equal(out_tf['input_ids'].numpy(),
+            np.testing.assert_array_equal(out_tf_single['input_ids'].numpy(),
                                           out_ref['input_ids'][0].astype(np.int32))
-            np.testing.assert_array_equal(out_tf['token_type_ids'].numpy(),
+            np.testing.assert_array_equal(out_tf_batch['input_ids'][0, :].numpy(),
+                                          out_ref['input_ids'][0].astype(np.int32))
+
+            np.testing.assert_array_equal(out_tf_single['token_type_ids'].numpy(),
                                           out_ref['token_type_ids'][0].astype(np.int8))
-            np.testing.assert_array_equal(out_tf['attention_mask'].numpy(),
+            np.testing.assert_array_equal(out_tf_batch['token_type_ids'][0, :].numpy(),
+                                          out_ref['token_type_ids'][0].astype(np.int8))
+
+            np.testing.assert_array_equal(out_tf_single['attention_mask'].numpy(),
                                           out_ref['attention_mask'][0].astype(np.int8))
-
-
-def test_tokenizer_consistency_batch():
-    tokenizer_ref = BertTokenizerFast.from_pretrained("bert-base-cased", cache_dir='./cache/tokenizer')
-    tokenizer_tf = BertTokenizer('bert-base-cased', persistent_dir='.')
-    dataset = IMDBDataset(persistent_dir='.')
-
-    for split in [dataset.train, dataset.valid, dataset.test]:
-        for example in split.batch(1).take(10):
-            out_tf = tokenizer_tf(example['text'])
-            out_ref = tokenizer_ref(
-                map(lambda x: x.decode('utf-8'), example['text'].numpy().tolist()),
-                truncation=True, return_tensors='np'
-            )
-
-            np.testing.assert_array_equal(out_tf['input_ids'].numpy(),
-                                          out_ref['input_ids'].astype(np.int32))
-            np.testing.assert_array_equal(out_tf['token_type_ids'].numpy(),
-                                          out_ref['token_type_ids'].astype(np.int8))
-            np.testing.assert_array_equal(out_tf['attention_mask'].numpy(),
-                                          out_ref['attention_mask'].astype(np.int8))
+            np.testing.assert_array_equal(out_tf_batch['attention_mask'][0, :].numpy(),
+                                          out_ref['attention_mask'][0].astype(np.int8))
 
 
 def test_tokenizer_cardinality_kept():
