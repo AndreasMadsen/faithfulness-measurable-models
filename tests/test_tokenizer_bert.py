@@ -1,5 +1,4 @@
 
-import pytest
 import numpy as np
 import tensorflow as tf
 
@@ -7,6 +6,7 @@ from transformers import BertTokenizerFast
 
 from ecoroar.dataset import IMDBDataset
 from ecoroar.tokenizer import BertTokenizer
+
 
 def test_padding_values():
     tokenizer = BertTokenizer('bert-base-cased', persistent_dir='.')
@@ -17,8 +17,9 @@ def test_padding_values():
     np.testing.assert_array_equal(tokenizer.padding_values['attention_mask'].numpy(),
                                   np.array(0, np.int8))
 
+
 def test_tokenizer_consistency_single():
-    tokenizer_ref = BertTokenizerFast.from_pretrained("bert-base-cased", cache_dir=f'./cache/tokenizer')
+    tokenizer_ref = BertTokenizerFast.from_pretrained("bert-base-cased", cache_dir='./cache/tokenizer')
     tokenizer_tf = BertTokenizer('bert-base-cased', persistent_dir='.')
     dataset = IMDBDataset(persistent_dir='.')
 
@@ -37,8 +38,9 @@ def test_tokenizer_consistency_single():
             np.testing.assert_array_equal(out_tf['attention_mask'].numpy(),
                                           out_ref['attention_mask'][0].astype(np.int8))
 
+
 def test_tokenizer_consistency_batch():
-    tokenizer_ref = BertTokenizerFast.from_pretrained("bert-base-cased", cache_dir=f'./cache/tokenizer')
+    tokenizer_ref = BertTokenizerFast.from_pretrained("bert-base-cased", cache_dir='./cache/tokenizer')
     tokenizer_tf = BertTokenizer('bert-base-cased', persistent_dir='.')
     dataset = IMDBDataset(persistent_dir='.')
 
@@ -56,6 +58,7 @@ def test_tokenizer_consistency_batch():
                                           out_ref['token_type_ids'].astype(np.int8))
             np.testing.assert_array_equal(out_tf['attention_mask'].numpy(),
                                           out_ref['attention_mask'].astype(np.int8))
+
 
 def test_tokenizer_cardinality_kept():
     tokenizer = BertTokenizer('bert-base-cased', persistent_dir='.')

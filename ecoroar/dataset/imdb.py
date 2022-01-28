@@ -5,8 +5,9 @@ from typing import Tuple
 import tensorflow as tf
 import tensorflow_datasets as tfds
 
+
 class IMDBDataset:
-    def __init__(self, persistent_dir: str, seed: int=0):
+    def __init__(self, persistent_dir: str, seed: int = 0):
         """Create IMDB dataset
 
         Args:

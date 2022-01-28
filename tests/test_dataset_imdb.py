@@ -1,6 +1,6 @@
-import pytest
 
 from ecoroar.dataset import IMDBDataset
+
 
 def test_imdb_info():
     dataset_tf = IMDBDataset(persistent_dir='.')

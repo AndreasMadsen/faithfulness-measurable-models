@@ -2,6 +2,7 @@
 import tensorflow as tf
 import tensorflow_addons as tfa
 
+
 class F1Score(tfa.metrics.F1Score):
     """Make tfa.metrics.F1Score compatiable with sparse labels
 
@@ -12,7 +13,7 @@ class F1Score(tfa.metrics.F1Score):
     """
 
     @tf.function
-    def update_state(self, y_true: tf.Tensor, y_pred: tf.Tensor, sample_weight: tf.Tensor=None):
+    def update_state(self, y_true: tf.Tensor, y_pred: tf.Tensor, sample_weight: tf.Tensor = None):
         """Accumulates statistics for the F1-score metric.
 
         Args:

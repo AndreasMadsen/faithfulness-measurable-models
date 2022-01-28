@@ -19,5 +19,8 @@ if __name__ == "__main__":
     dataset = IMDBDataset(persistent_dir=args.persistent_dir)
     dataset.download()
     tokenizer = BertTokenizer('bert-base-cased', persistent_dir=args.persistent_dir)
-    model = TFBertForSequenceClassification.from_pretrained('bert-base-cased',
-        num_labels=dataset.num_classes, cache_dir=f'{args.persistent_dir}/download/transformers')
+    model = TFBertForSequenceClassification.from_pretrained(
+        'bert-base-cased',
+        num_labels=dataset.num_classes,
+        cache_dir=f'{args.persistent_dir}/download/transformers'
+    )

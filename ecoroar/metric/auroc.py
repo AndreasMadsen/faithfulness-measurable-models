@@ -1,6 +1,7 @@
 
 import tensorflow as tf
 
+
 class AUROC(tf.keras.metrics.AUC):
     """Make keras.metrics.AUC compatiable for two-class outputs
 
@@ -11,7 +12,7 @@ class AUROC(tf.keras.metrics.AUC):
     """
 
     @tf.function
-    def update_state(self, y_true: tf.Tensor, y_pred: tf.Tensor, sample_weight: tf.Tensor=None):
+    def update_state(self, y_true: tf.Tensor, y_pred: tf.Tensor, sample_weight: tf.Tensor = None):
         """Accumulates confusion matrix statistics.
 
         Args:

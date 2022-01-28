@@ -3,8 +3,9 @@ import tensorflow as tf
 
 from ..types import TokenizedDict
 
+
 class RandomMasking:
-    def __init__(self, max_masking_ratio: float, tokenizer, seed: int=None):
+    def __init__(self, max_masking_ratio: float, tokenizer, seed: int = None):
         """Masks the input
 
         The masking procedure is:

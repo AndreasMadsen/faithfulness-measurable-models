@@ -7,6 +7,7 @@ import transformers
 
 from ..types import TokenizedDict
 
+
 class BertTokenizer:
     def __init__(self, model_name: str, persistent_dir: str):
         """Creates a tensorflow tokenizer compatiable with transformers.FastBertTokenizer
@@ -37,7 +38,9 @@ class BertTokenizer:
         self.max_len_single_sentence = tf.constant(ref.max_len_single_sentence, tf.dtypes.int32)
         self.max_len_sentences_pair = tf.constant(ref.max_len_sentences_pair, tf.dtypes.int32)
 
-        self._vocabulary = [ ref.ids_to_tokens[i] for i in range(len(ref.vocab)) ]
+        self._vocabulary = [
+            ref.ids_to_tokens[i] for i in range(len(ref.vocab))
+        ]
         self._tokenizer = tftx.FastWordpieceTokenizer(
             self._vocabulary,
             suffix_indicator='##',
@@ -99,9 +102,11 @@ class BertTokenizer:
         ids = ids[..., :self.max_len_single_sentence]
 
         # add [CLS] and [SEP] token
-        ids = tftx.pad_along_dimension(ids,
+        ids = tftx.pad_along_dimension(
+            ids,
             left_pad=tf.expand_dims(self.cls_token_id, -1),
-            right_pad=tf.expand_dims(self.sep_token_id, -1))
+            right_pad=tf.expand_dims(self.sep_token_id, -1)
+        )
 
         return ids
 

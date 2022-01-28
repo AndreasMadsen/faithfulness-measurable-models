@@ -1,5 +1,5 @@
 
-def generate_experiment_id(name: str, seed: int=None, max_masking_ratio: int=None):
+def generate_experiment_id(name: str, seed: int = None, max_masking_ratio: int = None):
     """Creates a standardized experiment name.
 
     The format is

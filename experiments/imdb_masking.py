@@ -2,7 +2,6 @@ import os
 import os.path as path
 import argparse
 import json
-from functools import partial
 
 import tensorflow as tf
 from transformers import TFBertForSequenceClassification
@@ -32,7 +31,7 @@ parser.add_argument('--max-epochs',
                     help='The max number of epochs to use')
 parser.add_argument('--model',
                     action='store',
-                    default='base-cased', # bert_uncased_L-2_H-128_A-2
+                    default='base-cased',  # bert_uncased_L-2_H-128_A-2
                     type=str,
                     help='Model type to use')
 parser.add_argument('--max-masking-ratio',
@@ -51,8 +50,11 @@ if __name__ == '__main__':
 
     dataset = IMDBDataset(persistent_dir=args.persistent_dir, seed=args.seed)
     tokenizer = BertTokenizer(f'bert-{args.model}', persistent_dir=args.persistent_dir)
-    model = TFBertForSequenceClassification.from_pretrained(f'bert-{args.model}',
-        num_labels=dataset.num_classes, cache_dir=f'{args.persistent_dir}/download/transformers')
+    model = TFBertForSequenceClassification.from_pretrained(
+        f'bert-{args.model}',
+        num_labels=dataset.num_classes,
+        cache_dir=f'{args.persistent_dir}/download/transformers'
+    )
     masker = RandomMasking(args.max_masking_ratio / 100, tokenizer, seed=args.seed)
 
     dataset_train = dataset.train \
