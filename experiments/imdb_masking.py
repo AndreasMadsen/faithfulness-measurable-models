@@ -1,6 +1,7 @@
 import os
 import os.path as path
 import argparse
+import json
 from functools import partial
 
 import tensorflow as tf
@@ -36,9 +37,9 @@ parser.add_argument('--model',
                     help='Model type to use')
 parser.add_argument('--max-masking-ratio',
                     action='store',
-                    default=0.0,
-                    type=float,
-                    help='The maximum masking ratio to apply on the training dataset')
+                    default=0,
+                    type=int,
+                    help='The maximum masking ratio (percentage integer) to apply on the training dataset')
 
 if __name__ == '__main__':
     args = parser.parse_args()
@@ -46,13 +47,13 @@ if __name__ == '__main__':
     os.environ['TF_DETERMINISTIC_OPS'] = '1'
     tf.keras.utils.set_random_seed(args.seed)
 
-    experiment_id = generate_experiment_id('imdb', seed=args.seed)
+    experiment_id = generate_experiment_id('imdb', seed=args.seed, max_masking_ratio=args.max_masking_ratio)
 
     dataset = IMDBDataset(persistent_dir=args.persistent_dir, seed=args.seed)
     tokenizer = BertTokenizer(f'bert-{args.model}', persistent_dir=args.persistent_dir)
     model = TFBertForSequenceClassification.from_pretrained(f'bert-{args.model}',
-        num_labels=dataset.num_classes, cache_dir=f'{args.persistent_dir}/cache/transformers')
-    masker = RandomMasking(args.max_masking_ratio, tokenizer, seed=args.seed)
+        num_labels=dataset.num_classes, cache_dir=f'{args.persistent_dir}/download/transformers')
+    masker = RandomMasking(args.max_masking_ratio / 100, tokenizer, seed=args.seed)
 
     dataset_train = dataset.train \
         .map(lambda item: (tokenizer(item['text']), item['label']),
@@ -106,6 +107,6 @@ if __name__ == '__main__':
     results = model.evaluate(dataset_test, return_dict=True)
     print(results)
 
-    os.makedirs(f'{args.persistent_dir}/results/', exist_ok=True)
-    with open(f'{args.persistent_dir}/results/{experiment_id}.json', "w") as f:
+    os.makedirs(f'{args.persistent_dir}/results/masking-effect/', exist_ok=True)
+    with open(f'{args.persistent_dir}/results/masking-effect/{experiment_id}.json', "w") as f:
         json.dump({'dataset': dataset.name, **args, **results}, f)
