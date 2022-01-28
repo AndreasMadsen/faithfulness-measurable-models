@@ -1,5 +1,5 @@
 # Load modules
-module load python/3.8.10 gcc/9.3.0 arrow/5.0.0
+module load python/3.8.10 gcc/9.3.0
 
 # Create environment
 TMP_ENV=$(mktemp -d)
