@@ -1,11 +1,24 @@
 from functools import cached_property
+from typing import List, Union
 
 import tensorflow as tf
 import tensorflow_text as tftx
 import transformers
 
+from ..types import TokenizedDict
+
 class BertTokenizer:
-    def __init__(self, model_name, persistent_dir):
+    def __init__(self, model_name: str, persistent_dir: str):
+        """Creates a tensorflow tokenizer compatiable with transformers.FastBertTokenizer
+
+        The behavior of this similar to transformers.FastBertTokenizer. However,
+        it uses tensorflow native calls to tokenize to avoid crossing the python-C
+        language boundary, i.e. it is faster.
+
+        Args:
+            model_name (str): The model name as provided to transformers.FastBertTokenizer
+            persistent_dir (str): Persistent directory where the tokenizer will be downloaded to
+        """
         ref = transformers.BertTokenizer.from_pretrained(
             model_name,
             cache_dir=f'{persistent_dir}/download/tokenizer')
@@ -33,11 +46,21 @@ class BertTokenizer:
             support_detokenization=True)
 
     @cached_property
-    def vocab_size(self):
+    def vocab_size(self) -> tf.Tensor:
+        """Vocabulary size
+        """
         return tf.constant(len(self._vocabulary), tf.dtypes.int32)
 
     @cached_property
-    def padding_values(self):
+    def padding_values(self) -> TokenizedDict:
+        """Padding values to use
+
+        This is useful in the context of tf.data.Dataset.padded_batch. For example:
+
+            dataset.
+                .padding_values(batch_size,
+                                padding_values=(tokenizer.padding_values, None))
+        """
         return {
             'input_ids': self.pad_token_id,
             'token_type_ids': self.pad_token_id,
@@ -45,16 +68,29 @@ class BertTokenizer:
         }
 
     @property
-    def vocab(self):
+    def vocab(self) -> List[str]:
+        """Return vocabulary
+        """
         return list(self._vocabulary)
 
     @tf.function
-    def encode(self, text):
+    def encode(self, text: tf.Tensor) -> Union[tf.RaggedTensor, tf.Tensor]:
+        """Tokenizes and encodes a text tensor
+
+        Args:
+            text (tf.Tensor): text tensor, can be batched
+
+        Returns:
+            Union[tf.RaggedTensor, tf.Tensor]: tensor of token ids, ragged if input is batched
+        """
         # Remove control charecters
         # soft-hyphen: [\xad]
         # control charecters: [\x00-\x1f\x7f-\x9f]
         # private use area: [\x{E000}-\x{F8FF}]
-        text = tf.strings.regex_replace(text, r'[\x{00ad}\x{0000}-\x{001f}\x{007f}-\x{009f}\x{E000}-\x{F8FF}]', r'')
+        text = tf.strings.regex_replace(
+            input=text,
+            pattern=r'[\x{00ad}\x{0000}-\x{001f}\x{007f}-\x{009f}\x{E000}-\x{F8FF}]',
+            rewrite=r'')
 
         # This returns a RaggedTensor of tf.string elements
         ids = self._tokenizer.tokenize(text)
@@ -70,7 +106,15 @@ class BertTokenizer:
         return ids
 
     @tf.function
-    def __call__(self, text):
+    def __call__(self, text: tf.Tensor) -> TokenizedDict:
+        """Tokenizes and encodes text, then annotates with the type and mask
+
+        Args:
+            text (tf.Tensor): text tensor, can be batched
+
+        Returns:ø
+            TokenizedDict: Dict of input_ids, token_type_ids, and attention_mask
+        """
         input_ids = self.encode(text)
         return {
             'input_ids': input_ids,
@@ -79,7 +123,15 @@ class BertTokenizer:
         }
 
     @tf.function
-    def decode(self, ids):
+    def decode(self, ids: tf.Tensor) -> tf.Tensor:
+        """Decode token ids
+
+        Args:
+            ids (tf.Tensor): token ids
+
+        Returns:
+            tf.Tensor: decoded token ids as a text tensor
+        """
         # Compute sequence length for each observation
         ids_with_safe_eos = tf.concat([
             ids,

@@ -79,7 +79,6 @@ if __name__ == '__main__':
         .padded_batch(8, padding_values=(tokenizer.padding_values, None)) \
         .prefetch(tf.data.AUTOTUNE)
 
-    # TODO: add macro and micro F1Scores when compute-canada issue regarding tensorflow_addons is solved
     model.compile(
         optimizer=tf.keras.optimizers.Adam(learning_rate=5e-5),
         loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True, name='ce'),
