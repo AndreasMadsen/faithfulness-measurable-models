@@ -8,7 +8,7 @@ class BertTokenizer:
     def __init__(self, model_name, persistent_dir):
         ref = transformers.BertTokenizer.from_pretrained(
             model_name,
-            cache_dir=f'{persistent_dir}/cache/tokenizer')
+            cache_dir=f'{persistent_dir}/download/tokenizer')
 
         self.unk_token = ref.unk_token
         self.unk_token_id = tf.constant(ref.unk_token_id, tf.dtypes.int32)

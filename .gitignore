@@ -1,6 +1,9 @@
 # project specific
 cache/
 results/
+tensorboard/
+checkpoints/
+download/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

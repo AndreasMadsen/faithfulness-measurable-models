@@ -20,4 +20,4 @@ if __name__ == "__main__":
     dataset.download()
     tokenizer = BertTokenizer('bert-base-cased', persistent_dir=args.persistent_dir)
     model = TFBertForSequenceClassification.from_pretrained('bert-base-cased',
-        num_labels=dataset.num_classes, cache_dir=f'{args.persistent_dir}/cache/transformers')
+        num_labels=dataset.num_classes, cache_dir=f'{args.persistent_dir}/download/transformers')
