@@ -19,6 +19,12 @@ class IMDBDataset:
         self._seed = seed
 
     @property
+    def name(self) -> str:
+        """Name of the dataset
+        """
+        return "imdb"
+
+    @property
     def info(self) -> tfds.core.DatasetInfo:
         """Standard information object
         """

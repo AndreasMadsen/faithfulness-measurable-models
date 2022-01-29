@@ -110,4 +110,4 @@ if __name__ == '__main__':
 
     os.makedirs(f'{args.persistent_dir}/results/masking-effect/', exist_ok=True)
     with open(f'{args.persistent_dir}/results/masking-effect/{experiment_id}.json', "w") as f:
-        json.dump({'dataset': dataset.name, **args, **results}, f)
+        json.dump({'dataset': dataset.name, **vars(args), **results}, f)
