@@ -4,6 +4,10 @@
 noop:
 	echo "preventing default action"
 
+download-results-narval:
+	rsync --info=progress2 -urltv --delete \
+		-e ssh cc-narval:~/scratch/ecoroar/results/ ./results
+
 upload-code-narval:
 	rsync --info=progress2 -urltv --delete \
 		--filter=':- .gitignore' --exclude='.git/' \

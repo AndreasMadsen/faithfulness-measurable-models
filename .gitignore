@@ -4,6 +4,8 @@ results/
 tensorboard/
 checkpoints/
 download/
+pandas/
+plots/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
