@@ -101,7 +101,7 @@ if __name__ == "__main__":
     if args.stage in ['preprocess']:
         os.makedirs(f'{args.persistent_dir}/pandas', exist_ok=True)
         df.to_pickle(f'{args.persistent_dir}/pandas/masking-effect.pd.pkl.xz')
-    if args.stage in ['plot']:
+    elif args.stage in ['plot']:
         df = pd.read_pickle(f'{args.persistent_dir}/pandas/masking-effect.pd.pkl.xz')
 
     if args.stage in ['both', 'plot']:

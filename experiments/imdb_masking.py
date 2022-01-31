@@ -89,7 +89,8 @@ if __name__ == '__main__':
             AUROC(name='auroc', from_logits=True),
             F1Score(num_classes=dataset.num_classes, average='macro', name='macro_f1'),
             F1Score(num_classes=dataset.num_classes, average='micro', name='micro_f1')
-        ]
+        ],
+        run_eagerly=False
     )
 
     model.fit(dataset_train, validation_data=dataset_valid, epochs=args.max_epochs, callbacks=[

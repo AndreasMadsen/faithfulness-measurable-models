@@ -11,7 +11,7 @@ class IMDBDataset:
         """Create IMDB dataset
 
         Args:
-            persistent_dir (str): Presistent directory, used for storing the dataset
+            persistent_dir (str): Persistent directory, used for storing the dataset
             seed (int, optional): Random seed used for initial shuffling. Defaults to 0.
         """
         self._persistent_dir = persistent_dir

@@ -10,9 +10,9 @@ from ..types import TokenizedDict
 
 class BertTokenizer:
     def __init__(self, model_name: str, persistent_dir: str):
-        """Creates a tensorflow tokenizer compatiable with transformers.FastBertTokenizer
+        """Creates a tensorflow tokenizer compatible with transformers.FastBertTokenizer
 
-        The behavior of this similar to transformers.FastBertTokenizer. However,
+        The behavior of this is similar to transformers.FastBertTokenizer. However,
         it uses tensorflow native calls to tokenize to avoid crossing the python-C
         language boundary, i.e. it is faster.
 
@@ -86,9 +86,9 @@ class BertTokenizer:
         Returns:
             Union[tf.RaggedTensor, tf.Tensor]: tensor of token ids, ragged if input is batched
         """
-        # Remove control charecters
+        # Remove control characters
         # soft-hyphen: [\xad]
-        # control charecters: [\x00-\x1f\x7f-\x9f]
+        # control characters: [\x00-\x1f\x7f-\x9f]
         # private use area: [\x{E000}-\x{F8FF}]
         text = tf.strings.regex_replace(
             input=text,
