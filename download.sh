@@ -9,7 +9,7 @@ source $TMP_ENV/env/bin/activate
 # Download package dependencies
 mkdir -p $HOME/python_wheels
 cd $HOME/python_wheels
-pip3 download --no-deps datasets transformers
+pip3 download --no-deps transformers
 
 # Install project
 cd $HOME/workspace/economical-roar
