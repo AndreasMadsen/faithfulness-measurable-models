@@ -53,6 +53,5 @@ class RandomMasking:
 
         return {
             'input_ids': input_ids,
-            'token_type_ids': x['token_type_ids'],
             'attention_mask': attention_mask
         }
