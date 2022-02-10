@@ -4,13 +4,15 @@ import argparse
 import json
 
 import tensorflow as tf
-from transformers import TFBertForSequenceClassification
+from transformers import TFAutoModelForSequenceClassification
 
 from ecoroar.util import generate_experiment_id
 from ecoroar.dataset import IMDBDataset
-from ecoroar.tokenizer import BertTokenizer
+from ecoroar.tokenizer import HuggingfaceTokenizer
 from ecoroar.metric import AUROC, F1Score
 from ecoroar.transform import RandomMasking
+from ecoroar.optimizer import AdamW
+from ecoroar.scheduler import LinearSchedule
 
 thisdir = path.dirname(path.realpath(__file__))
 parser = argparse.ArgumentParser()
@@ -31,9 +33,19 @@ parser.add_argument('--max-epochs',
                     help='The max number of epochs to use')
 parser.add_argument('--model',
                     action='store',
-                    default='base-cased',  # bert_uncased_L-2_H-128_A-2
+                    default='roberta-base',
                     type=str,
                     help='Model type to use')
+parser.add_argument('--weight-decay',
+                    action='store',
+                    default=0.01,
+                    type=float,
+                    help='Weight decay')
+parser.add_argument('--lr',
+                    action='store',
+                    default=2e-5,
+                    type=float,
+                    help='Learning rate')
 parser.add_argument('--max-masking-ratio',
                     action='store',
                     default=0,
@@ -46,12 +58,12 @@ if __name__ == '__main__':
     os.environ['TF_DETERMINISTIC_OPS'] = '1'
     tf.keras.utils.set_random_seed(args.seed)
 
-    experiment_id = generate_experiment_id('imdb', seed=args.seed, max_masking_ratio=args.max_masking_ratio)
+    experiment_id = generate_experiment_id('imdb-masking', seed=args.seed, max_masking_ratio=args.max_masking_ratio)
 
     dataset = IMDBDataset(persistent_dir=args.persistent_dir, seed=args.seed)
-    tokenizer = BertTokenizer(f'bert-{args.model}', persistent_dir=args.persistent_dir)
-    model = TFBertForSequenceClassification.from_pretrained(
-        f'bert-{args.model}',
+    tokenizer = HuggingfaceTokenizer(args.model, persistent_dir=args.persistent_dir)
+    model = TFAutoModelForSequenceClassification.from_pretrained(
+        args.model,
         num_labels=dataset.num_classes,
         cache_dir=f'{args.persistent_dir}/download/transformers'
     )
@@ -82,7 +94,13 @@ if __name__ == '__main__':
         .prefetch(tf.data.AUTOTUNE)
 
     model.compile(
-        optimizer=tf.keras.optimizers.Adam(learning_rate=5e-5),
+        optimizer=AdamW(
+            learning_rate=LinearSchedule(
+                learning_rate=args.lr,
+                num_training_steps=args.max_epochs * len(dataset_train)
+            ),
+            weight_decay=args.weight_decay
+        ),
         loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True, name='ce'),
         metrics=[
             tf.keras.metrics.SparseCategoricalAccuracy(name='acc'),

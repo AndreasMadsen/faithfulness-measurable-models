@@ -1,9 +1,9 @@
 import argparse
 import os.path as path
 
-from transformers import TFBertForSequenceClassification
+from transformers import TFAutoModel
 from ecoroar.dataset import IMDBDataset
-from ecoroar.tokenizer import BertTokenizer
+from ecoroar.tokenizer import BertTokenizer, HuggingfaceTokenizer
 
 thisdir = path.dirname(path.realpath(__file__))
 parser = argparse.ArgumentParser()
@@ -18,9 +18,12 @@ if __name__ == "__main__":
 
     dataset = IMDBDataset(persistent_dir=args.persistent_dir)
     dataset.download()
+
     tokenizer = BertTokenizer('bert-base-cased', persistent_dir=args.persistent_dir)
-    model = TFBertForSequenceClassification.from_pretrained(
-        'bert-base-cased',
-        num_labels=dataset.num_classes,
-        cache_dir=f'{args.persistent_dir}/download/transformers'
-    )
+
+    for model_name in ['bert-base-cased', 'roberta-base']:
+        tokenizer = HuggingfaceTokenizer(model_name, persistent_dir=args.persistent_dir)
+        model = TFAutoModel.from_pretrained(
+            model_name,
+            cache_dir=f'{args.persistent_dir}/download/transformers'
+        )
