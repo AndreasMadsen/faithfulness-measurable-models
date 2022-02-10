@@ -9,7 +9,7 @@ from ..types import TokenizedDict
 
 class HuggingfaceTokenizer:
     def __init__(self, model_name: str, persistent_dir: str):
-        """Wrapper for a huggingface tokenizer, retrived via transformers.AutoTokenizer
+        """Wrapper for a huggingface tokenizer, retrieved via transformers.AutoTokenizer
 
         Args:
             model_name (str): the model name as input to transformers.AutoTokenizer

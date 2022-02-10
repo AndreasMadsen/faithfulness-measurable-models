@@ -9,7 +9,7 @@ class AdamW(AdamWeightDecay):
     def __init__(self, learning_rate: Union[float, tf.keras.optimizers.schedules.LearningRateSchedule],
                  weight_decay: float = 0.01, epsilon: float = 1e-8,
                  exclude_from_weight_decay: List[str] = ["LayerNorm", "layer_norm", "bias"], **kwargs):
-        """Wrapper on AdamWeightDecay, sets parameter exclution and learning-rate scheduler
+        """Wrapper on AdamWeightDecay, sets parameter exclusion and learning-rate scheduler
 
         * excludes bias and layer normalization parameters from the weight_decay
         * creates a linear schedule to scale the learning_rate
