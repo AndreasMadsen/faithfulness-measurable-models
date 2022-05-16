@@ -15,9 +15,9 @@ def generate_experiment_id(name: str, dataset: str = None, seed: int = None, max
     Returns:
         str: the experiment identifier
     """
-    experiment_id = f"{name}"
+    experiment_id = f"{name.lower()}"
     if isinstance(dataset, str):
-        experiment_id += f"_d-{dataset}"
+        experiment_id += f"_d-{dataset.lower()}"
     if isinstance(seed, int):
         experiment_id += f"_s-{seed}"
     if isinstance(max_masking_ratio, int):
