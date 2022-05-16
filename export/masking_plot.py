@@ -117,9 +117,12 @@ if __name__ == "__main__":
                               color='black', alpha=0.3, width=1, data=df.reset_index())
              + p9.labs(y='Macro F1', shape='', x='Max masking ratio')
              + p9.scale_y_continuous(labels=lambda ticks: [f'{tick:.0%}' for tick in ticks])
-             + p9.scale_x_continuous(labels=lambda ticks: [f'{tick:.0f}%' for tick in ticks]))
+             + p9.scale_x_continuous(labels=lambda ticks: [f'{tick:.0f}%' for tick in ticks])
+             + p9.scale_color_discrete(guide=False)
+             + p9.scale_fill_discrete(guide=False)
+             + p9.scale_shape_discrete(guide=False))
 
         # Save plot, the width is the \linewidth of a collumn in the LaTeX document
         os.makedirs(f'{args.persistent_dir}/plots', exist_ok=True)
-        p.save(f'{args.persistent_dir}/plots/imdb-masking.pdf', width=6.30045 + 0.2, height=7, units='in')
-        p.save(f'{args.persistent_dir}/plots/imdb-masking.png', width=6.30045 + 0.2, height=7, units='in')
+        p.save(f'{args.persistent_dir}/plots/imdb-masking.pdf', width=6.30045 + 0.2, height=3, units='in')
+        p.save(f'{args.persistent_dir}/plots/imdb-masking.png', width=6.30045 + 0.2, height=3, units='in')
