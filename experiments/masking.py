@@ -1,5 +1,6 @@
 import os
-import os.path as path
+import sys
+import pathlib
 import argparse
 import json
 
@@ -7,19 +8,18 @@ import tensorflow as tf
 from transformers import TFAutoModelForSequenceClassification
 
 from ecoroar.util import generate_experiment_id
-from ecoroar.dataset import IMDBDataset
+from ecoroar.dataset import datasets
 from ecoroar.tokenizer import HuggingfaceTokenizer
 from ecoroar.metric import AUROC, F1Score
 from ecoroar.transform import RandomMasking
 from ecoroar.optimizer import AdamW
 from ecoroar.scheduler import LinearSchedule
 
-thisdir = path.dirname(path.realpath(__file__))
 parser = argparse.ArgumentParser()
 parser.add_argument('--persistent-dir',
                     action='store',
-                    default=path.realpath(path.join(thisdir, '..')),
-                    type=str,
+                    default= pathlib.Path(__file__).absolute().parent.parent,
+                    type=pathlib.Path,
                     help='Directory where all persistent data will be stored')
 parser.add_argument('--seed',
                     action='store',
@@ -36,6 +36,11 @@ parser.add_argument('--model',
                     default='roberta-base',
                     type=str,
                     help='Model type to use')
+parser.add_argument('--dataset',
+                    action='store',
+                    default='IMDB',
+                    type=str,
+                    help='The dataset to fine-tune on')
 parser.add_argument('--weight-decay',
                     action='store',
                     default=0.01,
@@ -46,21 +51,36 @@ parser.add_argument('--lr',
                     default=2e-5,
                     type=float,
                     help='Learning rate')
+parser.add_argument('--deterministic',
+                    action='store_true',
+                    default=False,
+                    help='Use determinstic computations')
 parser.add_argument('--max-masking-ratio',
                     action='store',
                     default=0,
                     type=int,
                     help='The maximum masking ratio (percentage integer) to apply on the training dataset')
 
+parser.add_argument('--experiment-name',
+                    action='store_true',
+                    default=False,
+                    help='Output the experiment name, do nothing else.')
+
 if __name__ == '__main__':
     args = parser.parse_args()
-    # tf.config.experimental.enable_op_determinism()
-    os.environ['TF_DETERMINISTIC_OPS'] = '1'
+
+    experiment_id = generate_experiment_id('masking',
+        dataset=args.dataset, seed=args.seed, max_masking_ratio=args.max_masking_ratio
+    )
+    if args.experiment_name:
+        print(experiment_id)
+        sys.exit(0)
+
+    if args.deterministic:
+        tf.config.experimental.enable_op_determinism()
     tf.keras.utils.set_random_seed(args.seed)
 
-    experiment_id = generate_experiment_id('imdb-masking', seed=args.seed, max_masking_ratio=args.max_masking_ratio)
-
-    dataset = IMDBDataset(persistent_dir=args.persistent_dir, seed=args.seed)
+    dataset = datasets[args.dataset](persistent_dir=args.persistent_dir, seed=args.seed)
     tokenizer = HuggingfaceTokenizer(args.model, persistent_dir=args.persistent_dir)
     model = TFAutoModelForSequenceClassification.from_pretrained(
         args.model,
@@ -127,6 +147,6 @@ if __name__ == '__main__':
     results = model.evaluate(dataset_test, return_dict=True)
     print(results)
 
-    os.makedirs(f'{args.persistent_dir}/results/masking-effect/', exist_ok=True)
-    with open(f'{args.persistent_dir}/results/masking-effect/{experiment_id}.json', "w") as f:
+    os.makedirs(f'{args.persistent_dir}/results/masking/', exist_ok=True)
+    with open(f'{args.persistent_dir}/results/masking/{experiment_id}.json', "w") as f:
         json.dump({'dataset': dataset.name, **vars(args), **results}, f)
