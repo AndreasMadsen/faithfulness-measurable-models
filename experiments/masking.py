@@ -71,10 +71,6 @@ parser.add_argument('--max-masking-ratio',
                     default=0,
                     type=int,
                     help='The maximum masking ratio (percentage integer) to apply on the training dataset')
-parser.add_argument('--experiment-name',
-                    action='store_true',
-                    default=False,
-                    help='Output the experiment name, do nothing else.')
 
 if __name__ == '__main__':
     args = parser.parse_args()
