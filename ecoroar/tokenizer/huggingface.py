@@ -37,11 +37,7 @@ class HuggingfaceTokenizer:
         self.mask_token = self._tokenizer.mask_token
         self.mask_token_id = tf.constant(self._tokenizer.mask_token_id, tf.dtypes.int32)
 
-    @cached_property
-    def kept_tokens(self) -> tf.Tensor:
-        """These tokens should never be removed
-        """
-        return tf.constant([
+        self.kept_tokens = tf.constant([
             self._tokenizer.bos_token_id,
             self._tokenizer.sep_token_id,
             self._tokenizer.eos_token_id
