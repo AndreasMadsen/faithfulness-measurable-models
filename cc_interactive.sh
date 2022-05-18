@@ -18,9 +18,10 @@ python -m pip install --no-index -U pip
 python -m pip install --no-index --find-links $HOME/python_wheels -e .
 
 # Offline mode
-#export HF_DATASETS_OFFLINE=1
-#export TRANSFORMERS_OFFLINE=1
+export HF_DATASETS_OFFLINE=1
+export TRANSFORMERS_OFFLINE=1
 export NO_GCE_CHECK=true
+export TF_CPP_MIN_LOG_LEVEL=1
 
 # Run code
 py () {
