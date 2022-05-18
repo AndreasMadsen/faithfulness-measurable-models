@@ -5,11 +5,10 @@ import argparse
 import json
 
 import tensorflow as tf
-from transformers import TFAutoModelForSequenceClassification
-
 from ecoroar.util import generate_experiment_id
 from ecoroar.dataset import datasets
 from ecoroar.tokenizer import HuggingfaceTokenizer
+from ecoroar.model import HuggingfaceModel
 from ecoroar.metric import AUROC, F1Score
 from ecoroar.transform import RandomMasking
 from ecoroar.optimizer import AdamW
@@ -18,7 +17,7 @@ from ecoroar.scheduler import LinearSchedule
 parser = argparse.ArgumentParser()
 parser.add_argument('--persistent-dir',
                     action='store',
-                    default= pathlib.Path(__file__).absolute().parent.parent,
+                    default=pathlib.Path(__file__).absolute().parent.parent,
                     type=pathlib.Path,
                     help='Directory where all persistent data will be stored')
 parser.add_argument('--seed',
@@ -60,7 +59,6 @@ parser.add_argument('--max-masking-ratio',
                     default=0,
                     type=int,
                     help='The maximum masking ratio (percentage integer) to apply on the training dataset')
-
 parser.add_argument('--experiment-name',
                     action='store_true',
                     default=False,
@@ -69,7 +67,8 @@ parser.add_argument('--experiment-name',
 if __name__ == '__main__':
     args = parser.parse_args()
 
-    experiment_id = generate_experiment_id('masking',
+    experiment_id = generate_experiment_id(
+        'masking',
         dataset=args.dataset, seed=args.seed, max_masking_ratio=args.max_masking_ratio
     )
     if args.experiment_name:
@@ -82,33 +81,25 @@ if __name__ == '__main__':
 
     dataset = datasets[args.dataset](persistent_dir=args.persistent_dir, seed=args.seed)
     tokenizer = HuggingfaceTokenizer(args.model, persistent_dir=args.persistent_dir)
-    model = TFAutoModelForSequenceClassification.from_pretrained(
-        args.model,
-        num_labels=dataset.num_classes,
-        cache_dir=f'{args.persistent_dir}/download/transformers'
-    )
+    model = HuggingfaceModel(args.model, persistent_dir=args.persistent_dir, num_classes=dataset.num_classes)
     masker = RandomMasking(args.max_masking_ratio / 100, tokenizer, seed=args.seed)
 
     dataset_train = dataset.train \
-        .map(lambda item: (tokenizer(item['text']), item['label']),
-             num_parallel_calls=tf.data.AUTOTUNE) \
+        .map(lambda x, y: (tokenizer(x), y), num_parallel_calls=tf.data.AUTOTUNE) \
         .cache() \
         .shuffle(dataset.train_num_examples, seed=args.seed) \
-        .map(lambda x, y: (masker(x), y),
-             num_parallel_calls=tf.data.AUTOTUNE) \
+        .map(lambda x, y: (masker(x), y), num_parallel_calls=tf.data.AUTOTUNE) \
         .padded_batch(8, padding_values=(tokenizer.padding_values, None)) \
         .prefetch(tf.data.AUTOTUNE)
 
     dataset_valid = dataset.valid \
-        .map(lambda item: (tokenizer(item['text']), item['label']),
-             num_parallel_calls=tf.data.AUTOTUNE) \
+        .map(lambda x, y: (tokenizer(x), y), num_parallel_calls=tf.data.AUTOTUNE) \
         .cache() \
         .padded_batch(8, padding_values=(tokenizer.padding_values, None)) \
         .prefetch(tf.data.AUTOTUNE)
 
     dataset_test = dataset.test \
-        .map(lambda item: (tokenizer(item['text']), item['label']),
-             num_parallel_calls=tf.data.AUTOTUNE) \
+        .map(lambda x, y: (tokenizer(x), y), num_parallel_calls=tf.data.AUTOTUNE) \
         .cache() \
         .padded_batch(8, padding_values=(tokenizer.padding_values, None)) \
         .prefetch(tf.data.AUTOTUNE)
@@ -134,7 +125,7 @@ if __name__ == '__main__':
     model.fit(dataset_train, validation_data=dataset_valid, epochs=args.max_epochs, callbacks=[
         tf.keras.callbacks.ModelCheckpoint(
             filepath=f'{args.persistent_dir}/checkpoints/{experiment_id}',
-            monitor='val_auroc', mode='max',
+            monitor=f'val_{dataset.metric}', mode='max',
             save_weights_only=True,
             save_best_only=True
         ),
