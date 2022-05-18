@@ -81,20 +81,20 @@ class AbstractDataset(metaclass=ABCMeta):
                                               shuffle_files=True,
                                               read_config=tfds.ReadConfig(shuffle_seed=self._seed))
 
-    def _snapshot_path(self, tokenizer):
+    def _snapshot_path(self, split, tokenizer):
         dirname = self._persistent_dir / 'cache' / 'dataset_snapshot'
         if tokenizer:
-            filename = f'{self.name}_{self._seed}_{tokenizer.name}.snapshot'
+            filename = f'd-{self.name}_s-{self._seed}_m-{tokenizer.name}.{split}.snapshot'
         else:
-            filename = f'{self.name}_{self._seed}.snapshot'
+            filename = f'd-{self.name}_s-{self._seed}.{split}.snapshot'
         return dirname / filename
 
-    def _preprocess(self, dataset, tokenizer):
+    def _preprocess(self, dataset, split, tokenizer):
         dataset = dataset.map(self._as_supervised, num_parallel_calls=tf.data.AUTOTUNE, deterministic=True)
         if tokenizer:
             dataset = dataset.map(lambda x, y: (tokenizer(x), y), num_parallel_calls=tf.data.AUTOTUNE, deterministic=True)
         if self._use_snapshot:
-            dataset = dataset.snapshot(str(self._snapshot_path(tokenizer)))
+            dataset = dataset.snapshot(str(self._snapshot_path(split, tokenizer)))
         if self._use_cache:
             dataset = dataset.cache()
         return dataset
@@ -109,7 +109,7 @@ class AbstractDataset(metaclass=ABCMeta):
         """Get training dataset
         """
         (train, _, _) = self._datasets
-        return self._preprocess(train, tokenizer)
+        return self._preprocess(train, 'train', tokenizer)
 
     @property
     def valid_num_examples(self) -> int:
@@ -121,7 +121,7 @@ class AbstractDataset(metaclass=ABCMeta):
         """Validation dataset
         """
         (_, valid, _) = self._datasets
-        return self._preprocess(valid, tokenizer)
+        return self._preprocess(valid, 'valid', tokenizer)
 
     @property
     def test_num_examples(self) -> int:
@@ -133,4 +133,4 @@ class AbstractDataset(metaclass=ABCMeta):
         """Test dataset
         """
         (_, _, test) = self._datasets
-        return self._preprocess(test, tokenizer)
+        return self._preprocess(test, 'test', tokenizer)
