@@ -20,9 +20,9 @@ def test_padding_values():
 def test_tokenizer_consistency():
     tokenizer_ref = RobertaTokenizerFast.from_pretrained("roberta-base", cache_dir='./cache/tokenizer')
     tokenizer_tf = HuggingfaceTokenizer('roberta-base', persistent_dir=pathlib.Path('.'))
-    dataset = IMDBDataset(persistent_dir=pathlib.Path('.'))
+    dataset = IMDBDataset(persistent_dir=pathlib.Path('.'), use_cache=False, use_snapshot=False)
 
-    for split in [dataset.train, dataset.valid, dataset.test]:
+    for split in [dataset.train(), dataset.valid(), dataset.test()]:
         for x, y in split.take(2):
             out_tf = tokenizer_tf(x)
             out_ref = tokenizer_ref(
@@ -40,9 +40,9 @@ def test_tokenizer_consistency():
 def test_tokenizer_paired_sequence():
     tokenizer_ref = RobertaTokenizerFast.from_pretrained("roberta-base", cache_dir='./cache/tokenizer')
     tokenizer_tf = HuggingfaceTokenizer('roberta-base', persistent_dir=pathlib.Path('.'))
-    dataset = MultiNLIDataset(persistent_dir=pathlib.Path('.'))
+    dataset = MultiNLIDataset(persistent_dir=pathlib.Path('.'), use_cache=False, use_snapshot=False)
 
-    for split in [dataset.train, dataset.valid, dataset.test]:
+    for split in [dataset.train(), dataset.valid(), dataset.test()]:
         for x, y in split.take(2):
             out_tf = tokenizer_tf(x)
             out_ref = tokenizer_ref(
@@ -59,9 +59,9 @@ def test_tokenizer_paired_sequence():
 
 def test_tokenizer_cardinality_kept():
     tokenizer = HuggingfaceTokenizer('roberta-base', persistent_dir=pathlib.Path('.'))
-    dataset = IMDBDataset(persistent_dir=pathlib.Path('.'))
+    dataset = IMDBDataset(persistent_dir=pathlib.Path('.'), use_cache=False, use_snapshot=False)
 
-    dataset_train = dataset.train \
+    dataset_train = dataset.train() \
         .map(lambda x, y: (tokenizer(x), y), num_parallel_calls=tf.data.AUTOTUNE)
 
     assert tf.data.experimental.cardinality(dataset_train).numpy() == 20000

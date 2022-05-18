@@ -15,6 +15,7 @@ class HuggingfaceTokenizer:
             model_name (str): the model name as input to transformers.AutoTokenizer
             persistent_dir (str): used to store the downloaded tokenizer
         """
+        self._model_name = model_name
         self._tokenizer = transformers.AutoTokenizer.from_pretrained(
             model_name,
             cache_dir=f'{persistent_dir}/cache/tokenizer',
@@ -45,6 +46,10 @@ class HuggingfaceTokenizer:
             self._tokenizer.sep_token_id,
             self._tokenizer.eos_token_id
         ], tf.dtypes.int32)
+
+    @property
+    def name(self) -> str:
+        return self._model_name
 
     @cached_property
     def vocab_size(self) -> tf.Tensor:

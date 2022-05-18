@@ -19,17 +19,21 @@ class AbstractDataset(metaclass=ABCMeta):
     _builder_cache: tfds.core.DatasetBuilder
     _seed: int
 
-    def __init__(self, persistent_dir: pathlib.Path, seed: int = 0):
+    def __init__(self, persistent_dir: pathlib.Path, seed: int = 0, use_snapshot=True, use_cache=True):
         """Abstract Base Class for defining a dataset with standard train/valid/test semantics.
 
         Args:
             persistent_dir (pathlib.Path): Persistent directory, used for storing the dataset.
             seed (int, optional): Random seed used for initial shuffling. Defaults to 0.
+            use_snapshot (int, optional): If the preprocessed dataset should be cached to disk.
+            use_cache (int, optional): If the preprocessed dataset should be cached to memory.
         """
 
         self._persistent_dir = persistent_dir
         self._builder_cache = self._builder(data_dir=persistent_dir / 'cache' / 'tfds')
         self._seed = seed
+        self._use_cache = use_cache
+        self._use_snapshot = use_snapshot
 
     @abstractmethod
     def _builder(self, data_dir: pathlib.Path) -> tfds.core.DatasetBuilder:
@@ -77,18 +81,35 @@ class AbstractDataset(metaclass=ABCMeta):
                                               shuffle_files=True,
                                               read_config=tfds.ReadConfig(shuffle_seed=self._seed))
 
+    def _snapshot_path(self, tokenizer):
+        dirname = self._persistent_dir / 'cache' / 'dataset_snapshot'
+        if tokenizer:
+            filename = f'{self.name}_{self._seed}_{tokenizer.name}.snapshot'
+        else:
+            filename = f'{self.name}_{self._seed}.snapshot'
+        return dirname / filename
+
+    def _preprocess(self, dataset, tokenizer):
+        dataset = dataset.map(self._as_supervised, num_parallel_calls=tf.data.AUTOTUNE, deterministic=True)
+        if tokenizer:
+            dataset = dataset.map(lambda x, y: (tokenizer(x), y), num_parallel_calls=tf.data.AUTOTUNE, deterministic=True)
+        if self._use_snapshot:
+            dataset = dataset.snapshot(str(self._snapshot_path(tokenizer)))
+        if self._use_cache:
+            dataset = dataset.cache()
+        return dataset
+
     @property
     def train_num_examples(self) -> int:
         """Number of training obsevations
         """
         return self.info.splits[self._split_train].num_examples
 
-    @property
-    def train(self) -> tf.data.Dataset:
+    def train(self, tokenizer=None) -> tf.data.Dataset:
         """Get training dataset
         """
         (train, _, _) = self._datasets
-        return train.map(self._as_supervised, num_parallel_calls=tf.data.AUTOTUNE)
+        return self._preprocess(train, tokenizer)
 
     @property
     def valid_num_examples(self) -> int:
@@ -96,12 +117,11 @@ class AbstractDataset(metaclass=ABCMeta):
         """
         return self.info.splits[self._split_valid].num_examples
 
-    @property
-    def valid(self) -> tf.data.Dataset:
+    def valid(self, tokenizer=None) -> tf.data.Dataset:
         """Validation dataset
         """
         (_, valid, _) = self._datasets
-        return valid.map(self._as_supervised, num_parallel_calls=tf.data.AUTOTUNE)
+        return self._preprocess(valid, tokenizer)
 
     @property
     def test_num_examples(self) -> int:
@@ -109,9 +129,8 @@ class AbstractDataset(metaclass=ABCMeta):
         """
         return self.info.splits[self._split_test].num_examples
 
-    @property
-    def test(self) -> tf.data.Dataset:
+    def test(self, tokenizer=None) -> tf.data.Dataset:
         """Test dataset
         """
         (_, _, test) = self._datasets
-        return test.map(self._as_supervised, num_parallel_calls=tf.data.AUTOTUNE)
+        return self._preprocess(test, tokenizer)
