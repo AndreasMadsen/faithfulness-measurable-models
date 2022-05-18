@@ -43,12 +43,25 @@ class RandomMasking:
         attention_mask = tf.ensure_shape(x['attention_mask'], [None])
 
         if self._max_masking_ratio > 0:
+            # True if token is allowed to be masked.
+            # This prevents [BOS], [SEP], and [EOS] from being masked.
+            maskable_indicator = tf.math.reduce_all(
+                tf.expand_dims(input_ids, 0) != tf.expand_dims(self._tokenizer.kept_tokens, -1),
+                axis=0
+            )
+            # This prevents unattended tokens from being masked, such as [PAD].
+            maskable_indicator = tf.math.logical_and(
+                maskable_indicator,
+                tf.cast(attention_mask, tf.dtypes.bool)
+            )
+
             # masking ratio will be [0, max_masking_ratio)
             masking_ratio = self._rng.uniform([1], maxval=self._max_masking_ratio)
             masking_indicator = tf.math.logical_and(
                 self._rng.uniform(tf.shape(input_ids)) <= masking_ratio,
-                tf.cast(attention_mask, tf.dtypes.bool)
+                maskable_indicator
             )
+
             input_ids = tf.where(masking_indicator, self._tokenizer.mask_token_id, input_ids)
 
         return {
