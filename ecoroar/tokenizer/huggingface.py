@@ -65,7 +65,7 @@ class HuggingfaceTokenizer:
         """
         return {
             'input_ids': self.pad_token_id,
-            'attention_mask': tf.cast(self.pad_token_id, dtype=tf.dtypes.int8)
+            'attention_mask': tf.constant(0, dtype=tf.dtypes.int8)
         }
 
     @property
