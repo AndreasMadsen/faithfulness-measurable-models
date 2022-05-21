@@ -2,10 +2,11 @@ import tensorflow as tf
 import tensorflow_datasets as tfds
 
 from functools import cached_property
-from typing import Tuple, Dict
+from typing import Tuple, Dict, Union, Iterable
 import pathlib
 from abc import ABCMeta, abstractmethod
 
+from ..tokenizer._abstract_tokenizer import AbstractTokenizer
 
 class AbstractDataset(metaclass=ABCMeta):
     _name: str
@@ -40,7 +41,7 @@ class AbstractDataset(metaclass=ABCMeta):
         ...
 
     @abstractmethod
-    def _as_supervised(self, item: Dict[str, tf.Tensor]) -> Tuple[tf.Tensor, tf.Tensor]:
+    def _as_supervised(self, item: Dict[str, tf.Tensor]) -> Tuple[Iterable[tf.Tensor], tf.Tensor]:
         x = (item['text'], )
         return x, item['label']
 
@@ -81,7 +82,7 @@ class AbstractDataset(metaclass=ABCMeta):
                                               shuffle_files=True,
                                               read_config=tfds.ReadConfig(shuffle_seed=self._seed))
 
-    def _snapshot_path(self, split, tokenizer):
+    def _snapshot_path(self, split: Union['train', 'valid', 'test'], tokenizer: AbstractTokenizer):
         dirname = self._persistent_dir / 'cache' / 'dataset_snapshot'
         if tokenizer:
             filename = f'd-{self.name}_s-{self._seed}_m-{tokenizer.name}.{split}.snapshot'

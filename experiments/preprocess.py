@@ -2,6 +2,8 @@ import pathlib
 import argparse
 import os.path as path
 
+from tqdm import tqdm
+
 from ecoroar.dataset import datasets
 from ecoroar.tokenizer import HuggingfaceTokenizer
 
@@ -19,7 +21,7 @@ if __name__ == "__main__":
     for model_name in ['roberta-base']:
         tokenizer = HuggingfaceTokenizer(model_name, persistent_dir=args.persistent_dir)
 
-        for name, Dataset in datasets.items():
+        for name, Dataset in tqdm(datasets.items()):
             dataset = Dataset(persistent_dir=args.persistent_dir)
             for item in dataset.train(tokenizer):
                 pass
