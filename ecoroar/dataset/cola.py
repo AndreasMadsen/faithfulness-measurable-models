@@ -8,9 +8,9 @@ class CoLADataset(AbstractDataset):
     _metrics = ['accuracy', 'matthew']
     _early_stopping_metric = 'matthew'
 
-    _split_train = 'train'
-    _split_valid = 'validation'
-    _split_test = 'test'
+    _split_train = 'train[:80%]'
+    _split_valid = 'train[80%:]'
+    _split_test = 'validation'
 
     def _builder(self, data_dir):
         return tfds.builder("glue/cola", data_dir=data_dir)

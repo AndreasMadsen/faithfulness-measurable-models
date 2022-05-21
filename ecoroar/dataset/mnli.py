@@ -8,9 +8,9 @@ class MNLIDataset(AbstractDataset):
     _metrics = ['accuracy']
     _early_stopping_metric = 'accuracy'
 
-    _split_train = 'train'
-    _split_valid = 'validation_matched'
-    _split_test = 'test_matched'
+    _split_train = 'train[:80%]'
+    _split_valid = 'train[80%:]'
+    _split_test = 'validation_matched'
 
     def _builder(self, data_dir):
         return tfds.builder("glue/mnli", data_dir=data_dir)
