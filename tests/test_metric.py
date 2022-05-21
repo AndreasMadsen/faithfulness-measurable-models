@@ -10,7 +10,7 @@ import sklearn.metrics
 import scipy.special
 import scipy.stats
 
-from ecoroar.metric import AUROC, F1Score, Pearson
+from ecoroar.metric import AUROC, F1Score, Pearson, Matthew
 
 @dataclass
 class MetricExpectPair:
@@ -33,6 +33,10 @@ metrics = [
     MetricExpectPair(
         lambda: Pearson(),
         lambda y_true, y_pred: scipy.stats.pearsonr(y_true[:, 0], scipy.special.expit(y_pred[:, 1]))[0]
+    ),
+    MetricExpectPair(
+        lambda: Matthew(num_classes=2),
+        lambda y_true, y_pred: sklearn.metrics.matthews_corrcoef(y_true[:, 0], np.argmax(y_pred, axis=1))
     )
 ]
 
