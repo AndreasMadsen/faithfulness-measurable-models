@@ -1,5 +1,5 @@
 from functools import cached_property
-from typing import List, Tuple
+from typing import List, Iterable
 
 import tensorflow as tf
 import transformers
@@ -74,13 +74,13 @@ class HuggingfaceTokenizer:
         """
         return list(self._vocabulary)
 
-    def _wrap_tokenizer_call(self, texts):
+    def _wrap_tokenizer_call(self, texts: Iterable[tf.Tensor]):
         texts = tuple(text.numpy().decode('utf-8') for text in texts)
         output = self._tokenizer(*texts, truncation=True)
         return (output['input_ids'], output['attention_mask'])
 
     @tf.function
-    def __call__(self, texts: Tuple[tf.Tensor]) -> TokenizedDict:
+    def __call__(self, texts: Iterable[tf.Tensor]) -> TokenizedDict:
         """Tokenizes, encodes, and joins text, then annotates with the type and mask
 
         Args:
