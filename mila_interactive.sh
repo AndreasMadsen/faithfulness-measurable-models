@@ -24,6 +24,7 @@ export NO_GCE_CHECK=true
 export TF_CPP_MIN_LOG_LEVEL=1
 
 # Run code
+unalias py
 py () {
     python -u -X faulthandler "$1" "${@:2}" --persistent-dir $SCRATCH/ecoroar
 }

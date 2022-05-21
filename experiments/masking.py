@@ -65,7 +65,7 @@ parser.add_argument('--precision',
                     action='store',
                     default='mixed_float16',
                     choices=['mixed_float16', 'mixed_bfloat16', 'float32'],
-                    help='Set the precision policy')
+                    help='Set the precision policy. mixed_bfloat16 only works on Ampere (A100) and better.')
 parser.add_argument('--max-masking-ratio',
                     action='store',
                     default=0,
@@ -75,18 +75,15 @@ parser.add_argument('--max-masking-ratio',
 if __name__ == '__main__':
     args = parser.parse_args()
 
-    experiment_id = generate_experiment_id(
-        'masking',
-        dataset=args.dataset, seed=args.seed, max_masking_ratio=args.max_masking_ratio
-    )
-    if args.experiment_name:
-        print(experiment_id)
-        sys.exit(0)
-
     if args.deterministic:
         tf.config.experimental.enable_op_determinism()
     tf.keras.utils.set_random_seed(args.seed)
     tf.keras.mixed_precision.set_global_policy(args.precision)
+
+    experiment_id = generate_experiment_id(
+        'masking',
+        dataset=args.dataset, seed=args.seed, max_masking_ratio=args.max_masking_ratio
+    )
 
     tokenizer = HuggingfaceTokenizer(args.model, persistent_dir=args.persistent_dir)
     dataset = datasets[args.dataset](persistent_dir=args.persistent_dir, seed=args.seed)
