@@ -112,12 +112,12 @@ if __name__ == '__main__':
             ),
             weight_decay=args.weight_decay
         ),
-        loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True, name='ce'),
+        loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True, name='cross_entropy'),
         metrics=[
-            tf.keras.metrics.SparseCategoricalAccuracy(name='acc'),
-            AUROC(name='auroc', from_logits=True),
-            F1Score(num_classes=dataset.num_classes, average='macro', name='macro_f1'),
-            F1Score(num_classes=dataset.num_classes, average='micro', name='micro_f1')
+            tf.keras.metrics.SparseCategoricalAccuracy(name='accuracy'),
+            AUROC(from_logits=True),
+            F1Score(num_classes=dataset.num_classes, average='macro'),
+            F1Score(num_classes=dataset.num_classes, average='micro')
         ],
         run_eagerly=False
     )
