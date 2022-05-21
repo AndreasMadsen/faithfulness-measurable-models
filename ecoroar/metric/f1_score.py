@@ -24,5 +24,6 @@ class F1Score(tfa.metrics.F1Score):
                 be broadcastable to `y_true`.
         """
         y_true = tf.ensure_shape(y_true, [None, 1])
+        y_pred = tf.ensure_shape(y_pred, [None, self.num_classes])
         y_true = tf.one_hot(y_true[:, 0], self.num_classes)
         super().update_state(y_true, y_pred, sample_weight=sample_weight)
