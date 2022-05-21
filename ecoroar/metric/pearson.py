@@ -5,19 +5,19 @@ class Covariance(tf.keras.metrics.Metric):
     """Metric class, computing the unbiased coveriance of two scalars.
 
     Algorithm from https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Online
-    as used in:
+
+    unlike:
         https://github.com/tensorflow/tensorflow/blob/r1.14/tensorflow/contrib/metrics/python/ops/metric_ops.py#L3276
         https://github.com/allenai/allennlp/blob/67f32d3f1c2a4eb1301f6d858c89a7df9270e8a4/allennlp/training/metrics/covariance.py#L16
-
-    The algorithm is:
-        C_AB = C_A + C_B + (E[pred_A] - E[pred_B]) * (E[true_A] - E[true_B]) * n_A * n_B / n_AB
-    where A indicates the current estimate, and B indicates the added estimate.
+    this uses the weighted_batched_version. Although, weighted covariance is currently not supposed.
     """
-    def __init__(self):
+    def __init__(self, name='pearson'):
         """Metric for computing the covariance
 
         An online algorithm will be used.
         """
+        super().__init__(name=name)
+
         self._pred_mean = tf.keras.metrics.Mean(name='prediction_mean')
         self._true_mean = tf.keras.metrics.Mean(name='label_mean')
         self._co_moment = self.add_weight(name='co_moment', shape=[], initializer='zeros')
@@ -36,19 +36,15 @@ class Covariance(tf.keras.metrics.Metric):
         y_true = tf.ensure_shape(y_true, [None])
         y_pred = tf.ensure_shape(y_pred, [None])
 
-        add_count = tf.size(y_true)
-        previous_count = self._count
-        updated_count = self._count.assign_add(add_count)
+        self._count.assign_add(tf.size(y_true, out_type=self._count.dtype))
 
-        previous_pred_mean = self._pred_mean.result()
-        updated_pred_mean = self._pred_mean.update_state(y_pred)
-        add_pred_mean = updated_pred_mean - previous_pred_mean
+        self._pred_mean.update_state(y_pred)
+        new_pred_mean = self._pred_mean.result()
 
-        previous_true_mean = self._true_mean.result()
-        updated_true_mean = self._true_mean.update_state(y_true)
-        add_true_mean = updated_true_mean - previous_true_mean
+        pre_true_mean = self._true_mean.result()
+        self._true_mean.update_state(y_true)
 
-        add_co_moment = tf.math.reduce_sum((y_true - previous_true_mean) * (y_pred - updated_pred_mean))
+        add_co_moment = tf.math.reduce_sum((y_true - pre_true_mean) * (y_pred - new_pred_mean))
         self._co_moment.assign_add(add_co_moment)
 
     @tf.function
@@ -64,12 +60,18 @@ class Covariance(tf.keras.metrics.Metric):
         return self._co_moment / (self._count - 1)
 
 
-class PearsonCorrelation(Metric):
-    def __init__(self) -> None:
+class Pearson(tf.keras.metrics.Metric):
+    def __init__(self, from_logits: bool = True, name='pearson') -> None:
         """Metric for computing the pearson correlation
 
         An online algorithm will be used.
+
+        Args:
+            from_logits (bool, optional): If y_pred is logits. Defaults to True.
         """
+        super().__init__(name=name)
+
+        self._from_logits = from_logits
         self._covariance = Covariance()
         self._pred_variance = Covariance()
         self._true_variance = Covariance()
@@ -85,6 +87,13 @@ class PearsonCorrelation(Metric):
         """
         y_true = tf.ensure_shape(y_true, [None, 1])[:, 0]
         y_pred = tf.ensure_shape(y_pred, [None, 2])[:, 1]
+
+        # Match dtypes
+        y_true = tf.cast(y_true, y_pred.dtype)
+
+        # Convert logits to probability
+        if self._from_logits:
+            y_pred = tf.math.sigmoid(y_pred)
 
         self._covariance.update_state(y_true, y_pred)
         self._pred_variance.update_state(y_pred, y_pred)
