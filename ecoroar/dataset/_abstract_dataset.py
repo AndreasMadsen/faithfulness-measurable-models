@@ -53,9 +53,9 @@ class AbstractDataset(metaclass=ABCMeta):
         possible_metric = {
             'accuracy': partial(tf.keras.metrics.SparseCategoricalAccuracy, name='accuracy'),
             'auroc': partial(AUROC, from_logits=True),
-            'f1_macro': partial(F1Score, num_classes=self.num_classes, average='macro'),
-            'f1_micro': partial(F1Score, num_classes=self.num_classes, average='micro'),
-            'Matthew': partial(Matthew, num_classes=self.num_classes)
+            'macro_f1': partial(F1Score, num_classes=self.num_classes, average='macro'),
+            'micro_f1': partial(F1Score, num_classes=self.num_classes, average='micro'),
+            'matthew': partial(Matthew, num_classes=self.num_classes)
         }
 
         return [
