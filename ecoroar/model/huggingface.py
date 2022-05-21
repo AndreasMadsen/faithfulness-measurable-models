@@ -1,6 +1,7 @@
 
 import pathlib
 
+import transformers
 from transformers import TFAutoModelForSequenceClassification
 
 
@@ -16,8 +17,15 @@ class HuggingfaceModel(TFAutoModelForSequenceClassification):
         Returns:
             TFAutoModelForSequenceClassification: A SequenceClassification instance
         """
-        return TFAutoModelForSequenceClassification.from_pretrained(
-            model_name,
-            num_labels=num_classes,
-            cache_dir=persistent_dir / 'cache' / 'transformers'
-        )
+        level = transformers.logging.get_verbosity()
+        transformers.logging.set_verbosity_error()
+        try:
+            model = TFAutoModelForSequenceClassification.from_pretrained(
+                model_name,
+                num_labels=num_classes,
+                cache_dir=persistent_dir / 'cache' / 'transformers'
+            )
+        finally:
+            transformers.logging.set_verbosity(level)
+
+        return model
