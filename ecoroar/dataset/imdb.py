@@ -5,7 +5,7 @@ from ._abstract_dataset import AbstractDataset
 
 class IMDBDataset(AbstractDataset):
     _name = 'IMDB'
-    _metric = ['macro_f1']
+    _metrics = ['accuracy', 'macro_f1']
     _early_stopping_metric = 'macro_f1'
 
     _split_train = 'train[:80%]'
