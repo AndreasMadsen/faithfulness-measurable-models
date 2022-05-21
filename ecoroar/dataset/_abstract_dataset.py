@@ -1,16 +1,18 @@
+import pathlib
+from functools import cached_property, partial
+from typing import List, Tuple, Dict, Union, Iterable
+from abc import ABCMeta, abstractmethod
+
 import tensorflow as tf
 import tensorflow_datasets as tfds
 
-from functools import cached_property
-from typing import Tuple, Dict, Union, Iterable
-import pathlib
-from abc import ABCMeta, abstractmethod
-
 from ..tokenizer._abstract_tokenizer import AbstractTokenizer
+from ..metric import AUROC, F1Score, Matthew, Pearson
 
 class AbstractDataset(metaclass=ABCMeta):
     _name: str
-    _metric: str
+    _metrics: List[str]
+    _early_stopping_metric: str
 
     _split_train: str
     _split_valid: str
@@ -45,11 +47,24 @@ class AbstractDataset(metaclass=ABCMeta):
         x = (item['text'], )
         return x, item['label']
 
-    @property
-    def metric(self) -> str:
-        """The test metric to use
+    def metrics(self) -> List[tf.keras.metrics.Metric]:
+        """Return a list of metric which this dataset uses
         """
-        return self._metric
+        possible_metric = {
+            'accuracy': partial(tf.keras.metrics.SparseCategoricalAccuracy, name='accuracy'),
+            'auroc': partial(AUROC, from_logits=True),
+            'f1_macro': partial(F1Score, num_classes=self.num_classes, average='macro'),
+            'f1_micro': partial(F1Score, num_classes=self.num_classes, average='micro'),
+            'Matthew': partial(Matthew, num_classes=self.num_classes)
+        }
+
+        return [
+            possible_metric[metric_name]() for metric_name in self._metrics
+        ]
+
+    @property
+    def early_stopping_metric(self) -> str:
+        return f'val_{self._early_stopping_metric}'
 
     @property
     def name(self) -> str:
@@ -90,7 +105,7 @@ class AbstractDataset(metaclass=ABCMeta):
             filename = f'd-{self.name}_s-{self._seed}.{split}.snapshot'
         return dirname / filename
 
-    def _preprocess(self, dataset, split, tokenizer):
+    def _preprocess(self, dataset: tf.data.Dataset, split: Union['train', 'valid', 'test'], tokenizer: AbstractTokenizer):
         dataset = dataset.map(self._as_supervised, num_parallel_calls=tf.data.AUTOTUNE, deterministic=True)
         if tokenizer:
             dataset = dataset.map(lambda x, y: (tokenizer(x), y), num_parallel_calls=tf.data.AUTOTUNE, deterministic=True)
@@ -106,7 +121,7 @@ class AbstractDataset(metaclass=ABCMeta):
         """
         return self.info.splits[self._split_train].num_examples
 
-    def train(self, tokenizer=None) -> tf.data.Dataset:
+    def train(self, tokenizer: AbstractTokenizer=None) -> tf.data.Dataset:
         """Get training dataset
         """
         (train, _, _) = self._datasets
@@ -118,7 +133,7 @@ class AbstractDataset(metaclass=ABCMeta):
         """
         return self.info.splits[self._split_valid].num_examples
 
-    def valid(self, tokenizer=None) -> tf.data.Dataset:
+    def valid(self, tokenizer: AbstractTokenizer=None) -> tf.data.Dataset:
         """Validation dataset
         """
         (_, valid, _) = self._datasets
@@ -130,7 +145,7 @@ class AbstractDataset(metaclass=ABCMeta):
         """
         return self.info.splits[self._split_test].num_examples
 
-    def test(self, tokenizer=None) -> tf.data.Dataset:
+    def test(self, tokenizer: AbstractTokenizer=None) -> tf.data.Dataset:
         """Test dataset
         """
         (_, _, test) = self._datasets

@@ -5,7 +5,8 @@ from ._abstract_dataset import AbstractDataset
 
 class SST2Dataset(AbstractDataset):
     _name = 'SST2'
-    _metric = 'pearson'
+    _metrics = ['pearson']
+    _early_stopping_metric = 'pearson'
 
     _split_train = 'train'
     _split_valid = 'validation'

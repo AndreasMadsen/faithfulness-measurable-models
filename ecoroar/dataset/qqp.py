@@ -5,7 +5,8 @@ from ._abstract_dataset import AbstractDataset
 
 class QQPDataset(AbstractDataset):
     _name = 'QQP'
-    _metric = 'macro_f1'
+    _metrics = ['macro_f1']
+    _early_stopping_metric = 'macro_f1'
 
     _split_train = 'train'
     _split_valid = 'validation'

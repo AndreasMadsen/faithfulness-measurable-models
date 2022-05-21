@@ -11,7 +11,6 @@ from ecoroar.util import generate_experiment_id
 from ecoroar.dataset import datasets
 from ecoroar.tokenizer import HuggingfaceTokenizer
 from ecoroar.model import HuggingfaceModel
-from ecoroar.metric import AUROC, F1Score
 from ecoroar.transform import RandomMasking
 from ecoroar.optimizer import AdamW
 from ecoroar.scheduler import LinearSchedule
@@ -113,12 +112,7 @@ if __name__ == '__main__':
             weight_decay=args.weight_decay
         ),
         loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True, name='cross_entropy'),
-        metrics=[
-            tf.keras.metrics.SparseCategoricalAccuracy(name='accuracy'),
-            AUROC(from_logits=True),
-            F1Score(num_classes=dataset.num_classes, average='macro'),
-            F1Score(num_classes=dataset.num_classes, average='micro')
-        ],
+        metrics=dataset.metrics(),
         run_eagerly=False
     )
 
@@ -127,7 +121,7 @@ if __name__ == '__main__':
     model.fit(dataset_train, validation_data=dataset_valid, epochs=args.max_epochs, callbacks=[
         tf.keras.callbacks.ModelCheckpoint(
             filepath=checkpoint_dir,
-            monitor=f'val_{dataset.metric}', mode='max',
+            monitor=dataset.early_stopping_metric, mode='max',
             save_weights_only=True,
             save_best_only=True
         ),

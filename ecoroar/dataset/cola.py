@@ -5,7 +5,8 @@ from ._abstract_dataset import AbstractDataset
 
 class CoLADataset(AbstractDataset):
     _name = 'CoLA'
-    _metric = 'matthew'
+    _metric = ['matthew']
+    _early_stopping_metric = 'matthew'
 
     _split_train = 'train'
     _split_valid = 'validation'

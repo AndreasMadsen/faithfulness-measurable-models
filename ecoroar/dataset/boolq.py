@@ -5,7 +5,8 @@ from ._abstract_dataset import AbstractDataset
 
 class BoolQDataset(AbstractDataset):
     _name = 'BoolQ'
-    _metric = 'accuracy'
+    _metrics = ['accuracy']
+    _early_stopping_metric = 'accuracy'
 
     _split_train = 'train'
     _split_valid = 'validation'
