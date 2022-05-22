@@ -14,12 +14,12 @@ class DatasetSize:
     test: int
 
 expected_sizes = [
-    DatasetSize('BoolQ', 9427, 3270, 3245),
-    DatasetSize('CoLA', 8551, 1043, 1063),
+    DatasetSize('BoolQ', 7542, 1885, 3270),
+    DatasetSize('CoLA', 6841, 1710, 1043),
     DatasetSize('IMDB', 20000, 5000, 25000),
-    DatasetSize('MNLI', 392702, 9815, 9796),
-    DatasetSize('QQP', 363846, 40430, 390965),
-    DatasetSize('SST2', 67349, 872, 1821),
+    DatasetSize('MNLI', 314162, 78540, 9815),
+    DatasetSize('QQP', 291077, 72769, 40430),
+    DatasetSize('SST2', 53879, 13470, 872),
 ]
 
 @pytest.mark.parametrize("info", expected_sizes, ids=lambda info: info.name)

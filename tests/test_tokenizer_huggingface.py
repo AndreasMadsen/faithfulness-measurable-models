@@ -5,7 +5,7 @@ import numpy as np
 import tensorflow as tf
 from transformers import RobertaTokenizerFast
 
-from ecoroar.dataset import IMDBDataset, MultiNLIDataset
+from ecoroar.dataset import IMDBDataset, MNLIDataset
 from ecoroar.tokenizer import HuggingfaceTokenizer
 
 
@@ -14,7 +14,7 @@ def test_padding_values():
     np.testing.assert_array_equal(tokenizer.padding_values['input_ids'].numpy(),
                                   np.array(tokenizer.pad_token_id, np.int32))
     np.testing.assert_array_equal(tokenizer.padding_values['attention_mask'].numpy(),
-                                  np.array(tokenizer.pad_token_id, np.int8))
+                                  np.array(0, np.int8))
 
 
 def test_tokenizer_consistency():
@@ -40,7 +40,7 @@ def test_tokenizer_consistency():
 def test_tokenizer_paired_sequence():
     tokenizer_ref = RobertaTokenizerFast.from_pretrained("roberta-base", cache_dir='./cache/tokenizer')
     tokenizer_tf = HuggingfaceTokenizer('roberta-base', persistent_dir=pathlib.Path('.'))
-    dataset = MultiNLIDataset(persistent_dir=pathlib.Path('.'), use_cache=False, use_snapshot=False)
+    dataset = MNLIDataset(persistent_dir=pathlib.Path('.'), use_cache=False, use_snapshot=False)
 
     for split in [dataset.train(), dataset.valid(), dataset.test()]:
         for x, y in split.take(2):
