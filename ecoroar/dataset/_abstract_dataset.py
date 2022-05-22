@@ -1,4 +1,5 @@
 import pathlib
+import shutil
 from functools import cached_property, partial
 from typing import List, Tuple, Dict, Union, Iterable
 from abc import ABCMeta, abstractmethod
@@ -44,8 +45,7 @@ class AbstractDataset(metaclass=ABCMeta):
 
     @abstractmethod
     def _as_supervised(self, item: Dict[str, tf.Tensor]) -> Tuple[Iterable[tf.Tensor], tf.Tensor]:
-        x = (item['text'], )
-        return x, item['label']
+        ...
 
     def metrics(self) -> List[tf.keras.metrics.Metric]:
         """Return a list of metric which this dataset uses
@@ -97,23 +97,32 @@ class AbstractDataset(metaclass=ABCMeta):
                                               shuffle_files=True,
                                               read_config=tfds.ReadConfig(shuffle_seed=self._seed))
 
-    def _snapshot_path(self, split: Union['train', 'valid', 'test'], tokenizer: AbstractTokenizer):
-        dirname = self._persistent_dir / 'cache' / 'dataset_snapshot'
+    def _preprocess_path(self, split: Union['train', 'valid', 'test'], tokenizer: AbstractTokenizer):
+        dirname = self._persistent_dir / 'cache' / 'dataset_preprocess'
         if tokenizer:
-            filename = f'd-{self.name}_s-{self._seed}_m-{tokenizer.name}.{split}.snapshot'
+            filename = f'd-{self.name}_s-{self._seed}_m-{tokenizer.name}.{split}.tfds'
         else:
-            filename = f'd-{self.name}_s-{self._seed}.{split}.snapshot'
+            filename = f'd-{self.name}_s-{self._seed}.{split}.tfds'
         return dirname / filename
 
-    def _preprocess(self, dataset: tf.data.Dataset, split: Union['train', 'valid', 'test'], tokenizer: AbstractTokenizer):
-        dataset = dataset.map(self._as_supervised, num_parallel_calls=tf.data.AUTOTUNE, deterministic=True)
-        if tokenizer:
-            dataset = dataset.map(lambda x, y: (tokenizer(x), y), num_parallel_calls=tf.data.AUTOTUNE, deterministic=True)
-        if self._use_snapshot:
-            dataset = dataset.snapshot(str(self._snapshot_path(split, tokenizer)))
-        if self._use_cache:
-            dataset = dataset.cache()
-        return dataset
+    def preprocess(self, tokenizer: AbstractTokenizer):
+        for split, dataset in zip(['train', 'valid', 'test'], self._datasets):
+            # process dataset
+            dataset = dataset.map(self._as_supervised, num_parallel_calls=tf.data.AUTOTUNE, deterministic=True)
+            if tokenizer:
+                dataset = dataset.map(lambda x, y: (tokenizer(x), y), num_parallel_calls=tf.data.AUTOTUNE, deterministic=True)
+
+            # save dataset
+            path = self._preprocess_path(split, tokenizer)
+            if path.exists():
+                shutil.rmtree(path)
+            tf.data.experimental.save(dataset, str(path))
+
+    def _load_preprocess(self, split, tokenizer):
+        path = self._preprocess_path(split, tokenizer)
+        if not path.exists():
+            raise IOError('preprocessed dataset does not exist, call dataset.preprocess(tokenizer)')
+        return tf.data.experimental.load(str(path))
 
     @property
     def train_num_examples(self) -> int:
@@ -124,8 +133,7 @@ class AbstractDataset(metaclass=ABCMeta):
     def train(self, tokenizer: AbstractTokenizer=None) -> tf.data.Dataset:
         """Get training dataset
         """
-        (train, _, _) = self._datasets
-        return self._preprocess(train, 'train', tokenizer)
+        return self._load_preprocess('train', tokenizer).cache()
 
     @property
     def valid_num_examples(self) -> int:
@@ -136,8 +144,7 @@ class AbstractDataset(metaclass=ABCMeta):
     def valid(self, tokenizer: AbstractTokenizer=None) -> tf.data.Dataset:
         """Validation dataset
         """
-        (_, valid, _) = self._datasets
-        return self._preprocess(valid, 'valid', tokenizer)
+        return self._load_preprocess('valid', tokenizer).cache()
 
     @property
     def test_num_examples(self) -> int:
@@ -148,5 +155,4 @@ class AbstractDataset(metaclass=ABCMeta):
     def test(self, tokenizer: AbstractTokenizer=None) -> tf.data.Dataset:
         """Test dataset
         """
-        (_, _, test) = self._datasets
-        return self._preprocess(test, 'test', tokenizer)
+        return self._load_preprocess('test', tokenizer).cache()

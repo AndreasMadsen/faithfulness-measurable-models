@@ -21,11 +21,7 @@ if __name__ == "__main__":
     for model_name in ['roberta-base']:
         tokenizer = HuggingfaceTokenizer(model_name, persistent_dir=args.persistent_dir)
 
-        for name, Dataset in tqdm(datasets.items()):
+        for name, Dataset in (pbar := tqdm(datasets.items())):
+            pbar.set_description(f'Processing {name}')
             dataset = Dataset(persistent_dir=args.persistent_dir)
-            for item in dataset.train(tokenizer):
-                pass
-            for item in dataset.valid(tokenizer):
-                pass
-            for item in dataset.test(tokenizer):
-                pass
+            dataset.preprocess(tokenizer)
