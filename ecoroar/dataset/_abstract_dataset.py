@@ -100,7 +100,7 @@ class AbstractDataset(metaclass=ABCMeta):
     def _preprocess_path(self, split: Union['train', 'valid', 'test'], tokenizer: AbstractTokenizer):
         dirname = self._persistent_dir / 'cache' / 'dataset_preprocess'
         if tokenizer:
-            filename = f'd-{self.name}_s-{self._seed}_m-{tokenizer.name}.{split}.tfds'
+            filename = f'd-{self.name}_s-{self._seed}_t-{tokenizer.name}.{split}.tfds'
         else:
             filename = f'd-{self.name}_s-{self._seed}.{split}.tfds'
         return dirname / filename
