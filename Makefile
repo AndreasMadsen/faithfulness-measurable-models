@@ -13,6 +13,10 @@ upload-code-narval:
 		--filter=':- .gitignore' --exclude='.git/' \
 		-e ssh ./ cc-narval:~/workspace/economical-roar
 
+download-results-cedar:
+	rsync --info=progress2 -urltv --delete \
+		-e ssh cc-cedar:~/scratch/ecoroar/results/ ./results
+
 upload-code-cedar:
 	rsync --info=progress2 -urltv --delete \
 		--filter=':- .gitignore' --exclude='.git/' \
