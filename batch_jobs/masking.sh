@@ -3,8 +3,8 @@
 source "batch_jobs/_job_script.sh"
 seeds="0 1 2 3 4"
 
-# Actual   time="0:??:0"
-declare -A time=( ["IMDB"]="0:35:0" ["MNLI"]="0:50:0" )
+# V100     time=( ["BoolQ"]="0:11:0" ["CoLA"]="0:08:0" ["IMDB"]="0:28:0" ["QQP"]="1:47:0" ["SST2"]="0:22:0" )
+declare -A time=( ["BoolQ"]="0:20:0" ["CoLA"]="0:20:0" ["IMDB"]="0:45:0" ["QQP"]="2:10:0" ["SST2"]="0:35:0" )
 
 for dataset in 'BoolQ' 'CoLA' 'IMDB' 'QQP' 'SST2'
 do
