@@ -3,7 +3,7 @@ module load python/3.8.10 gcc/9.3.0
 
 # Create environment
 TMP_ENV=$(mktemp -d)
-virtualenv --no-download $TMP_ENV/env
+virtualenv --app-data $SCRATCH/virtualenv --no-download $TMP_ENV/env
 source $TMP_ENV/env/bin/activate
 
 # Download package dependencies
