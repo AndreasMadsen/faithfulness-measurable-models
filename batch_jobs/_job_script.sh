@@ -21,16 +21,15 @@ function join_by {
 submit_seeds () {
     local walltime=$1
     local seeds=$2
-    local name=$3
+    local experiment_name=$(python experiments/experiment-name.py "${@:5}" --seed 9999)
 
     local run_seeds=()
     local filename
     for seed in $(echo "$seeds")
     do
-        filename=$(printf $SCRATCH"/ecoroar/results/$name" "$seed")
-        if [ ! -f "$filename" ]; then
+        if [ ! -f "${SCRATCH}/ecoroar/results/${experiment_name/9999/$seed}.json" ]; then
             run_seeds+=($seed)
-            echo "scheduling $filename" 1>&2
+            echo "scheduling ${experiment_name/9999/$seed}" 1>&2
         fi
     done
 
@@ -42,15 +41,12 @@ submit_seeds () {
         ")
 
         local concat_seeds=$(join_by '' "${run_seeds[@]}")
-        local jobname=$(basename "$name")
-        jobname=${jobname%.*}
-        jobname=${jobname%.*}
-        jobname=$(printf "$jobname" "$concat_seeds")
+        local jobname="${experiment_name/9999/$concat_seeds}"
         sbatch --time="$walltime_times_nb_seeds" \
                --export=ALL,RUN_SEEDS="$(join_by ' ' "${run_seeds[@]}")" \
                -J "$jobname" \
                -o "$SCRATCH"/ecoroar/logs/%x.%j.out -e "$SCRATCH"/ecoroar/logs/%x.%j.err \
-               "${@:4}"
+               "${@:3}"
     else
         echo "skipping"
     fi

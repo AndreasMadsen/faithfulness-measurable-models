@@ -3,7 +3,6 @@ cache/
 results/
 tensorboard/
 checkpoints/
-download/
 pandas/
 plots/
 

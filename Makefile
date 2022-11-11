@@ -1,5 +1,5 @@
 
-.PHONY: noop upload-code-narval download-code-narval upload-code-graham download-code-graham
+.PHONY: noop download-code-narval upload-code-narval upload-code-cedar upload-code-mila
 
 noop:
 	echo "preventing default action"
@@ -13,17 +13,16 @@ upload-code-narval:
 		--filter=':- .gitignore' --exclude='.git/' \
 		-e ssh ./ cc-narval:~/workspace/economical-roar
 
-download-code-narval:
+download-results-cedar:
 	rsync --info=progress2 -urltv --delete \
-		--filter=':- .gitignore' --exclude='.git/' \
-		-e ssh cc-narval:~/workspace/economical-roar/ .
+		-e ssh cc-cedar:~/scratch/ecoroar/results/ ./results
 
-upload-code-graham:
+upload-code-cedar:
 	rsync --info=progress2 -urltv --delete \
 		--filter=':- .gitignore' --exclude='.git/' \
-		-e ssh ./ cc-graham:~/workspace/economical-roar
+		-e ssh ./ cc-cedar:~/workspace/economical-roar
 
-download-code-graham:
+upload-code-mila:
 	rsync --info=progress2 -urltv --delete \
 		--filter=':- .gitignore' --exclude='.git/' \
-		-e ssh cc-graham:~/workspace/economical-roar/ .
+		-e ssh ./ mila:~/workspace/economical-roar

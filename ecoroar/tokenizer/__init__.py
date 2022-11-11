@@ -1,5 +1,4 @@
 
-__all__ = ['BertTokenizer', 'HuggingfaceTokenizer']
+__all__ = ['HuggingfaceTokenizer']
 
-from .bert import BertTokenizer
 from .huggingface import HuggingfaceTokenizer

@@ -22,6 +22,6 @@ class AUROC(tf.keras.metrics.AUC):
                 Can be a `Tensor` whose rank is either 0, or the same rank as `y_true`, and must
                 be broadcastable to `y_true`.
         """
-        y_pred = tf.ensure_shape(y_pred, [None, 2])
-        y_pred = y_pred[:, 1]
+        y_true = tf.ensure_shape(y_true, [None, 1])[:, 0]
+        y_pred = tf.ensure_shape(y_pred, [None, 2])[:, 1]
         super().update_state(y_true, y_pred, sample_weight=sample_weight)

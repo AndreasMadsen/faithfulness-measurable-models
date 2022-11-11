@@ -3,31 +3,26 @@ import tensorflow as tf
 import tensorflow_addons as tfa
 
 
-class F1Score(tfa.metrics.F1Score):
-    """Make tfa.metrics.F1Score compatible with sparse labels
+class Matthew(tfa.metrics.MatthewsCorrelationCoefficient):
+    """Make tfa.metrics.MatthewsCorrelationCoefficient compatible with sparse labels
 
-    tfa.metrics.F1Score assumes the label shape to be [None, num_classes].
+    tfa.metrics.MatthewsCorrelationCoefficient assumes the label shape to be [None, num_classes].
         However, the tasks in this project have only one label and therefore use
         sparse labels indices of shape [None, 1]. This wrapper converts the sparse
         labels to the expected one_hot encoding.
     """
-    def __init__(self, num_classes: int, average: str='macro', name: str=None):
-        """Computes the F1-score, enther macro or micro
+    def __init__(self, num_classes: int, name: str='matthew'):
+        """Computes Matthew's Correlation Coefficient
 
         Args:
             num_classes (int): Number of unique classes in the dataset.
-            average (str, optional): Type of averaging to be performed on data.
-                Acceptable values are `None`, `micro`, `macro`
-                and `weighted`. Defaults to 'macro'.
-            name (str, optional): String name of the metric instance. Default to f'{average}_f1'
+            name (str, optional): String name of the metric instance. Default to 'matthew'.
         """
-        if name is None:
-            name = f'{average}_f1'
-        super().__init__(num_classes, average=average, name=name)
+        super().__init__(num_classes, name=name)
 
     @tf.function
     def update_state(self, y_true: tf.Tensor, y_pred: tf.Tensor, sample_weight: tf.Tensor = None):
-        """Accumulates statistics for the F1-score metric.
+        """Accumulates statistics for Matthew's Correlation Coefficient metric.
 
         Args:
             y_true (tf.Tensor): The ground truth values.
