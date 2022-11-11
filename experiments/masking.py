@@ -58,7 +58,6 @@ parser.add_argument('--lr',
                     help='Learning rate')
 parser.add_argument('--deterministic',
                     action='store_true',
-                    default=False,
                     help='Use determinstic computations')
 parser.add_argument('--precision',
                     action='store',
