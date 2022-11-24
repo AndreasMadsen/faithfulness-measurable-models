@@ -2,3 +2,4 @@
 __all__ = ['generate_experiment_id']
 
 from .experiment_id import generate_experiment_id
+from .model_name_to_hf_repo import model_name_to_huggingface_repo

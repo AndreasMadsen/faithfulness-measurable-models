@@ -7,7 +7,7 @@ import shutil
 import tempfile
 
 import tensorflow as tf
-from ecoroar.util import generate_experiment_id
+from ecoroar.util import generate_experiment_id, model_name_to_huggingface_repo
 from ecoroar.dataset import datasets
 from ecoroar.tokenizer import HuggingfaceTokenizer
 from ecoroar.model import HuggingfaceModel
@@ -38,9 +38,14 @@ parser.add_argument('--batch-size',
                     help='The batch size to use for training and evaluation')
 parser.add_argument('--model',
                     action='store',
-                    default='roberta-base',
+                    default='roberta-sb',
                     type=str,
-                    help='Model type to use')
+                    help='Model name')
+parser.add_argument('--huggingface-repo',
+                    action='store',
+                    default=None,
+                    type=str,
+                    help='Valid huggingface repo')
 parser.add_argument('--dataset',
                     action='store',
                     default='IMDB',
@@ -72,6 +77,8 @@ parser.add_argument('--max-masking-ratio',
 
 if __name__ == '__main__':
     args = parser.parse_args()
+    if args.huggingface_repo is None:
+        args.huggingface_repo = model_name_to_huggingface_repo(args.model)
 
     if args.deterministic:
         tf.config.experimental.enable_op_determinism()
@@ -80,13 +87,13 @@ if __name__ == '__main__':
 
     experiment_id = generate_experiment_id(
         'masking',
-        dataset=args.dataset, seed=args.seed, max_masking_ratio=args.max_masking_ratio
+        model=args.model, dataset=args.dataset,
+        seed=args.seed, max_masking_ratio=args.max_masking_ratio
     )
 
-    tokenizer = HuggingfaceTokenizer(args.model, persistent_dir=args.persistent_dir)
+    tokenizer = HuggingfaceTokenizer(args.huggingface_repo, persistent_dir=args.persistent_dir)
     dataset = datasets[args.dataset](persistent_dir=args.persistent_dir, seed=args.seed)
-    model = HuggingfaceModel(args.model, persistent_dir=args.persistent_dir, num_classes=dataset.num_classes)
-    masker = RandomMasking(args.max_masking_ratio / 100, tokenizer, seed=args.seed)
+    model = HuggingfaceModel(args.huggingface_repo, persistent_dir=args.persistent_dir, num_classes=dataset.num_classes)
 
     dataset_train = dataset.train(tokenizer) \
         .shuffle(dataset.train_num_examples, seed=args.seed) \

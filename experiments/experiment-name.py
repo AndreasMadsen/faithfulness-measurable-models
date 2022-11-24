@@ -8,6 +8,11 @@ parser.add_argument('--seed',
                     default=0,
                     type=int,
                     help='Random seed')
+parser.add_argument('--model',
+                    action='store',
+                    default='roberta-sb',
+                    type=str,
+                    help='Model name')
 parser.add_argument('--dataset',
                     action='store',
                     default='IMDB',
@@ -24,6 +29,7 @@ if __name__ == '__main__':
 
     experiment_id = generate_experiment_id(
         'masking',
-        dataset=args.dataset, seed=args.seed, max_masking_ratio=args.max_masking_ratio
+        model=args.model, dataset=args.dataset,
+        seed=args.seed, max_masking_ratio=args.max_masking_ratio
     )
     print(experiment_id)
