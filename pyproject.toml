@@ -1,3 +1,33 @@
 [build-system]
-requires = ["setuptools", "wheel"]
+requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["ecoroar"]
+
+[project]
+name = "ecoroar"
+description = "Evaluates ROAR faithfulness without retraining"
+version = "0.1.0"
+readme = "LICENSE.txt"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+classifiers = [
+    "Programming Language :: Python :: 3",
+]
+dependencies = [
+    "numpy >= 1.22.0",
+    "tqdm >= 4.64.0",
+    "plotnine >= 0.8.0",
+    "pandas >= 1.3.0",
+    "tensorflow >= 2.10.0",
+    "tensorflow_addons >= 0.18.0",
+    "tensorflow_datasets >= 4.7.0",
+    "transformers==4.25.0.dev0" # "transformers @ git+https://github.com/andreasmadsen/transformers.git@roberta-prelayernorm"
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest >= 7.1.2",
+    "tox >= 3.25.0"
+]
