@@ -97,15 +97,22 @@ class AbstractDataset(metaclass=ABCMeta):
                                               shuffle_files=True,
                                               read_config=tfds.ReadConfig(shuffle_seed=self._seed))
 
-    def _preprocess_path(self, split: Union['train', 'valid', 'test'], tokenizer: AbstractTokenizer):
+    def _preprocess_path(self, split: Union['train', 'valid', 'test'], tokenizer: AbstractTokenizer=None):
         dirname = self._persistent_dir / 'cache' / 'dataset_preprocess'
         if tokenizer:
-            filename = f'd-{self.name}_s-{self._seed}_t-{tokenizer.name}.{split}.tfds'
+            filename = f'd-{self.name}_s-{self._seed}_t-{tokenizer.alias_name}.{split}.tfds'
         else:
             filename = f'd-{self.name}_s-{self._seed}.{split}.tfds'
         return dirname / filename
 
-    def preprocess(self, tokenizer: AbstractTokenizer):
+    def preprocess(self, tokenizer: AbstractTokenizer=None):
+        """Creates preprocessed datasets, for each train, valid, and test split.
+
+        These datasets uses tf.data.Dataset.save as the storage format, and generally loads much faster.
+
+        Args:
+            tokenizer (AbstractTokenizer, optional): If provided, the datasets will be tokenized. Defaults to None.
+        """
         for split, dataset in zip(['train', 'valid', 'test'], self._datasets):
             # process dataset
             dataset = dataset.map(self._as_supervised, num_parallel_calls=tf.data.AUTOTUNE, deterministic=True)
@@ -116,13 +123,13 @@ class AbstractDataset(metaclass=ABCMeta):
             path = self._preprocess_path(split, tokenizer)
             if path.exists():
                 shutil.rmtree(path)
-            tf.data.experimental.save(dataset, str(path))
+            dataset.save(str(path))
 
-    def _load_preprocess(self, split, tokenizer):
+    def _load_preprocess(self, split: Union['train', 'valid', 'test'], tokenizer: AbstractTokenizer=None):
         path = self._preprocess_path(split, tokenizer)
         if not path.exists():
             raise IOError('preprocessed dataset does not exist, call dataset.preprocess(tokenizer)')
-        return tf.data.experimental.load(str(path))
+        return tf.data.Dataset.load(str(path))
 
     @property
     def train_num_examples(self) -> int:
