@@ -95,9 +95,10 @@ if __name__ == '__main__':
     dataset = datasets[args.dataset](persistent_dir=args.persistent_dir, seed=args.seed)
     model = HuggingfaceModel(args.huggingface_repo, persistent_dir=args.persistent_dir, num_classes=dataset.num_classes)
 
+    masker_train = RandomMasking(args.max_masking_ratio / 100, tokenizer, seed=args.seed)
     dataset_train = dataset.train(tokenizer) \
         .shuffle(dataset.train_num_examples, seed=args.seed) \
-        .map(lambda x, y: (masker(x), y), num_parallel_calls=tf.data.AUTOTUNE) \
+        .map(lambda x, y: (masker_train(x), y), num_parallel_calls=tf.data.AUTOTUNE) \
         .padded_batch(args.batch_size, padding_values=(tokenizer.padding_values, None)) \
         .prefetch(tf.data.AUTOTUNE)
 
@@ -105,9 +106,6 @@ if __name__ == '__main__':
         .padded_batch(args.batch_size, padding_values=(tokenizer.padding_values, None)) \
         .prefetch(tf.data.AUTOTUNE)
 
-    dataset_test = dataset.test(tokenizer) \
-        .padded_batch(args.batch_size, padding_values=(tokenizer.padding_values, None)) \
-        .prefetch(tf.data.AUTOTUNE)
 
     model.compile(
         optimizer=AdamW(
@@ -136,7 +134,20 @@ if __name__ == '__main__':
             write_graph=False
         )
     ])
-    results = model.evaluate(dataset_test, return_dict=True)
+
+    dataset_test = dataset.test(tokenizer)
+    results_test = []
+    for test_masking_ratio in [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]:
+        masker_test = RandomMasking(test_masking_ratio, tokenizer, seed=args.seed)
+        dataset_test_with_masking = dataset_test \
+            .map(lambda x, y: (masker_train(x), y), num_parallel_calls=tf.data.AUTOTUNE) \
+            .padded_batch(args.batch_size, padding_values=(tokenizer.padding_values, None)) \
+            .prefetch(tf.data.AUTOTUNE)
+
+        results_test.append({
+            'masking_ratio': test_masking_ratio,
+            **model.evaluate(dataset_test_with_masking, return_dict=True)
+        })
 
     # Save results
     os.makedirs(args.persistent_dir / 'checkpoints', exist_ok=True)
@@ -148,4 +159,4 @@ if __name__ == '__main__':
     os.makedirs(args.persistent_dir / 'results', exist_ok=True)
     with open(args.persistent_dir / 'results' / f'{experiment_id}.json', "w") as f:
         del args.persistent_dir
-        json.dump({'dataset': dataset.name, **vars(args), **results}, f)
+        json.dump({'args': vars(args), 'results': results_test}, f)
