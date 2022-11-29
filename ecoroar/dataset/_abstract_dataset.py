@@ -36,8 +36,8 @@ class AbstractDataset(metaclass=ABCMeta):
         self._persistent_dir = persistent_dir
         self._builder_cache = self._builder(data_dir=persistent_dir / 'cache' / 'tfds')
         self._seed = seed
-        self._use_cache = use_cache
         self._use_snapshot = use_snapshot
+        self._use_cache = use_cache
 
     @abstractmethod
     def _builder(self, data_dir: pathlib.Path) -> tfds.core.DatasetBuilder:
@@ -92,6 +92,14 @@ class AbstractDataset(metaclass=ABCMeta):
         )
 
     @cached_property
+    def _dataset_index(self) -> Dict[str, int]:
+        return {
+            'train': 0,
+            'valid': 1,
+            'test': 2
+        }
+
+    @cached_property
     def _datasets(self) -> Tuple[tf.data.Dataset, tf.data.Dataset, tf.data.Dataset]:
         return self._builder_cache.as_dataset(split=[self._split_train, self._split_valid, self._split_test],
                                               shuffle_files=True,
@@ -105,6 +113,14 @@ class AbstractDataset(metaclass=ABCMeta):
             filename = f'd-{self.name}_s-{self._seed}.{split}.tfds'
         return dirname / filename
 
+    def _process_dataset(self, dataset: tf.data.Dataset, tokenizer: AbstractTokenizer=None):
+        # process dataset
+        dataset = dataset.map(self._as_supervised, num_parallel_calls=tf.data.AUTOTUNE, deterministic=True)
+        if tokenizer:
+            dataset = dataset.map(lambda x, y: (tokenizer(x), y), num_parallel_calls=tf.data.AUTOTUNE, deterministic=True)
+
+        return dataset
+
     def preprocess(self, tokenizer: AbstractTokenizer=None):
         """Creates preprocessed datasets, for each train, valid, and test split.
 
@@ -114,22 +130,26 @@ class AbstractDataset(metaclass=ABCMeta):
             tokenizer (AbstractTokenizer, optional): If provided, the datasets will be tokenized. Defaults to None.
         """
         for split, dataset in zip(['train', 'valid', 'test'], self._datasets):
-            # process dataset
-            dataset = dataset.map(self._as_supervised, num_parallel_calls=tf.data.AUTOTUNE, deterministic=True)
-            if tokenizer:
-                dataset = dataset.map(lambda x, y: (tokenizer(x), y), num_parallel_calls=tf.data.AUTOTUNE, deterministic=True)
-
             # save dataset
             path = self._preprocess_path(split, tokenizer)
             if path.exists():
                 shutil.rmtree(path)
-            dataset.save(str(path))
+            self._process_dataset(dataset, tokenizer).save(str(path))
 
-    def _load_preprocess(self, split: Union['train', 'valid', 'test'], tokenizer: AbstractTokenizer=None):
-        path = self._preprocess_path(split, tokenizer)
-        if not path.exists():
-            raise IOError('preprocessed dataset does not exist, call dataset.preprocess(tokenizer)')
-        return tf.data.Dataset.load(str(path))
+    def _load(self, split: Union['train', 'valid', 'test'], tokenizer: AbstractTokenizer=None):
+        if self._use_snapshot:
+            path = self._preprocess_path(split, tokenizer)
+            if not path.exists():
+                raise IOError('preprocessed dataset does not exist, call dataset.preprocess(tokenizer)')
+
+            dataset = tf.data.Dataset.load(str(path))
+        else:
+            dataset = self._process_dataset(self._datasets[self._dataset_index[split]], tokenizer)
+
+        if self._use_cache:
+            dataset = dataset.cache()
+
+        return dataset
 
     @property
     def train_num_examples(self) -> int:
@@ -140,7 +160,7 @@ class AbstractDataset(metaclass=ABCMeta):
     def train(self, tokenizer: AbstractTokenizer=None) -> tf.data.Dataset:
         """Get training dataset
         """
-        return self._load_preprocess('train', tokenizer).cache()
+        return self._load('train', tokenizer)
 
     @property
     def valid_num_examples(self) -> int:
@@ -151,7 +171,7 @@ class AbstractDataset(metaclass=ABCMeta):
     def valid(self, tokenizer: AbstractTokenizer=None) -> tf.data.Dataset:
         """Validation dataset
         """
-        return self._load_preprocess('valid', tokenizer).cache()
+        return self._load('valid', tokenizer)
 
     @property
     def test_num_examples(self) -> int:
@@ -162,4 +182,4 @@ class AbstractDataset(metaclass=ABCMeta):
     def test(self, tokenizer: AbstractTokenizer=None) -> tf.data.Dataset:
         """Test dataset
         """
-        return self._load_preprocess('test', tokenizer).cache()
+        return self._load('test', tokenizer)
