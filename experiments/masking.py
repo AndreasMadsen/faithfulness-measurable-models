@@ -5,6 +5,7 @@ import argparse
 import json
 import shutil
 import tempfile
+from timeit import default_timer as timer
 
 import tensorflow as tf
 from ecoroar.util import generate_experiment_id, model_name_to_huggingface_repo
@@ -85,6 +86,7 @@ if __name__ == '__main__':
     tf.keras.utils.set_random_seed(args.seed)
     tf.keras.mixed_precision.set_global_policy(args.precision)
 
+    durations = {}
     experiment_id = generate_experiment_id(
         'masking',
         model=args.model, dataset=args.dataset,
@@ -122,6 +124,8 @@ if __name__ == '__main__':
 
     checkpoint_dir = tempfile.mkdtemp()
     tensorboard_dir = tempfile.mkdtemp()
+
+    train_time_start = timer()
     model.fit(dataset_train, validation_data=dataset_valid, epochs=args.max_epochs, callbacks=[
         tf.keras.callbacks.ModelCheckpoint(
             filepath=checkpoint_dir,
@@ -134,6 +138,7 @@ if __name__ == '__main__':
             write_graph=False
         )
     ])
+    durations['train_time'] = timer() - train_time_start
 
     dataset_test = dataset.test(tokenizer)
     results_test = []
@@ -144,10 +149,12 @@ if __name__ == '__main__':
             .padded_batch(args.batch_size, padding_values=(tokenizer.padding_values, None)) \
             .prefetch(tf.data.AUTOTUNE)
 
+        test_time_start = timer()
         results_test.append({
             'masking_ratio': test_masking_ratio,
             **model.evaluate(dataset_test_with_masking, return_dict=True)
         })
+        durations['test_time_{test_masking_ratio}'] = timer() - test_time_start
 
     # Save results
     os.makedirs(args.persistent_dir / 'checkpoints', exist_ok=True)
@@ -159,4 +166,4 @@ if __name__ == '__main__':
     os.makedirs(args.persistent_dir / 'results', exist_ok=True)
     with open(args.persistent_dir / 'results' / f'{experiment_id}.json', "w") as f:
         del args.persistent_dir
-        json.dump({'args': vars(args), 'results': results_test}, f)
+        json.dump({'args': vars(args), 'results': results_test, 'durations': durations}, f)
