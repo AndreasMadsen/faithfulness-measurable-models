@@ -101,11 +101,15 @@ if __name__ == '__main__':
     dataset_train = dataset.train(tokenizer) \
         .shuffle(dataset.train_num_examples, seed=args.seed) \
         .map(lambda x, y: (masker_train(x), y), num_parallel_calls=tf.data.AUTOTUNE) \
-        .padded_batch(args.batch_size, padding_values=(tokenizer.padding_values, None)) \
+        .padded_batch(args.batch_size,
+                      padded_shapes=(tokenizer.padding_shapes, []),
+                      padding_values=(tokenizer.padding_values, None)) \
         .prefetch(tf.data.AUTOTUNE)
 
     dataset_valid = dataset.valid(tokenizer) \
-        .padded_batch(args.batch_size, padding_values=(tokenizer.padding_values, None)) \
+        .padded_batch(args.batch_size,
+                      padded_shapes=(tokenizer.padding_shapes, []),
+                      padding_values=(tokenizer.padding_values, None)) \
         .prefetch(tf.data.AUTOTUNE)
 
 
@@ -119,7 +123,8 @@ if __name__ == '__main__':
         ),
         loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True, name='cross_entropy'),
         metrics=dataset.metrics(),
-        run_eagerly=False
+        run_eagerly=False,
+        jit_compile=True
     )
 
     checkpoint_dir = tempfile.mkdtemp()
@@ -142,11 +147,13 @@ if __name__ == '__main__':
 
     dataset_test = dataset.test(tokenizer)
     results_test = []
-    for test_masking_ratio in [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]:
+    for test_masking_ratio in [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]:
         masker_test = RandomMasking(test_masking_ratio, tokenizer, seed=args.seed)
         dataset_test_with_masking = dataset_test \
             .map(lambda x, y: (masker_train(x), y), num_parallel_calls=tf.data.AUTOTUNE) \
-            .padded_batch(args.batch_size, padding_values=(tokenizer.padding_values, None)) \
+            .padded_batch(args.batch_size,
+                          padded_shapes=(tokenizer.padding_shapes, []),
+                          padding_values=(tokenizer.padding_values, None)) \
             .prefetch(tf.data.AUTOTUNE)
 
         test_time_start = timer()

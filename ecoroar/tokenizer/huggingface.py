@@ -90,6 +90,21 @@ class HuggingfaceTokenizer:
             'attention_mask': tf.constant(0, dtype=tf.dtypes.int8)
         }
 
+    @cached_property
+    def padding_shapes(self) -> TokenizedDict:
+        """Padding shapes to use
+
+        This is useful in the context of tf.data.Dataset.padded_batch. For example:
+
+            dataset.
+                .padding_values(batch_size,
+                                padded_shapes=(tokenizer.padding_values, []))
+        """
+        return {
+            'input_ids': [self._tokenizer.model_max_length],
+            'attention_mask': [self._tokenizer.model_max_length]
+        }
+
     @property
     def vocab(self) -> List[str]:
         """Return vocabulary
