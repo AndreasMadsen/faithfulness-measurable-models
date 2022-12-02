@@ -103,17 +103,21 @@ if __name__ == '__main__':
     dataset_train = dataset.train(tokenizer)
     dataset_valid = dataset.valid(tokenizer)
     dataset_test = dataset.test(tokenizer)
-    batcher = BucketedPaddedBatch([dataset_train, dataset_valid, dataset_test])
+    batcher = BucketedPaddedBatch([dataset_train, dataset_valid, dataset_test], batch_size=args.batch_size)
 
     masker_train = RandomMasking(args.max_masking_ratio / 100, tokenizer, seed=args.seed)
     dataset_train_batched = dataset_train \
         .shuffle(dataset.train_num_examples, seed=args.seed) \
         .map(lambda x, y: (masker_train(x), y), num_parallel_calls=tf.data.AUTOTUNE) \
-        .apply(batcher(args.batch_size, padding_values=(tokenizer.padding_values, None))) \
+        .apply(batcher(args.batch_size,
+                       padding_values=(tokenizer.padding_values, None),
+                       num_parallel_calls=tf.data.AUTOTUNE)) \
         .prefetch(tf.data.AUTOTUNE)
 
     dataset_valid_batched = dataset_valid \
-        .apply(batcher(args.batch_size, padding_values=(tokenizer.padding_values, None))) \
+        .apply(batcher(args.batch_size,
+                       padding_values=(tokenizer.padding_values, None),
+                       num_parallel_calls=tf.data.AUTOTUNE)) \
         .prefetch(tf.data.AUTOTUNE)
 
     model.compile(
@@ -153,7 +157,9 @@ if __name__ == '__main__':
         masker_test = RandomMasking(test_masking_ratio, tokenizer, seed=args.seed)
         dataset_test_batched = dataset_test \
             .map(lambda x, y: (masker_train(x), y), num_parallel_calls=tf.data.AUTOTUNE) \
-            .apply(batcher(args.batch_size, padding_values=(tokenizer.padding_values, None))) \
+            .apply(batcher(args.batch_size,
+                           padding_values=(tokenizer.padding_values, None),
+                           num_parallel_calls=tf.data.AUTOTUNE)) \
             .prefetch(tf.data.AUTOTUNE)
 
         test_time_start = timer()
