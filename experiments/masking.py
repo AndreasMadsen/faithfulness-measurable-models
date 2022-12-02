@@ -65,8 +65,9 @@ parser.add_argument('--lr',
 parser.add_argument('--deterministic',
                     action='store_true',
                     help='Use determinstic computations')
-parser.add_argument('--no-jit-compile',
-                    action='store_false',
+parser.add_argument('--jit-compile',
+                    action=argparse.BooleanOptionalAction,
+                    default=True,
                     help='Use XLA JIT complication')
 parser.add_argument('--precision',
                     action='store',
@@ -83,6 +84,25 @@ if __name__ == '__main__':
     args = parser.parse_args()
     if args.huggingface_repo is None:
         args.huggingface_repo = model_name_to_huggingface_repo(args.model)
+
+    print(args)
+
+    print('Configuration:')
+    print('  Seed:', args.seed)
+    print('  Model:', args.model)
+    print('  Dataset:', args.dataset)
+    print('  Huggingface Repo:', args.huggingface_repo)
+    print('  Max masking ratio:', args.max_masking_ratio)
+    print('')
+    print('  Weight Decay:', args.weight_decay)
+    print('  Learning rate:', args.lr)
+    print('  Batch size:', args.batch_size)
+    print('  Max epochs:', args.max_epochs)
+    print('')
+    print('  JIT compile:', args.jit_compile)
+    print('  Deterministic:', args.deterministic)
+    print('  Precision:', args.precision)
+    print('')
 
     if args.deterministic:
         tf.config.experimental.enable_op_determinism()
@@ -131,7 +151,7 @@ if __name__ == '__main__':
         loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True, name='cross_entropy'),
         metrics=dataset.metrics(),
         run_eagerly=False,
-        jit_compile=not args.no_jit_compile
+        jit_compile=args.jit_compile
     )
 
     checkpoint_dir = tempfile.mkdtemp()
