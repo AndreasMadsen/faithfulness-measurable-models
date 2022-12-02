@@ -65,8 +65,8 @@ parser.add_argument('--lr',
 parser.add_argument('--deterministic',
                     action='store_true',
                     help='Use determinstic computations')
-parser.add_argument('--jit-compile',
-                    action='store_true',
+parser.add_argument('--no-jit-compile',
+                    action='store_false',
                     help='Use XLA JIT complication')
 parser.add_argument('--precision',
                     action='store',
@@ -131,7 +131,7 @@ if __name__ == '__main__':
         loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True, name='cross_entropy'),
         metrics=dataset.metrics(),
         run_eagerly=False,
-        jit_compile=args.jit_compile
+        jit_compile=not args.no_jit_compile
     )
 
     checkpoint_dir = tempfile.mkdtemp()
