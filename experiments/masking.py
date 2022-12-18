@@ -8,7 +8,7 @@ import tempfile
 from timeit import default_timer as timer
 
 import tensorflow as tf
-from ecoroar.util import generate_experiment_id, model_name_to_huggingface_repo
+from ecoroar.util import generate_experiment_id, model_name_to_huggingface_repo, default_jit_compile
 from ecoroar.dataset import datasets
 from ecoroar.tokenizer import HuggingfaceTokenizer
 from ecoroar.model import HuggingfaceModel
@@ -67,7 +67,7 @@ parser.add_argument('--deterministic',
                     help='Use determinstic computations')
 parser.add_argument('--jit-compile',
                     action=argparse.BooleanOptionalAction,
-                    default=True,
+                    default=None,
                     help='Use XLA JIT complication')
 parser.add_argument('--precision',
                     action='store',
@@ -84,6 +84,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     if args.huggingface_repo is None:
         args.huggingface_repo = model_name_to_huggingface_repo(args.model)
+    args.jit_compile = default_jit_compile(args)
 
     print('Configuration:')
     print('  Seed:', args.seed)
@@ -121,7 +122,12 @@ if __name__ == '__main__':
     dataset_train = dataset.train(tokenizer)
     dataset_valid = dataset.valid(tokenizer)
     dataset_test = dataset.test(tokenizer)
-    batcher = BucketedPaddedBatch([dataset_train, dataset_valid, dataset_test], batch_size=args.batch_size)
+
+    if args.jit_compile:
+        batcher = BucketedPaddedBatch([dataset_train, dataset_valid, dataset_test], batch_size=args.batch_size)
+    else:
+        batcher = lambda batch_size, padding_values, num_parallel_calls: \
+            lambda dataset: dataset.padded_batch(batch_size, padding_values=padding_values)
 
     masker_train = RandomMasking(args.max_masking_ratio / 100, tokenizer, seed=args.seed)
     dataset_train_batched = dataset_train \
