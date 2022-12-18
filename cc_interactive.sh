@@ -2,9 +2,8 @@
 module load python/3.10.2 gcc/9.3.0 git-lfs/2.11.0 cuda/11.2 cudnn/8.2.0
 
 # Create environment
-TMP_ENV=$(mktemp -d)
-virtualenv --app-data $SCRATCH/virtualenv --no-download $TMP_ENV/env
-source $TMP_ENV/env/bin/activate
+virtualenv --app-data $SCRATCH/virtualenv --no-download $SLURM_TMPDIR/env
+source $SLURM_TMPDIR/env/bin/activate
 python -m pip install --no-index -U pip setuptools
 
 # Install project
