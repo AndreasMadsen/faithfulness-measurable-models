@@ -85,8 +85,6 @@ if __name__ == '__main__':
     if args.huggingface_repo is None:
         args.huggingface_repo = model_name_to_huggingface_repo(args.model)
 
-    print(args)
-
     print('Configuration:')
     print('  Seed:', args.seed)
     print('  Model:', args.model)
