@@ -33,19 +33,18 @@ class BucketedPaddedBatch:
         """
         self._bounding_shape = bounding_shape
 
-        # concat datasets
-        datasets_iter = iter(datasets)
-        dataset_all = next(datasets_iter)
-        for dataset_left in datasets_iter:
-            dataset_all.concatenate(dataset_left)
-
-        # get observation lengths
-        # tf.data.experimental.dense_to_ragged_batch becomes
-        # tf.data.Dataset.ragged_batch(num_parallel_calls=tf.data.AUTOTUNE) in TF v2.11.0
-        lengths_dataset = dataset_all \
-            .apply(tf.data.experimental.dense_to_ragged_batch(batch_size)) \
-            .map(lambda *args: bounding_shape(*args)[-1], num_parallel_calls=tf.data.AUTOTUNE)
-        lengths = np.fromiter(lengths_dataset.as_numpy_iterator(), dtype=np.int32)
+        lengths_list = []
+        for dataset in datasets:
+            # get observation lengths
+            # tf.data.experimental.dense_to_ragged_batch becomes
+            # tf.data.Dataset.ragged_batch(num_parallel_calls=tf.data.AUTOTUNE) in TF v2.11.0
+            lengths_dataset = dataset \
+                .apply(tf.data.experimental.dense_to_ragged_batch(batch_size)) \
+                .map(lambda *args: bounding_shape(*args)[-1], num_parallel_calls=tf.data.AUTOTUNE)
+            lengths_list.append(
+                np.fromiter(lengths_dataset.as_numpy_iterator(), dtype=np.int32)
+            )
+        lengths = np.hstack(lengths_list)
 
         # bucket size via quantile heuristic
         self._bucket_boundaries = tf.convert_to_tensor(np.unique(np.hstack((
