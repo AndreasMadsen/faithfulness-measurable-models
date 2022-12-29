@@ -180,7 +180,7 @@ if __name__ == '__main__':
     for test_masking_ratio in [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]:
         masker_test = RandomMasking(test_masking_ratio, tokenizer, seed=args.seed)
         dataset_test_batched = dataset_test \
-            .map(lambda x, y: (masker_train(x), y), num_parallel_calls=tf.data.AUTOTUNE) \
+            .map(lambda x, y: (masker_test(x), y), num_parallel_calls=tf.data.AUTOTUNE) \
             .apply(batcher(args.batch_size,
                            padding_values=(tokenizer.padding_values, None),
                            num_parallel_calls=tf.data.AUTOTUNE)) \
@@ -191,7 +191,7 @@ if __name__ == '__main__':
             'masking_ratio': test_masking_ratio,
             **model.evaluate(dataset_test_batched, return_dict=True)
         })
-        durations['test_time_{test_masking_ratio}'] = timer() - test_time_start
+        durations[f'test_time_{test_masking_ratio}'] = timer() - test_time_start
 
     # Save results
     os.makedirs(args.persistent_dir / 'checkpoints', exist_ok=True)
