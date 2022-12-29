@@ -18,6 +18,11 @@ parser.add_argument('--dataset',
                     default='IMDB',
                     type=str,
                     help='The dataset to fine-tune on')
+parser.add_argument('--max-epochs',
+                    action='store',
+                    default=3,
+                    type=int,
+                    help='The max number of epochs to use')
 parser.add_argument('--max-masking-ratio',
                     action='store',
                     default=0,
@@ -25,7 +30,7 @@ parser.add_argument('--max-masking-ratio',
                     help='The maximum masking ratio (percentage integer) to apply on the training dataset')
 
 if __name__ == '__main__':
-    args = parser.parse_args()
+    args, unknown = parser.parse_known_args()
 
     experiment_id = generate_experiment_id(
         'masking',
