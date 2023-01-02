@@ -35,6 +35,7 @@ if __name__ == '__main__':
     experiment_id = generate_experiment_id(
         'masking',
         model=args.model, dataset=args.dataset,
-        seed=args.seed, max_masking_ratio=args.max_masking_ratio
+        seed=args.seed, max_masking_ratio=args.max_masking_ratio,
+        max_epochs=args.max_epochs
     )
     print(experiment_id)
