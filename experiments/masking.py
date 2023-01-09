@@ -204,4 +204,12 @@ if __name__ == '__main__':
     os.makedirs(args.persistent_dir / 'results', exist_ok=True)
     with open(args.persistent_dir / 'results' / f'{experiment_id}.json', "w") as f:
         del args.persistent_dir
-        json.dump({'args': vars(args), 'results': results_test, 'durations': durations}, f)
+        json.dump({
+            'args': vars(args),
+            'history': [
+                { key: values[epoch] for key, values in history.history.items() } | { 'epoch': epoch }
+                for epoch in range(history.params['epochs'])
+            ],
+            'results': results_test,
+            'durations': durations
+        }, f)
