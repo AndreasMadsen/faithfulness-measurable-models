@@ -60,28 +60,34 @@ class RandomFixedMasking:
                 tf.cast(attention_mask, tf.dtypes.bool)
             )
 
-            # Shuffle the indices of the maskable values
+            # Get the maskable indices
             # e.g. maskable_indices = [1, 2, 3]
             maskable_indices = tf.squeeze(tf.where(maskable_indicator), axis=1)
-            # e.g. shuffled_maskable_indices = [2, 1, 3]
-            shuffled_maskable_indices = tf.random.experimental.stateless_shuffle(
-                maskable_indices,
-                seed=self._rng.uniform_full_int([2], dtype=tf.dtypes.int64))
 
-            # Selected the first fixed_masking_ratio indices
-            # e.g. shuffled_masked_indices = [2, 1]
+            # Compute the number of masked values required
+            # e.g. number_of_masked_values = 2
             number_of_masked_values = tf.cast(tf.math.floor(
-                self._fixed_masking_ratio * tf.cast(tf.size(shuffled_maskable_indices), dtype=tf.dtypes.float32)
+                self._fixed_masking_ratio * tf.cast(tf.size(maskable_indices), dtype=tf.dtypes.float32)
             ), dtype=tf.dtypes.int32)
-            shuffled_masked_indices = shuffled_maskable_indices[:number_of_masked_values]
+
+            # Select number_of_masked_values elements from maskable_indices without replacement
+            # e.g. shuffled_maskable_indices = [2, 1]
+            shuffled_masked_indices = tf.gather(
+                maskable_indices,
+                indices=tf.random.experimental.index_shuffle(
+                    index=tf.range(number_of_masked_values),
+                    seed=self._rng.uniform_full_int([2], dtype=tf.dtypes.int64),
+                    max_index=tf.size(maskable_indices)
+                )
+            )
 
             # convert indices to tensor with true values
             # e.g. masking_indicator = [False, True, True, False, False]
             masking_indicator = tf.sparse.SparseTensor(
-                indices=tf.expand_dims(shuffled_masked_indices, axis=1),
+                indices=tf.expand_dims(tf.sort(shuffled_masked_indices), axis=1),
                 values=tf.ones_like(shuffled_masked_indices, dtype=tf.dtypes.bool),
                 dense_shape=maskable_indicator.shape)
-            masking_indicator = tf.sparse.to_dense(tf.sparse.reorder(masking_indicator))
+            masking_indicator = tf.sparse.to_dense(masking_indicator)
 
             # Use masking_indicator to mask the input_ids
             # e.g. input_ids = ['[BOS]', '[MASK]', '[MASK]', 'C', '[EOS]']
