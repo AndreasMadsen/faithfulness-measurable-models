@@ -12,7 +12,7 @@ from ecoroar.util import generate_experiment_id, model_name_to_huggingface_repo,
 from ecoroar.dataset import datasets
 from ecoroar.tokenizer import HuggingfaceTokenizer
 from ecoroar.model import HuggingfaceModel
-from ecoroar.transform import RandomMasking, BucketedPaddedBatch
+from ecoroar.transform import RandomFixedMasking, RandomMaxMasking, BucketedPaddedBatch
 from ecoroar.optimizer import AdamW
 from ecoroar.scheduler import LinearSchedule
 
@@ -130,7 +130,7 @@ if __name__ == '__main__':
         batcher = lambda batch_size, padding_values, num_parallel_calls: \
             lambda dataset: dataset.padded_batch(batch_size, padding_values=padding_values)
 
-    masker_train = RandomMasking(args.max_masking_ratio / 100, tokenizer, seed=args.seed)
+    masker_train = RandomMaxMasking(args.max_masking_ratio / 100, tokenizer, seed=args.seed)
     dataset_train_batched = dataset_train \
         .shuffle(dataset.train_num_examples, seed=args.seed) \
         .map(lambda x, y: (masker_train(x), y), num_parallel_calls=tf.data.AUTOTUNE) \
@@ -162,8 +162,9 @@ if __name__ == '__main__':
     checkpoint_dir = tempfile.mkdtemp()
     tensorboard_dir = tempfile.mkdtemp()
 
+    # Train models and collect validation performance at each epoch
     train_time_start = timer()
-    model.fit(dataset_train_batched, validation_data=dataset_valid_batched, epochs=args.max_epochs, callbacks=[
+    history = model.fit(dataset_train_batched, validation_data=dataset_valid_batched, epochs=args.max_epochs, callbacks=[
         tf.keras.callbacks.ModelCheckpoint(
             filepath=checkpoint_dir,
             monitor=dataset.early_stopping_metric, mode='max',
@@ -177,9 +178,10 @@ if __name__ == '__main__':
     ])
     durations['train_time'] = timer() - train_time_start
 
+    # Evalute test performance at different masking ratios
     results_test = []
     for test_masking_ratio in [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]:
-        masker_test = RandomMasking(test_masking_ratio, tokenizer, seed=args.seed)
+        masker_test = RandomFixedMasking(test_masking_ratio, tokenizer, seed=args.seed)
         dataset_test_batched = dataset_test \
             .map(lambda x, y: (masker_test(x), y), num_parallel_calls=tf.data.AUTOTUNE) \
             .apply(batcher(args.batch_size,

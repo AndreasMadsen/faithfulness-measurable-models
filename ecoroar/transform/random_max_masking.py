@@ -4,13 +4,16 @@ import tensorflow as tf
 from ..types import TokenizedDict
 
 
-class RandomMasking:
+class RandomMaxMasking:
     def __init__(self, max_masking_ratio: float, tokenizer, seed: int = None):
         """Masks the input
 
         The masking procedure is:
         1. sample a masking ratio from uniform[0, max_masking_ratio)
         2. randomly mask the input with the masking ratio
+
+        Note: this algorithm uses stocastic masking, such that for max_masking_ratio = 90%
+            on average 90% of the tokens will be masked.
 
         Args:
             max_masking_ratio (float): The maximum masking ratio, between 0 and 1 inclusive
