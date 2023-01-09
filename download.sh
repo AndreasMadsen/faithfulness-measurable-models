@@ -12,7 +12,8 @@ python -m pip install -U build wheel
 mkdir -p $HOME/python_wheels
 
 # build transformers
-# This private build is being upstreamed at https://github.com/huggingface/transformers/pull/20305
+# NOTE: This private build is being upstreamed at https://github.com/huggingface/transformers/pull/20305
+# NOTE: The PR is now upstreamed. I'm waiting for them to make the next release.
 cd $(mktemp -d)
 git clone https://github.com/andreasmadsen/transformers.git
 cd transformers
