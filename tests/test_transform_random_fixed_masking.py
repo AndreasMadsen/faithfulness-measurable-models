@@ -2,6 +2,7 @@
 import pathlib
 
 import numpy as np
+import tensorflow as tf
 
 from ecoroar.tokenizer import HuggingfaceTokenizer
 from ecoroar.transform import RandomFixedMasking
@@ -61,3 +62,18 @@ def test_masking_some():
     masker_80 = RandomFixedMasking(0.8, tokenizer, seed=1)
     np.testing.assert_array_equal(masker_80(output)['input_ids'].numpy(),
                                   [0, 713, mask, mask, mask, mask, mask, mask, mask, 1569, mask, 2])
+
+
+def test_masking_partially_known_shape():
+    tokenizer = HuggingfaceTokenizer('roberta-base', persistent_dir=pathlib.Path('.'))
+    mask = tokenizer.mask_token_id.numpy()
+
+    dataset = tf.data.Dataset.from_tensor_slices([
+        "This was truely an absolutely - terrible movie.",
+        "This was an terrible movie."
+    ]).map(lambda doc: tokenizer((doc, )))
+
+    masker_40 = RandomFixedMasking(0.4, tokenizer, seed=1)
+    masked_1, masked_2 = dataset.map(lambda x: masker_40(x)['input_ids']).as_numpy_iterator()
+    np.testing.assert_array_equal(masked_1, [0, 713, 21, 1528, mask, mask, 3668, mask, 6587, 1569, mask, 2])
+    np.testing.assert_array_equal(masked_2, [0, mask, 21, mask, 6587, 1569, 4, 2])

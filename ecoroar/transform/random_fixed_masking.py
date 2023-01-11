@@ -77,7 +77,7 @@ class RandomFixedMasking:
                 indices=tf.random.experimental.index_shuffle(
                     index=tf.range(number_of_masked_values),
                     seed=self._rng.uniform_full_int([2], dtype=tf.dtypes.int64),
-                    max_index=tf.size(maskable_indices)
+                    max_index=tf.size(maskable_indices) - 1
                 )
             )
 
@@ -86,7 +86,7 @@ class RandomFixedMasking:
             masking_indicator = tf.sparse.SparseTensor(
                 indices=tf.expand_dims(tf.sort(shuffled_masked_indices), axis=1),
                 values=tf.ones_like(shuffled_masked_indices, dtype=tf.dtypes.bool),
-                dense_shape=maskable_indicator.shape)
+                dense_shape=tf.shape(maskable_indicator, out_type=tf.dtypes.int64))
             masking_indicator = tf.sparse.to_dense(masking_indicator)
 
             # Use masking_indicator to mask the input_ids
