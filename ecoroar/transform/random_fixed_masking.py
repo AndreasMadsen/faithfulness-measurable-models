@@ -71,21 +71,16 @@ class RandomFixedMasking:
             ), dtype=tf.dtypes.int32)
 
             # Select number_of_masked_values elements from maskable_indices without replacement
-            # e.g. shuffled_maskable_indices = [2, 1]
-            shuffled_masked_indices = tf.gather(
-                maskable_indices,
-                indices=tf.random.experimental.index_shuffle(
-                    index=tf.range(number_of_masked_values),
-                    seed=self._rng.uniform_full_int([2], dtype=tf.dtypes.int64),
-                    max_index=tf.size(maskable_indices) - 1
-                )
-            )
+            _, random_indices = tf.math.top_k(self._rng.uniform_full_int([tf.size(maskable_indices)]),
+                                              k=number_of_masked_values,
+                                              sorted=False)
+            selected_masked_indices = tf.gather(maskable_indices, indices=random_indices)
 
             # convert indices to tensor with true values
             # e.g. masking_indicator = [False, True, True, False, False]
             masking_indicator = tf.sparse.SparseTensor(
-                indices=tf.expand_dims(tf.sort(shuffled_masked_indices), axis=1),
-                values=tf.ones_like(shuffled_masked_indices, dtype=tf.dtypes.bool),
+                indices=tf.expand_dims(tf.sort(selected_masked_indices), axis=1),
+                values=tf.ones_like(selected_masked_indices, dtype=tf.dtypes.bool),
                 dense_shape=tf.shape(maskable_indicator, out_type=tf.dtypes.int64))
             masking_indicator = tf.sparse.to_dense(masking_indicator)
 

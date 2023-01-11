@@ -49,19 +49,19 @@ def test_masking_some():
 
     masker_20 = RandomFixedMasking(0.2, tokenizer, seed=1)
     np.testing.assert_array_equal(masker_20(output)['input_ids'].numpy(),
-                                  [0, 713, 21, 1528, 352, mask, 3668, mask, 6587, 1569, 4, 2])
+                                  [0, 713, 21, 1528, 352, 41, 3668, mask, mask, 1569, 4, 2])
 
     masker_40 = RandomFixedMasking(0.4, tokenizer, seed=1)
     np.testing.assert_array_equal(masker_40(output)['input_ids'].numpy(),
-                                  [0, 713, 21, 1528, mask, mask, 3668, mask, 6587, 1569, mask, 2])
+                                  [0, 713, 21, 1528, 352, mask, mask, mask, mask, 1569, 4, 2])
 
     masker_60 = RandomFixedMasking(0.6, tokenizer, seed=1)
     np.testing.assert_array_equal(masker_60(output)['input_ids'].numpy(),
-                                  [0, 713, mask, 1528, mask, mask, mask, mask, 6587, 1569, mask, 2])
+                                  [0, mask, 21, 1528, 352, mask, mask, mask, mask, 1569, mask, 2])
 
     masker_80 = RandomFixedMasking(0.8, tokenizer, seed=1)
     np.testing.assert_array_equal(masker_80(output)['input_ids'].numpy(),
-                                  [0, 713, mask, mask, mask, mask, mask, mask, mask, 1569, mask, 2])
+                                  [0, mask, 21, mask, mask, mask, mask, mask, mask, 1569, mask, 2])
 
 
 def test_masking_partially_known_shape():
@@ -75,5 +75,5 @@ def test_masking_partially_known_shape():
 
     masker_40 = RandomFixedMasking(0.4, tokenizer, seed=1)
     masked_1, masked_2 = dataset.map(lambda x: masker_40(x)['input_ids']).as_numpy_iterator()
-    np.testing.assert_array_equal(masked_1, [0, 713, 21, 1528, mask, mask, 3668, mask, 6587, 1569, mask, 2])
-    np.testing.assert_array_equal(masked_2, [0, mask, 21, mask, 6587, 1569, 4, 2])
+    np.testing.assert_array_equal(masked_1, [0, 713, 21, 1528, 352, mask, mask, mask, mask, 1569, 4, 2])
+    np.testing.assert_array_equal(masked_2, [0, 713, 21, mask, mask, 1569, 4, 2])
