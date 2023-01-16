@@ -105,7 +105,7 @@ if __name__ == "__main__":
                 + p9.geom_ribbon(p9.aes(ymin='metric_lower', ymax='metric_upper', fill='args.model'), alpha=0.35)
                 + p9.geom_line(p9.aes(y='metric_mean', color='args.model'))
                 + p9.geom_point(p9.aes(y='metric_mean', color='args.model', shape='args.model'))
-                + p9.facet_grid("args.dataset ~ args.max_epochs", scales="free_y")
+                + p9.facet_grid("args.dataset ~ ", scales="free_y")
                 + p9.labs(y='Performance', shape='', x='Max masking ratio')
                 + p9.scale_y_continuous(labels=lambda ticks: [f'{tick:.0%}' for tick in ticks])
                 + p9.scale_x_continuous(labels=lambda ticks: [f'{tick:.0f}%' for tick in ticks])
