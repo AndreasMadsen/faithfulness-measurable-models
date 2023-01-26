@@ -1,4 +1,7 @@
 
+PROJECT_RESULT_DIR="${SCRATCH}/ecoroar"
+mkdir -p "$PROJECT_RESULT_DIR"/logs
+
 job_script () {
     local loginnode=${HOSTNAME%%.*}
     local cluster=${loginnode//[0-9]/}
@@ -27,7 +30,7 @@ submit_seeds () {
     local filename
     for seed in $(echo "$seeds")
     do
-        if [ ! -f "${SCRATCH}/ecoroar/results/${experiment_name/9999/$seed}.json" ]; then
+        if [ ! -f "${PROJECT_RESULT_DIR}/results/${experiment_name/9999/$seed}.json" ]; then
             run_seeds+=($seed)
             echo "scheduling ${experiment_name/9999/$seed}" 1>&2
         fi
@@ -45,7 +48,7 @@ submit_seeds () {
         sbatch --time="$walltime_times_nb_seeds" \
                --export=ALL,RUN_SEEDS="$(join_by ' ' "${run_seeds[@]}")" \
                -J "$jobname" \
-               -o "$SCRATCH"/ecoroar/logs/%x.%j.out -e "$SCRATCH"/ecoroar/logs/%x.%j.err \
+               -o "$PROJECT_RESULT_DIR"/logs/%x.%j.out -e "$PROJECT_RESULT_DIR"/logs/%x.%j.err \
                "${@:3}"
     else
         echo "skipping"

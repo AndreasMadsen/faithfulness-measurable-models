@@ -8,4 +8,4 @@ def default_jit_compile(args):
     if args.jit_compile is not None:
         return args.jit_compile
 
-    return args.dataset not in ['CoLA', 'BoolQ', 'SST2', 'IMDB']
+    return args.dataset in ['QQP', 'MNLI']
