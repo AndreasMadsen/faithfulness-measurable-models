@@ -10,20 +10,7 @@ python -m pip install -U build wheel
 
 # Download package dependencies
 mkdir -p $HOME/python_wheels
-
-# build transformers
-# NOTE: This private build is being upstreamed at https://github.com/huggingface/transformers/pull/20305
-# NOTE: The PR is now upstreamed. I'm waiting for them to make the next release.
-cd $(mktemp -d)
-git clone https://github.com/andreasmadsen/transformers.git
-cd transformers
-git checkout roberta-prelayernorm
-python -m build
-cp dist/*-py3-none-any.whl $HOME/python_wheels
-
-# install dependencies
-cd $HOME/python_wheels
-python -m pip download --no-deps 'huggingface-hub<1.0,>=0.10.0'
+python -m pip download --no-deps 'transformers==4.26.0' 'huggingface-hub<1.0,>=0.10.0'
 
 # Install project
 cd $HOME/workspace/economical-roar
