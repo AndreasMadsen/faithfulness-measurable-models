@@ -10,7 +10,6 @@ python -m pip install -U build wheel
 
 # Download package dependencies
 mkdir -p $HOME/python_wheels
-python -m pip download --no-deps 'transformers==4.26.0' 'huggingface-hub<1.0,>=0.10.0'
 
 # Install project
 cd $HOME/workspace/economical-roar
