@@ -22,7 +22,7 @@ if __name__ == "__main__":
     for model_name in ['roberta-base']:
         tokenizer = HuggingfaceTokenizer(model_name, persistent_dir=args.persistent_dir)
 
-        for seed, (name, Dataset) in (pbar := tqdm(product(range(5), datasets.items()))):
+        for seed, (name, Dataset) in (pbar := tqdm(product(range(5), datasets.items()), total=5*len(datasets))):
             pbar.set_description(f'Processing {name}(seed={seed})')
             dataset = Dataset(persistent_dir=args.persistent_dir, seed=seed)
             dataset.preprocess(tokenizer)
