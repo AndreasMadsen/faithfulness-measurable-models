@@ -8,7 +8,7 @@ import tempfile
 from timeit import default_timer as timer
 
 import tensorflow as tf
-from ecoroar.util import generate_experiment_id, model_name_to_huggingface_repo, default_jit_compile
+from ecoroar.util import generate_experiment_id, model_name_to_huggingface_repo, default_jit_compile, default_max_epochs
 from ecoroar.dataset import datasets
 from ecoroar.tokenizer import HuggingfaceTokenizer
 from ecoroar.model import HuggingfaceModel
@@ -85,6 +85,7 @@ if __name__ == '__main__':
     if args.huggingface_repo is None:
         args.huggingface_repo = model_name_to_huggingface_repo(args.model)
     args.jit_compile = default_jit_compile(args)
+    args.max_epochs = default_max_epochs(args)
 
     print('Configuration:')
     print('  Seed:', args.seed)

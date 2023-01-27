@@ -9,3 +9,16 @@ def default_jit_compile(args):
         return args.jit_compile
 
     return args.dataset in ['QQP', 'MNLI']
+
+def default_max_epochs(args):
+    if args.max_epochs is not None:
+        return args.max_epochs
+
+    return ({
+        'BoolQ': 15,
+        'COLA': 15,
+        'IMDB': 10,
+        'MNLI': 10,
+        'QQP': 10,
+        'SST2': 10,
+    }).get(args.max_epochs, 20)
