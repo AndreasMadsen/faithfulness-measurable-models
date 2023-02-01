@@ -29,7 +29,7 @@ parser.add_argument('--seed',
                     help='Random seed')
 parser.add_argument('--max-epochs',
                     action='store',
-                    default=3,
+                    default=None,
                     type=int,
                     help='The max number of epochs to use')
 parser.add_argument('--batch-size',
@@ -179,6 +179,9 @@ if __name__ == '__main__':
     ])
     durations['train_time'] = timer() - train_time_start
 
+    # Load the model weights that are considered the best checkpoint by the validation metric
+    model.load_weights(checkpoint_dir)
+
     # Evalute test performance at different masking ratios
     results_test = []
     for test_masking_ratio in [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]:
@@ -199,9 +202,11 @@ if __name__ == '__main__':
 
     # Save results
     os.makedirs(args.persistent_dir / 'checkpoints', exist_ok=True)
+    shutil.rmtree(args.persistent_dir / 'checkpoints' / experiment_id, ignore_errors=True)
     shutil.move(checkpoint_dir, args.persistent_dir / 'checkpoints' / experiment_id)
 
     os.makedirs(args.persistent_dir / 'results', exist_ok=True)
+    shutil.rmtree(args.persistent_dir / 'tensorboard' / experiment_id, ignore_errors=True)
     shutil.move(tensorboard_dir, args.persistent_dir / 'tensorboard' / experiment_id)
 
     os.makedirs(args.persistent_dir / 'results', exist_ok=True)
