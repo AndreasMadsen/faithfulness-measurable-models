@@ -91,29 +91,41 @@ if __name__ == "__main__":
         # Compute confint and mean for each group
 
         for model_category in ['masking-ratio', 'size']:
-            df_subset = df.loc[(df['args.max_epochs'] == 20) &
-                                (df['model_category'] == model_category), :]
-            df_plot = (df_subset
+            df_model_category = df.loc[(df['model_category'] == model_category), :]
+            if df_model_category.shape[0] == 0:
+                print(f'Skipping model category "{model_category}", no observations.')
+                continue
+
+            df_plot = (df_model_category
                     .groupby(['args.model', 'args.dataset', 'args.max_epochs', 'args.max_masking_ratio',
                                 'results.masking_ratio'])
                     .apply(bootstrap_confint(['metric']))
                     .reset_index()
             )
 
+            df_goal = df_plot.loc[df_plot['args.max_masking_ratio'] == 0]
+            df_goal = pd.concat([
+                df_goal.assign(**{
+                    'args.max_masking_ratio': max_masking_ratio
+                })
+                for max_masking_ratio in [0, 20, 40, 60, 80, 100]
+            ])
+
             # Generate plot
             p = (p9.ggplot(df_plot, p9.aes(x='results.masking_ratio'))
                 + p9.geom_jitter(p9.aes(y='metric', group='args.seed', color='args.model'),
-                                shape='+', alpha=0.5, width=0.01, data=df_subset)
+                                shape='+', alpha=0.5, width=0.01, data=df_model_category)
                 + p9.geom_ribbon(p9.aes(ymin='metric_lower', ymax='metric_upper', fill='args.model'), alpha=0.35)
                 + p9.geom_line(p9.aes(y='metric_mean', color='args.model', shape='args.model'))
                 + p9.geom_point(p9.aes(y='metric_mean', color='args.model', shape='args.model'))
+                + p9.geom_line(p9.aes(y='metric_mean', color='args.model'), linetype='dashed', data=df_goal)
                 + p9.facet_grid("args.max_masking_ratio ~ args.dataset", scales="free_y")
-                + p9.labs(y='Performance', shape='', x='Test masking ratio')
+                + p9.labs(y='Masked performance', shape='', x='Test masking ratio')
                 + p9.scale_y_continuous(labels=lambda ticks: [f'{tick:.0%}' for tick in ticks])
                 + p9.scale_x_continuous(labels=lambda ticks: [f'{tick:.0%}' for tick in ticks])
                 + p9.scale_shape_discrete(guide=False))
 
             # Save plot, the width is the \linewidth of a collumn in the LaTeX document
             os.makedirs(f'{args.persistent_dir}/plots', exist_ok=True)
-            p.save(f'{args.persistent_dir}/plots/masked_performance_m-{model_category}.pdf', width=6.30045 + 0.2, height=7, units='in')
-            p.save(f'{args.persistent_dir}/plots/masked_performance_m-{model_category}.png', width=6.30045 + 0.2, height=7, units='in')
+            p.save(f'{args.persistent_dir}/plots/masked_performance_m-{model_category}.pdf', width=3*6.30045 + 0.2, height=2*7, units='in')
+            p.save(f'{args.persistent_dir}/plots/masked_performance_m-{model_category}.png', width=3*6.30045 + 0.2, height=2*7, units='in')

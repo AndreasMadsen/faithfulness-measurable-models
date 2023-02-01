@@ -91,12 +91,25 @@ if __name__ == "__main__":
         # Compute confint and mean for each group
 
         for model_category in ['masking-ratio', 'size']:
-            df_subset = df.loc[(df['results.masking_ratio'] == 0.0) & (df['model_category'] == model_category), :]
+            df_subset = df.loc[(df['results.masking_ratio'] == 0.0) &
+                               (df['model_category'] == model_category), :]
+            if df_subset.shape[0] == 0:
+                print(f'Skipping model category "{model_category}", no observations.')
+                continue
+
             df_plot = (df_subset
                     .groupby(['args.model', 'args.dataset', 'args.max_epochs', 'args.max_masking_ratio'])
                     .apply(bootstrap_confint(['metric']))
                     .reset_index()
             )
+
+            df_goal = df_plot.loc[df_plot['args.max_masking_ratio'] == 0]
+            df_goal = pd.concat([
+                df_goal.assign(**{
+                    'args.max_masking_ratio': max_masking_ratio,
+                })
+                for max_masking_ratio in [0, 100]
+            ])
 
             # Generate plot
             p = (p9.ggplot(df_plot, p9.aes(x='args.max_masking_ratio'))
@@ -105,11 +118,13 @@ if __name__ == "__main__":
                 + p9.geom_ribbon(p9.aes(ymin='metric_lower', ymax='metric_upper', fill='args.model'), alpha=0.35)
                 + p9.geom_line(p9.aes(y='metric_mean', color='args.model'))
                 + p9.geom_point(p9.aes(y='metric_mean', color='args.model', shape='args.model'))
-                + p9.facet_grid("args.dataset ~ ", scales="free_y")
-                + p9.labs(y='Performance', shape='', x='Max masking ratio')
+                + p9.geom_line(p9.aes(y='metric_mean', color='args.model'), linetype='dashed', data=df_goal)
+                + p9.facet_wrap("args.dataset", scales="free_y", ncol=2)
+                + p9.labs(y='Unmasked performance', shape='', x='Max masking ratio')
                 + p9.scale_y_continuous(labels=lambda ticks: [f'{tick:.0%}' for tick in ticks])
                 + p9.scale_x_continuous(labels=lambda ticks: [f'{tick:.0f}%' for tick in ticks])
-                + p9.scale_shape_discrete(guide=False))
+                + p9.scale_shape_discrete(guide=False)
+                + p9.theme(subplots_adjust={'wspace': 0.25}))
 
             # Save plot, the width is the \linewidth of a collumn in the LaTeX document
             os.makedirs(f'{args.persistent_dir}/plots', exist_ok=True)
