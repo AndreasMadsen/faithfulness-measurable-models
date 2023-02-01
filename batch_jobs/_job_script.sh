@@ -45,12 +45,19 @@ submit_seeds () {
 
         local concat_seeds=$(join_by '' "${run_seeds[@]}")
         local jobname="${experiment_name/9999/$concat_seeds}"
-        sbatch --time="$walltime_times_nb_seeds" \
+        if jobid=$(
+            sbatch --time="$walltime_times_nb_seeds" \
+               --parsable \
                --export=ALL,RUN_SEEDS="$(join_by ' ' "${run_seeds[@]}")" \
                -J "$jobname" \
                -o "$PROJECT_RESULT_DIR"/logs/%x.%j.out -e "$PROJECT_RESULT_DIR"/logs/%x.%j.err \
                "${@:3}"
+        ); then
+            echo -e "\e[32msubmitted job as ${jobid}\e[0m" >&2
+        else
+            echo -e "\e[31mCould not submit ${jobname}, error ^^^${jobid}\e[0m" >&2
+        fi
     else
-        echo "skipping"
+        echo -e "\e[34mskipping ${experiment_name/9999/x}\e[0m" >&2
     fi
 }
