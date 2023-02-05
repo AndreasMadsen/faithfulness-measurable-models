@@ -1,10 +1,10 @@
 
 import tensorflow as tf
 
-from ..types import TokenizedDict
+from ..types import TokenizedDict, InputTransform
 
 
-class RandomMaxMasking:
+class RandomMaxMasking(InputTransform):
     def __init__(self, max_masking_ratio: float, tokenizer, seed: int = None):
         """Masks the input
 

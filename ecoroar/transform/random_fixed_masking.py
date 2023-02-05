@@ -1,10 +1,10 @@
 
 import tensorflow as tf
 
-from ..types import TokenizedDict
+from ..types import TokenizedDict, InputTransform
 
 
-class RandomFixedMasking:
+class RandomFixedMasking(InputTransform):
     def __init__(self, fixed_masking_ratio: float, tokenizer, seed: int = None):
         """Masks the input
 

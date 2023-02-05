@@ -2,19 +2,19 @@
 import numpy as np
 import tensorflow as tf
 
-from typing import List, Callable, Any
-from ..types import TokenizedDict
+from typing import List, Callable
+from ..types import TokenizedDict, InputTransform
 from ..tokenizer._abstract_tokenizer import AbstractTokenizer
 
 @tf.function
 def _get_bounding_shape(x, y):
     return x['input_ids'].bounding_shape(out_type=tf.dtypes.int32)
 
-class BucketedPaddedBatch:
+class BucketedPaddedBatch(InputTransform):
     def __init__(self, datasets: List[tf.data.Dataset],
                  quantiles: List[float] = [0.25, 0.5, 0.75, 0.9],
                  batch_size: int=16,
-                 bounding_shape: Callable[Any, tf.Tensor]=_get_bounding_shape):
+                 bounding_shape: Callable[[tf.Tensor, tf.Tensor], tf.Tensor]=_get_bounding_shape):
         """Pads observations to fixed lengths using a quantile heuristic
 
         When using XLA JIT a new program needs to be compiled for every input shape.
@@ -27,8 +27,9 @@ class BucketedPaddedBatch:
             datasets: (List[tf.data.Dataset]): the dataset to compute statistics on
             quantiles (List[float], optional): The quantiles to create split at
             batch_size (int, optional): The batch_size to compute batched sequence-length from
-            bounding_shape (Callable[Any, tf.Tensor], optional): Function to get the bounding shape
-                of the input. Shound return [batch_size, batch_sequence_length] as tf.Tensor.
+            bounding_shape (Callable[[tf.Tensor, tf.Tensor], tf.Tensor], optional): Function to
+                get the bounding shape of the input. Shound return [batch_size, batch_sequence_length] as
+                tf.Tensor.
                 Defaults to using lambda x, y: x['input_ids'].bounding_shape(out_type=tf.dtypes.int32)
         """
         self._bounding_shape = bounding_shape
