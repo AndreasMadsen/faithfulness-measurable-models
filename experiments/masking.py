@@ -191,11 +191,13 @@ if __name__ == '__main__':
     checkpoint_dir = tempfile.mkdtemp()
     tensorboard_dir = tempfile.mkdtemp()
 
+
     # Train models and collect validation performance at each epoch
+    durations['setup'] = timer() - setup_time_start
     train_time_start = timer()
     history = model.fit(dataset_train_batched, validation_data=dataset_valid_batched, epochs=args.max_epochs, callbacks=[
         tf.keras.callbacks.ModelCheckpoint(
-            filepath=checkpoint_dir,
+            filepath=f'{checkpoint_dir}/model.ckpt',
             monitor=dataset.early_stopping_metric, mode='max',
             save_weights_only=True,
             save_best_only=True
@@ -205,10 +207,11 @@ if __name__ == '__main__':
             write_graph=False
         )
     ])
-    durations['train_time'] = timer() - train_time_start
+    durations['train'] = timer() - train_time_start
+    test_time_start = timer()
 
     # Load the model weights that are considered the best checkpoint by the validation metric
-    model.load_weights(checkpoint_dir)
+    model.load_weights(f'{checkpoint_dir}/model.ckpt')
 
     # Evalute test performance at different masking ratios
     results_test = []
@@ -221,19 +224,18 @@ if __name__ == '__main__':
                            num_parallel_calls=tf.data.AUTOTUNE)) \
             .prefetch(tf.data.AUTOTUNE)
 
-        test_time_start = timer()
         results_test.append({
             'masking_ratio': test_masking_ratio,
             **model.evaluate(dataset_test_batched, return_dict=True)
         })
-        durations[f'test_time_{test_masking_ratio}'] = timer() - test_time_start
+    durations['test'] = timer() - test_time_start
 
     # Save results
     os.makedirs(args.persistent_dir / 'checkpoints', exist_ok=True)
     shutil.rmtree(args.persistent_dir / 'checkpoints' / experiment_id, ignore_errors=True)
     shutil.move(checkpoint_dir, args.persistent_dir / 'checkpoints' / experiment_id)
 
-    os.makedirs(args.persistent_dir / 'results', exist_ok=True)
+    os.makedirs(args.persistent_dir / 'tensorboard', exist_ok=True)
     shutil.rmtree(args.persistent_dir / 'tensorboard' / experiment_id, ignore_errors=True)
     shutil.move(tensorboard_dir, args.persistent_dir / 'tensorboard' / experiment_id)
 
