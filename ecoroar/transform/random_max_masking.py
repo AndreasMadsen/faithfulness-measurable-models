@@ -20,10 +20,10 @@ class RandomMaxMasking(InputTransform):
             tokenizer (Tokenizer): tokenizer, specifically used to provide the mask_token_id
             seed (int, optional): Seed used to generate random masking. Defaults to None.
         """
-        if not isinstance(max_masking_ratio, float) or not (0 <= max_masking_ratio <= 1):
+        if not (0 <= float(max_masking_ratio) <= 1):
             raise TypeError(f'max_masking_ratio must be a float between 0 and 1, was "{max_masking_ratio}"')
 
-        self._max_masking_ratio = max_masking_ratio
+        self._max_masking_ratio = float(max_masking_ratio)
         self._tokenizer = tokenizer
         self._seed = seed
 

@@ -12,7 +12,7 @@ def test_masking_special_tokens_kept():
     output = tokenizer(("This was an absolutely terrible movie.", ))
 
     for seed in range(100):
-        masker_max = RandomMaxMasking(1.0, tokenizer, seed=seed)
+        masker_max = RandomMaxMasking(1, tokenizer, seed=seed)
 
         np.testing.assert_array_equal(output['input_ids'].numpy(),
                                       [0, 713, 21, 41, 3668, 6587, 1569, 4, 2])
@@ -29,7 +29,7 @@ def test_masking_zero():
     output = tokenizer(("This was an absolutely terrible movie.", ))
 
     for seed in range(100):
-        masker_none = RandomMaxMasking(0.0, tokenizer, seed=seed)
+        masker_none = RandomMaxMasking(0, tokenizer, seed=seed)
 
         np.testing.assert_array_equal(output['input_ids'].numpy(),
                                       [0, 713, 21, 41, 3668, 6587, 1569, 4, 2])

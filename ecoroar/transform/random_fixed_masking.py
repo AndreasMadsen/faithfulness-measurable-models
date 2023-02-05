@@ -1,11 +1,13 @@
 
+from typing import Union
+
 import tensorflow as tf
 
 from ..types import TokenizedDict, InputTransform
 
 
 class RandomFixedMasking(InputTransform):
-    def __init__(self, fixed_masking_ratio: float, tokenizer, seed: int = None):
+    def __init__(self, fixed_masking_ratio: Union[float, int], tokenizer, seed: int = None):
         """Masks the input
 
         The masking procedure is:
@@ -15,14 +17,14 @@ class RandomFixedMasking(InputTransform):
             exactly 90% (rounded down) of the tokens will be masked.
 
         Args:
-            fixed_masking_ratio (float): The masking ratio, between 0 and 1 inclusive
+            fixed_masking_ratio (Union[float, int]): The masking ratio, between 0 and 1 inclusive
             tokenizer (Tokenizer): tokenizer, specifically used to provide the mask_token_id
             seed (int, optional): Seed used to generate random masking. Defaults to None.
         """
-        if not isinstance(fixed_masking_ratio, float) or not (0 <= fixed_masking_ratio <= 1):
-            raise TypeError(f'fixed_masking_ratio must be a float between 0 and 1, was "{fixed_masking_ratio}"')
+        if not (0 <= float(fixed_masking_ratio) <= 1):
+            raise TypeError(f'fixed_masking_ratio must be between 0 and 1, was "{fixed_masking_ratio}"')
 
-        self._fixed_masking_ratio = fixed_masking_ratio
+        self._fixed_masking_ratio = float(fixed_masking_ratio)
         self._tokenizer = tokenizer
         self._seed = seed
 
