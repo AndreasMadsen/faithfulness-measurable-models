@@ -1,17 +1,16 @@
 
-.PHONY: noop download-code-narval upload-code-narval download-results-cedar upload-code-cedar upload-code-mila
+.PHONY: noop download-checkpoints-cedar download-tensorboard-cedar download-results-cedar upload-code-cedar upload-code-mila
 
 noop:
 	echo "preventing default action"
 
-download-results-narval:
+download-checkpoints-cedar:
 	rsync --info=progress2 -urltv --delete \
-		-e ssh cc-narval:~/scratch/ecoroar/results/ ./results
+		-e ssh cc-cedar:~/scratch/ecoroar/checkpoints/ ./checkpoints
 
-upload-code-narval:
+download-tensorboard-cedar:
 	rsync --info=progress2 -urltv --delete \
-		--filter=':- .gitignore' --exclude='.git/' \
-		-e ssh ./ cc-narval:~/workspace/economical-roar
+		-e ssh cc-cedar:~/scratch/ecoroar/tensorboard/ ./tensorboard
 
 download-results-cedar:
 	rsync --info=progress2 -urltv --delete \
