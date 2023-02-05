@@ -3,7 +3,7 @@ import glob
 import json
 import argparse
 import os
-import os.path as path
+import pathlib
 
 from tqdm import tqdm
 import pandas as pd
@@ -21,14 +21,13 @@ def select_target_metric(partial_df):
     })
 
 
-thisdir = path.dirname(path.realpath(__file__))
 parser = argparse.ArgumentParser(
     description = 'Plots the 0% masking test performance given different training masking ratios'
 )
 parser.add_argument('--persistent-dir',
                     action='store',
-                    default=path.realpath(path.join(thisdir, '..')),
-                    type=str,
+                    default=pathlib.Path(__file__).absolute().parent.parent,
+                    type=pathlib.Path,
                     help='Directory where all persistent data will be stored')
 parser.add_argument('--stage',
                     action='store',
@@ -59,7 +58,7 @@ if __name__ == "__main__":
     if args.stage in ['both', 'preprocess']:
         # Read JSON files into dataframe
         results = []
-        files = glob.glob(f'{args.persistent_dir}/results/masking_*.json')
+        files = sorted((args.persistent_dir / 'results').glob('masking_*.json'))
         for file in tqdm(files, desc='Loading .json files'):
             with open(file, 'r') as fp:
                 try:
