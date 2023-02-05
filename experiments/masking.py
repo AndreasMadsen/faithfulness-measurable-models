@@ -12,7 +12,7 @@ from ecoroar.util import generate_experiment_id, model_name_to_huggingface_repo,
 from ecoroar.dataset import datasets
 from ecoroar.tokenizer import HuggingfaceTokenizer
 from ecoroar.model import HuggingfaceModel
-from ecoroar.transform import RandomFixedMasking, RandomMaxMasking, BucketedPaddedBatch
+from ecoroar.transform import RandomFixedMasking, RandomMaxMasking, BucketedPaddedBatch, TransformSampler
 from ecoroar.optimizer import AdamW
 from ecoroar.scheduler import LinearSchedule
 
@@ -50,6 +50,7 @@ parser.add_argument('--huggingface-repo',
 parser.add_argument('--dataset',
                     action='store',
                     default='IMDB',
+                    choices=datasets.keys(),
                     type=str,
                     help='The dataset to fine-tune on')
 parser.add_argument('--weight-decay',
@@ -79,20 +80,39 @@ parser.add_argument('--max-masking-ratio',
                     default=0,
                     type=int,
                     help='The maximum masking ratio (percentage integer) to apply on the training dataset')
+parser.add_argument('--masking-strategy',
+                    default='uni',
+                    choices=['uni', 'half'],
+                    type=str,
+                    help='The masking strategy to use for masking during fune-tuning')
 
 if __name__ == '__main__':
+    durations = {}
+    setup_time_start = timer()
+
+    # Parse arguments
     args = parser.parse_args()
     if args.huggingface_repo is None:
         args.huggingface_repo = model_name_to_huggingface_repo(args.model)
     args.jit_compile = default_jit_compile(args)
     args.max_epochs = default_max_epochs(args)
 
-    print('Configuration:')
+    # Generate job id
+    experiment_id = generate_experiment_id(
+        'masking',
+        model=args.model, dataset=args.dataset,
+        seed=args.seed, max_epochs=args.max_epochs,
+        max_masking_ratio=args.max_masking_ratio, masking_strategy=args.masking_strategy
+    )
+
+    # Print configuration
+    print(f'Configuration [{experiment_id}]:')
     print('  Seed:', args.seed)
     print('  Model:', args.model)
     print('  Dataset:', args.dataset)
     print('  Huggingface Repo:', args.huggingface_repo)
     print('  Max masking ratio:', args.max_masking_ratio)
+    print('  Masking strategy:', args.masking_strategy)
     print('')
     print('  Weight Decay:', args.weight_decay)
     print('  Learning rate:', args.lr)
@@ -104,34 +124,40 @@ if __name__ == '__main__':
     print('  Precision:', args.precision)
     print('')
 
+    # Set global configuration options
     if args.deterministic:
         tf.config.experimental.enable_op_determinism()
     tf.keras.utils.set_random_seed(args.seed)
     tf.keras.mixed_precision.set_global_policy(args.precision)
 
-    durations = {}
-    experiment_id = generate_experiment_id(
-        'masking',
-        model=args.model, dataset=args.dataset,
-        seed=args.seed, max_masking_ratio=args.max_masking_ratio,
-        max_epochs=args.max_epochs
-    )
-
+    # Initialize tokenizer, dataset, and model
     tokenizer = HuggingfaceTokenizer(args.huggingface_repo, persistent_dir=args.persistent_dir)
     dataset = datasets[args.dataset](persistent_dir=args.persistent_dir, seed=args.seed)
     model = HuggingfaceModel(args.huggingface_repo, persistent_dir=args.persistent_dir, num_classes=dataset.num_classes)
 
+    # Load datasets
     dataset_train = dataset.train(tokenizer)
     dataset_valid = dataset.valid(tokenizer)
     dataset_test = dataset.test(tokenizer)
 
+    # Setup batching routine
     if args.jit_compile:
         batcher = BucketedPaddedBatch([dataset_train, dataset_valid, dataset_test], batch_size=args.batch_size)
     else:
         batcher = lambda batch_size, padding_values, num_parallel_calls: \
             lambda dataset: dataset.padded_batch(batch_size, padding_values=padding_values)
 
-    masker_train = RandomMaxMasking(args.max_masking_ratio / 100, tokenizer, seed=args.seed)
+    # Setup masking routine for training
+    match args.masking_strategy:
+        case 'uni':
+            masker_train = RandomMaxMasking(args.max_masking_ratio / 100, tokenizer, seed=args.seed)
+        case 'half':
+            masker_train = TransformSampler([
+                RandomMaxMasking(0, tokenizer, seed=args.seed),
+                RandomMaxMasking(args.max_masking_ratio / 100, tokenizer, seed=args.seed)
+            ], seed=args.seed)
+
+    # Mask training dataset and batch it
     dataset_train_batched = dataset_train \
         .shuffle(dataset.train_num_examples, seed=args.seed) \
         .map(lambda x, y: (masker_train(x), y), num_parallel_calls=tf.data.AUTOTUNE) \
@@ -140,12 +166,14 @@ if __name__ == '__main__':
                        num_parallel_calls=tf.data.AUTOTUNE)) \
         .prefetch(tf.data.AUTOTUNE)
 
+    # Batch validation dataset
     dataset_valid_batched = dataset_valid \
         .apply(batcher(args.batch_size,
                        padding_values=(tokenizer.padding_values, None),
                        num_parallel_calls=tf.data.AUTOTUNE)) \
         .prefetch(tf.data.AUTOTUNE)
 
+    # Configure model
     model.compile(
         optimizer=AdamW(
             learning_rate=LinearSchedule(
