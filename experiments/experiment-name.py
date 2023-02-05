@@ -1,7 +1,6 @@
 import argparse
 
 from ecoroar.util import generate_experiment_id, default_max_epochs
-from ecoroar.dataset import datasets
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--seed',
@@ -17,7 +16,6 @@ parser.add_argument('--model',
 parser.add_argument('--dataset',
                     action='store',
                     default='IMDB',
-                    choices=datasets.keys(),
                     type=str,
                     help='The dataset to fine-tune on')
 parser.add_argument('--max-epochs',
