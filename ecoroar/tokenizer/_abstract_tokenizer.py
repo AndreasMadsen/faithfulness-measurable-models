@@ -27,7 +27,8 @@ class AbstractTokenizer(metaclass=ABCMeta):
 
     kept_tokens = tf.Tensor
 
-    name: str
+    alias_name: str
+    model_name: str
     vocab_size: tf.Tensor
 
     padding_values: TokenizedDict

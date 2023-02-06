@@ -4,7 +4,7 @@ import pathlib
 import numpy as np
 
 from ecoroar.tokenizer import HuggingfaceTokenizer
-from ecoroar.transform import RandomMasking
+from ecoroar.transform import RandomMaxMasking
 
 
 def test_masking_special_tokens_kept():
@@ -12,7 +12,7 @@ def test_masking_special_tokens_kept():
     output = tokenizer(("This was an absolutely terrible movie.", ))
 
     for seed in range(100):
-        masker_max = RandomMasking(1.0, tokenizer, seed=0)
+        masker_max = RandomMaxMasking(1.0, tokenizer, seed=0)
 
         np.testing.assert_array_equal(output['input_ids'].numpy(),
                                       [0, 713, 21, 41, 3668, 6587, 1569, 4, 2])
@@ -29,7 +29,7 @@ def test_masking_zero():
     output = tokenizer(("This was an absolutely terrible movie.", ))
 
     for seed in range(100):
-        masker_none = RandomMasking(0.0, tokenizer, seed=0)
+        masker_none = RandomMaxMasking(0.0, tokenizer, seed=0)
 
         np.testing.assert_array_equal(output['input_ids'].numpy(),
                                       [0, 713, 21, 41, 3668, 6587, 1569, 4, 2])
@@ -41,7 +41,7 @@ def test_masking_zero():
 def test_masking_some():
     tokenizer = HuggingfaceTokenizer('roberta-base', persistent_dir=pathlib.Path('.'))
     output = tokenizer(("This was an absolutely terrible movie.", ))
-    masker_some = RandomMasking(0.5, tokenizer, seed=1)
+    masker_some = RandomMaxMasking(0.5, tokenizer, seed=1)
     mask = tokenizer.mask_token_id.numpy()
 
     np.testing.assert_array_equal(output['input_ids'].numpy(),

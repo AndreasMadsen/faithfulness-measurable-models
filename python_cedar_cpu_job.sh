@@ -5,15 +5,15 @@
 #SBATCH --time=2:00:00
 
 # Load modules
-module load python/3.8.10 gcc/9.3.0
+module load python/3.10.2 gcc/9.3.0 git-lfs/2.11.0
 
 # Create environment
 virtualenv --app-data $SCRATCH/virtualenv --no-download $SLURM_TMPDIR/env
 source $SLURM_TMPDIR/env/bin/activate
+python -m pip install --no-index -U pip setuptools wheel
 
 # Install project
 cd $HOME/workspace/economical-roar
-python -m pip install --no-index -U pip
 python -m pip install --no-index --find-links $HOME/python_wheels -e .
 
 # Enable offline model

@@ -6,6 +6,21 @@ import transformers
 
 from ..types import TokenizedDict
 
+# To save disk space and preprocessing time, map different model_names to the same tokenizer
+# when the tokenizer is known to be the same.
+_ALIAS_MODEL_NAME = {
+    'roberta-base': 'roberta-base',
+    'roberta-large': 'roberta-base',
+    'andreasmadsen/efficient_mlm_m0.15': 'roberta-base',
+    'andreasmadsen/efficient_mlm_m0.20': 'roberta-base',
+    'andreasmadsen/efficient_mlm_m0.30': 'roberta-base',
+    'andreasmadsen/efficient_mlm_m0.40': 'roberta-base',
+    'andreasmadsen/efficient_mlm_m0.50': 'roberta-base',
+    'andreasmadsen/efficient_mlm_m0.60': 'roberta-base',
+    'andreasmadsen/efficient_mlm_m0.70': 'roberta-base',
+    'andreasmadsen/efficient_mlm_m0.80': 'roberta-base',
+}
+
 
 class HuggingfaceTokenizer:
     def __init__(self, model_name: str, persistent_dir: str):
@@ -17,7 +32,7 @@ class HuggingfaceTokenizer:
         """
         self._model_name = model_name
         self._tokenizer = transformers.AutoTokenizer.from_pretrained(
-            model_name,
+            self.alias_name,
             cache_dir=f'{persistent_dir}/cache/tokenizer',
             use_fast=True
         )
@@ -44,7 +59,14 @@ class HuggingfaceTokenizer:
         ], tf.dtypes.int32)
 
     @property
-    def name(self) -> str:
+    def alias_name(self) -> str:
+        if self._model_name in _ALIAS_MODEL_NAME:
+            return _ALIAS_MODEL_NAME[self._model_name]
+        else:
+            return self._model_name
+
+    @property
+    def model_name(self) -> str:
         return self._model_name
 
     @cached_property
@@ -66,6 +88,21 @@ class HuggingfaceTokenizer:
         return {
             'input_ids': self.pad_token_id,
             'attention_mask': tf.constant(0, dtype=tf.dtypes.int8)
+        }
+
+    @cached_property
+    def padding_shapes(self) -> TokenizedDict:
+        """Padding shapes to use
+
+        This is useful in the context of tf.data.Dataset.padded_batch. For example:
+
+            dataset.
+                .padding_values(batch_size,
+                                padded_shapes=(tokenizer.padding_values, []))
+        """
+        return {
+            'input_ids': [self._tokenizer.model_max_length],
+            'attention_mask': [self._tokenizer.model_max_length]
         }
 
     @property

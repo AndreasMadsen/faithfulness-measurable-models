@@ -1,4 +1,7 @@
 
+PROJECT_RESULT_DIR="${SCRATCH}/ecoroar"
+mkdir -p "$PROJECT_RESULT_DIR"/logs
+
 job_script () {
     local loginnode=${HOSTNAME%%.*}
     local cluster=${loginnode//[0-9]/}
@@ -27,7 +30,7 @@ submit_seeds () {
     local filename
     for seed in $(echo "$seeds")
     do
-        if [ ! -f "${SCRATCH}/ecoroar/results/${experiment_name/9999/$seed}.json" ]; then
+        if [ ! -f "${PROJECT_RESULT_DIR}/results/${experiment_name/9999/$seed}.json" ]; then
             run_seeds+=($seed)
             echo "scheduling ${experiment_name/9999/$seed}" 1>&2
         fi
@@ -42,12 +45,19 @@ submit_seeds () {
 
         local concat_seeds=$(join_by '' "${run_seeds[@]}")
         local jobname="${experiment_name/9999/$concat_seeds}"
-        sbatch --time="$walltime_times_nb_seeds" \
+        if jobid=$(
+            sbatch --time="$walltime_times_nb_seeds" \
+               --parsable \
                --export=ALL,RUN_SEEDS="$(join_by ' ' "${run_seeds[@]}")" \
                -J "$jobname" \
-               -o "$SCRATCH"/ecoroar/logs/%x.%j.out -e "$SCRATCH"/ecoroar/logs/%x.%j.err \
+               -o "$PROJECT_RESULT_DIR"/logs/%x.%j.out -e "$PROJECT_RESULT_DIR"/logs/%x.%j.err \
                "${@:3}"
+        ); then
+            echo -e "\e[32msubmitted job as ${jobid}\e[0m" >&2
+        else
+            echo -e "\e[31mCould not submit ${jobname}, error ^^^${jobid}\e[0m" >&2
+        fi
     else
-        echo "skipping"
+        echo -e "\e[34mskipping ${experiment_name/9999/x}\e[0m" >&2
     fi
 }

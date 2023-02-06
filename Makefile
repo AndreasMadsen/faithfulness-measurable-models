@@ -1,5 +1,5 @@
 
-.PHONY: noop download-code-narval upload-code-narval upload-code-cedar upload-code-mila
+.PHONY: noop download-code-narval upload-code-narval download-results-cedar upload-code-cedar upload-code-mila
 
 noop:
 	echo "preventing default action"
