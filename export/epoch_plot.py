@@ -79,7 +79,7 @@ if __name__ == "__main__":
                         'model_category'], group_keys=True)
               .apply(select_target_metric)
               .reset_index()
-              .assign(**{'history.epoch': lambda x: x['history.epoch'] + 1}))
+              .eval('`history.epoch` = `history.epoch` + 1'))
 
     if args.stage in ['preprocess']:
         os.makedirs(f'{args.persistent_dir}/pandas', exist_ok=True)
@@ -91,13 +91,13 @@ if __name__ == "__main__":
         # Compute confint and mean for each group
 
         for model_category in ['masking-ratio', 'size']:
-            df_model_category = df.loc[df['model_category'] == model_category, :]
+            df_model_category = df.query('model_category == @model_category')
             if df_model_category.shape[0] == 0:
                 print(f'Skipping model category "{model_category}", no observations.')
                 continue
 
             df_goal = (df_model_category
-                .loc[df['args.max_masking_ratio'] == 0, :]
+                .query('`args.max_masking_ratio` == 0')
                 .groupby(['args.model', 'args.dataset', 'history.epoch', 'args.max_epochs'], group_keys=True)
                 .apply(bootstrap_confint(['metric']))
                 .reset_index()

@@ -90,8 +90,7 @@ if __name__ == "__main__":
         # Compute confint and mean for each group
 
         for model_category in ['masking-ratio', 'size']:
-            df_subset = df.loc[(df['results.masking_ratio'] == 0.0) &
-                               (df['model_category'] == model_category), :]
+            df_subset = df.query('`results.masking_ratio` == 0 & model_category == @model_category')
             if df_subset.shape[0] == 0:
                 print(f'Skipping model category "{model_category}", no observations.')
                 continue
@@ -102,11 +101,9 @@ if __name__ == "__main__":
                     .reset_index()
             )
 
-            df_goal = df_plot.loc[df_plot['args.max_masking_ratio'] == 0]
+            df_goal = df_plot.query('`args.max_masking_ratio` == 0')
             df_goal = pd.concat([
-                df_goal.assign(**{
-                    'args.max_masking_ratio': max_masking_ratio,
-                })
+                df_goal.eval('`args.max_masking_ratio` == @max_masking_ratio')
                 for max_masking_ratio in [0, 100]
             ])
 
