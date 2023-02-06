@@ -42,7 +42,27 @@ do
                     experiments/masking.py \
                     --model "${model}" \
                     --dataset "${dataset}" \
-                    --max-masking-ratio "${max_masking_ratio}"
+                    --max-masking-ratio "${max_masking_ratio}" \
+                    --masking-strategy uni
+            done
+        done
+    done
+done
+
+for model in 'roberta-sb' 'roberta-sl'
+do
+    for dataset in 'BoolQ' 'CB' 'CoLA' 'IMDB' 'MNLI' 'MRPC' 'QNLI' 'QQP' 'RTE' 'SST2' 'WNLI'
+    do
+        for max_masking_ratio in 100
+        do
+            for seed in 0 1 2 3 4
+            do
+                submit_seeds "${time[${size[$model]} $dataset]}" "$seed" $(job_script gpu) \
+                    experiments/masking.py \
+                    --model "${model}" \
+                    --dataset "${dataset}" \
+                    --max-masking-ratio "${max_masking_ratio}" \
+                    --masking-strategy half
             done
         done
     done
