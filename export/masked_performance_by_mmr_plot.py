@@ -17,7 +17,7 @@ from ecoroar.plot import bootstrap_confint
 def select_target_metric(partial_df):
     column_name = partial_df.loc[:, 'target_metric'].iat[0]
     return pd.Series({
-        'metric': partial_df.loc[:, f'history.val_{column_name}'].iat[0]
+        'metric': partial_df.loc[:, f'results.{column_name}'].iat[0]
     })
 
 
@@ -66,73 +66,64 @@ if __name__ == "__main__":
                 except json.decoder.JSONDecodeError:
                     print(f'{file} has a format error')
 
-        df = pd.json_normalize(results).explode('history', ignore_index=True)
-        results = pd.json_normalize(df.pop('history')).add_prefix('history.')
+        df = pd.json_normalize(results).explode('results', ignore_index=True)
+        results = pd.json_normalize(df.pop('results')).add_prefix('results.')
         df = pd.concat([df, results], axis=1)
 
         # Select test metric
         df = (df
               .merge(dataset_mapping, on='args.dataset')
               .merge(model_mapping, on='args.model')
-              .groupby(['args.model', 'args.seed', 'args.dataset', 'args.max_masking_ratio', 'args.max_epochs',
-                        'history.epoch',
-                        'model_category'], group_keys=True)
+              .groupby(['args.model', 'args.seed', 'args.dataset', 'args.max_epochs', 'args.max_masking_ratio', 'args.masking_strategy',
+                        'results.masking_ratio',
+                        'model_category'])
               .apply(select_target_metric)
-              .reset_index()
-              .eval('`history.epoch` = `history.epoch` + 1'))
+              .reset_index())
 
     if args.stage in ['preprocess']:
         os.makedirs(f'{args.persistent_dir}/pandas', exist_ok=True)
-        df.to_pickle(f'{args.persistent_dir}/pandas/epoch.pd.pkl.xz')
+        df.to_pickle(f'{args.persistent_dir}/pandas/masked_performance.pd.pkl.xz')
     elif args.stage in ['plot']:
-        df = pd.read_pickle(f'{args.persistent_dir}/pandas/epoch.pd.pkl.xz')
+        df = pd.read_pickle(f'{args.persistent_dir}/pandas/masked_performance.pd.pkl.xz')
 
     if args.stage in ['both', 'plot']:
         # Compute confint and mean for each group
 
         for model_category in ['masking-ratio', 'size']:
-            df_model_category = df.query('model_category == @model_category')
+            df_model_category = df.query('`model_category` == @model_category & \
+                                          `args.masking_strategy` == "uni"')
             if df_model_category.shape[0] == 0:
                 print(f'Skipping model category "{model_category}", no observations.')
                 continue
 
-            df_goal = (df_model_category
-                .query('`args.max_masking_ratio` == 0')
-                .groupby(['args.model', 'args.dataset', 'history.epoch', 'args.max_epochs'], group_keys=True)
-                .apply(bootstrap_confint(['metric']))
-                .reset_index()
-                .groupby(['args.model', 'args.dataset', 'args.max_epochs'], group_keys=False)
-                .apply(lambda df_partial: df_partial.loc[
-                    df_partial['metric_mean'].idxmax(),
-                    ['metric_lower', 'metric_mean', 'metric_upper', 'metric_n']
-                ])
-                .reset_index())
+            df_plot = (df_model_category
+                    .groupby(['args.model', 'args.dataset', 'args.max_epochs', 'args.max_masking_ratio',
+                              'results.masking_ratio'])
+                    .apply(bootstrap_confint(['metric']))
+                    .reset_index()
+            )
+
+            df_goal = df_plot.query('`args.max_masking_ratio` == 0')
             df_goal = pd.concat([
-                df_goal.assign(**{
-                    'args.max_masking_ratio': max_masking_ratio,
-                    'history.epoch': df_goal['args.max_epochs'] if epoch is None else epoch
-                })
-                for max_masking_ratio in [0, 20, 40, 60, 80, 100] for epoch in [0, None]
+                df_goal.assign(**{'args.max_masking_ratio': max_masking_ratio})
+                for max_masking_ratio in [0, 20, 40, 60, 80, 100]
             ])
 
-            df_epochs = (df_model_category
-                .groupby(['args.model', 'args.dataset', 'history.epoch', 'args.max_masking_ratio'], group_keys=True)
-                .apply(bootstrap_confint(['metric']))
-                .reset_index())
-
             # Generate plot
-            p = (p9.ggplot(df_epochs, p9.aes(x='history.epoch'))
+            p = (p9.ggplot(df_plot, p9.aes(x='results.masking_ratio'))
                 + p9.geom_jitter(p9.aes(y='metric', group='args.seed', color='args.model'),
-                                shape='+', alpha=0.5, width=0.25, data=df_model_category)
+                                shape='+', alpha=0.5, width=0.01, data=df_model_category)
                 + p9.geom_ribbon(p9.aes(ymin='metric_lower', ymax='metric_upper', fill='args.model'), alpha=0.35)
-                + p9.geom_line(p9.aes(y='metric_mean', color='args.model'))
+                + p9.geom_line(p9.aes(y='metric_mean', color='args.model', shape='args.model'))
+                + p9.geom_point(p9.aes(y='metric_mean', color='args.model', shape='args.model'))
                 + p9.geom_line(p9.aes(y='metric_mean', color='args.model'), linetype='dashed', data=df_goal)
-                + p9.facet_grid("args.max_masking_ratio ~ args.dataset", scales="free_x")
-                + p9.labs(y='Unmasked performance', shape='', x='Epoch')
+                + p9.facet_grid("args.max_masking_ratio ~ args.dataset", scales="free_y")
+                + p9.labs(y='Masked performance', shape='', x='Test masking ratio')
                 + p9.scale_y_continuous(labels=lambda ticks: [f'{tick:.0%}' for tick in ticks])
+                + p9.scale_x_continuous(labels=lambda ticks: [f'{tick:.0%}' for tick in ticks])
                 + p9.scale_shape_discrete(guide=False))
 
             # Save plot, the width is the \linewidth of a collumn in the LaTeX document
             os.makedirs(f'{args.persistent_dir}/plots', exist_ok=True)
-            p.save(f'{args.persistent_dir}/plots/epoch_m-{model_category}.pdf', width=3*6.30045 + 0.2, height=2*7, units='in')
-            p.save(f'{args.persistent_dir}/plots/epoch_m-{model_category}.png', width=3*6.30045 + 0.2, height=2*7, units='in')
+            p.save(f'{args.persistent_dir}/plots/masked_performance_by_mmr_m-{model_category}.pdf', width=3*6.30045 + 0.2, height=2*7, units='in')
+            p.save(f'{args.persistent_dir}/plots/masked_performance_by_mmr_m-{model_category}.png', width=3*6.30045 + 0.2, height=2*7, units='in')
