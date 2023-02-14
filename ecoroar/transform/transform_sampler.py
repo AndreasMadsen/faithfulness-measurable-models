@@ -6,6 +6,12 @@ import tensorflow as tf
 from ..types import TokenizedDict, InputTransform
 
 
+def _slice_structure(structure, slicer):
+    return tf.nest.map_structure(lambda tensor: tensor[slicer], structure)
+
+def _concat_structure(structures, **kwargs):
+    return tf.nest.map_structure(lambda *tensors: tf.concat(tensors, **kwargs), *structures)
+
 class TransformSampler:
     def __init__(self, transforms: List[InputTransform], seed: int = None):
         """_summary_
@@ -19,11 +25,6 @@ class TransformSampler:
 
         self._transforms = transforms
 
-        if seed is None:
-            self._rng = tf.random.Generator.from_non_deterministic_state()
-        else:
-            self._rng = tf.random.Generator.from_seed(seed)
-
     @tf.function
     def __call__(self, x: TokenizedDict) -> TokenizedDict:
         """Randomly sample a transformer and use it.
@@ -34,10 +35,10 @@ class TransformSampler:
         Returns:
             TokenizedDict: transformed input
         """
+        input_ids = tf.ensure_shape(x['input_ids'], [None, None])
+        batch_size, _ = tf.unstack(tf.shape(input_ids), num=2)
 
-        # BUG: test output is always the same
-        random_switch = self._rng.uniform([1], minval=0, maxval=2, dtype=tf.dtypes.int32)[0]
-        if random_switch == 0:
-            return self._transforms[0](x)
-        else:
-            return self._transforms[1](x)
+        return _concat_structure([
+            self._transforms[0](_slice_structure(x, (slice(None, batch_size // 2), ...))),
+            self._transforms[1](_slice_structure(x, (slice(batch_size // 2, None), ...)))
+        ], axis=0)
