@@ -15,8 +15,6 @@ export HF_DATASETS_OFFLINE=1
 export TRANSFORMERS_OFFLINE=1
 export NO_GCE_CHECK=true
 export TF_CPP_MIN_LOG_LEVEL=1
-export CUDA_DIR=$CUDA_PATH
-export XLA_FLAGS=--xla_gpu_cuda_data_dir=$CUDA_PATH
 
 # Run code
 unalias py
