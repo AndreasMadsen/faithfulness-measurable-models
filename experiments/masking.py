@@ -238,7 +238,7 @@ if __name__ == '__main__':
     # Save results
     os.makedirs(args.persistent_dir / 'checkpoints', exist_ok=True)
     shutil.rmtree(args.persistent_dir / 'checkpoints' / experiment_id, ignore_errors=True)
-    shutil.move(checkpoint_dir, args.persistent_dir / 'checkpoints' / experiment_id)
+    model.save_weights(args.persistent_dir / 'checkpoints' / experiment_id / 'model.h5', save_format="h5")
 
     os.makedirs(args.persistent_dir / 'tensorboard', exist_ok=True)
     shutil.rmtree(args.persistent_dir / 'tensorboard' / experiment_id, ignore_errors=True)
