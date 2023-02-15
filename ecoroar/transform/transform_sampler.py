@@ -47,7 +47,7 @@ class TransformSampler:
 
         if self._stochastic:
             selector = tf.cast(
-                self._rng.uniform((batch_size, ), minval=0, maxval=2, dtype=tf.dtypes.int32),
+                self._rng.uniform((batch_size, 1), minval=0, maxval=2, dtype=tf.dtypes.int32),
                 dtype=tf.dtypes.bool)
             return tf.nest.map_structure(
                 lambda t0, t1: tf.where(selector, t0, t1),

@@ -50,7 +50,7 @@ def test_transform_sampler_deterministic(tokenizer, simple_dataset):
     np.testing.assert_array_equal(masked_2, [[0,  713,   21,   41, 6587, 1569,    4,    2,    1,    1,    1, 1],
                                              [0, mask, mask, mask, mask, mask, mask, mask, mask, mask, mask, 2]])
 
-def test_transform_sampler_stocastic(tokenizer, single_obs_input):
+def test_transform_sampler_stocastic_ratio(tokenizer, single_obs_input):
     mask = tokenizer.mask_token_id.numpy()
     source_sequence = np.asarray([[0, 713, 21, 41, 3668, 6587, 1569, 4, 2]])
     masked_sequence = np.asarray([[0, mask, mask, mask, mask, mask, mask, mask, 2]])
@@ -76,3 +76,21 @@ def test_transform_sampler_stocastic(tokenizer, single_obs_input):
     assert num_of_masked + num_of_unmasked == 100
     assert num_of_masked == 47  # seed specific
     assert num_of_unmasked == 53  # seed specific
+
+
+def test_transform_sampler_stocastic_dataset(tokenizer, simple_dataset):
+    mask = tokenizer.mask_token_id.numpy()
+    masker = TransformSampler([
+        RandomMaxMasking(0.0, tokenizer, seed=0),
+        RandomFixedMasking(1.0, tokenizer, seed=0)
+    ], seed=0, stochastic=True)
+
+    masked_1, masked_2 = simple_dataset \
+        .padded_batch(2, padding_values=tokenizer.padding_values) \
+        .map(lambda x: masker(x)['input_ids']).as_numpy_iterator()
+
+    np.testing.assert_array_equal(masked_1, [[0, 713, 21, 1528,  352,   41, 3668, 111, 6587, 1569, 4, 2],
+                                             [0, 713, 21,   41, 6587, 1569,    4,   2,    1,    1, 1, 1]])
+
+    np.testing.assert_array_equal(masked_2, [[0, 713, 21,   41, 6587, 1569,    4,    2,    1,    1, 1, 1],
+                                             [0, 713, 21, 1528,  352,   41, 3668,  111, 6587, 1569, 4, 2]])
