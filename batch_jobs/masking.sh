@@ -53,7 +53,7 @@ for model in 'roberta-sb' 'roberta-sl'
 do
     for dataset in 'BoolQ' 'CB' 'CoLA' 'IMDB' 'MNLI' 'MRPC' 'QNLI' 'QQP' 'RTE' 'SST2' 'WNLI'
     do
-        for max_masking_ratio in 100
+        for masking_strategy in half-ran half-det
         do
             for seed in 0 1 2 3 4
             do
@@ -61,8 +61,8 @@ do
                     experiments/masking.py \
                     --model "${model}" \
                     --dataset "${dataset}" \
-                    --max-masking-ratio "${max_masking_ratio}" \
-                    --masking-strategy half
+                    --max-masking-ratio 100 \
+                    --masking-strategy "${masking_strategy}"
             done
         done
     done

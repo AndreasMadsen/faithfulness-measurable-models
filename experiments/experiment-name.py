@@ -30,7 +30,7 @@ parser.add_argument('--max-masking-ratio',
                     help='The maximum masking ratio (percentage integer) to apply on the training dataset')
 parser.add_argument('--masking-strategy',
                     default='uni',
-                    choices=['uni', 'half'],
+                    choices=['uni', 'half-det', 'half-ran'],
                     type=str,
                     help='The masking strategy to use for masking during fune-tuning')
 

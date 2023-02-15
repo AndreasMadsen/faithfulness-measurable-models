@@ -82,7 +82,7 @@ parser.add_argument('--max-masking-ratio',
                     help='The maximum masking ratio (percentage integer) to apply on the training dataset')
 parser.add_argument('--masking-strategy',
                     default='uni',
-                    choices=['uni', 'half'],
+                    choices=['uni', 'half-det', 'half-ran'],
                     type=str,
                     help='The masking strategy to use for masking during fune-tuning')
 
@@ -151,11 +151,16 @@ if __name__ == '__main__':
     match args.masking_strategy:
         case 'uni':
             masker_train = RandomMaxMasking(args.max_masking_ratio / 100, tokenizer, seed=args.seed)
-        case 'half':
+        case 'half-det':
             masker_train = TransformSampler([
                 RandomMaxMasking(0, tokenizer, seed=args.seed),
                 RandomMaxMasking(args.max_masking_ratio / 100, tokenizer, seed=args.seed)
-            ], seed=args.seed)
+            ], seed=args.seed, stochastic=False)
+        case 'half-ran':
+            masker_train = TransformSampler([
+                RandomMaxMasking(0, tokenizer, seed=args.seed),
+                RandomMaxMasking(args.max_masking_ratio / 100, tokenizer, seed=args.seed)
+            ], seed=args.seed, stochastic=True)
 
     # Mask training dataset and batch it
     dataset_train_batched = dataset_train \
