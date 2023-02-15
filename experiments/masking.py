@@ -160,10 +160,10 @@ if __name__ == '__main__':
     # Mask training dataset and batch it
     dataset_train_batched = dataset_train \
         .shuffle(dataset.train_num_examples, seed=args.seed) \
-        .map(lambda x, y: (masker_train(x), y), num_parallel_calls=tf.data.AUTOTUNE) \
         .apply(batcher(args.batch_size,
                        padding_values=(tokenizer.padding_values, None),
                        num_parallel_calls=tf.data.AUTOTUNE)) \
+        .map(lambda x, y: (masker_train(x), y), num_parallel_calls=tf.data.AUTOTUNE) \
         .prefetch(tf.data.AUTOTUNE)
 
     # Batch validation dataset
@@ -218,10 +218,10 @@ if __name__ == '__main__':
     for test_masking_ratio in [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]:
         masker_test = RandomFixedMasking(test_masking_ratio, tokenizer, seed=args.seed)
         dataset_test_batched = dataset_test \
-            .map(lambda x, y: (masker_test(x), y), num_parallel_calls=tf.data.AUTOTUNE) \
             .apply(batcher(args.batch_size,
                            padding_values=(tokenizer.padding_values, None),
                            num_parallel_calls=tf.data.AUTOTUNE)) \
+            .map(lambda x, y: (masker_test(x), y), num_parallel_calls=tf.data.AUTOTUNE) \
             .prefetch(tf.data.AUTOTUNE)
 
         results_test.append({
