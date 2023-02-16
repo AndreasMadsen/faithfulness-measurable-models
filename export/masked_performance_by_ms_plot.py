@@ -122,8 +122,8 @@ if __name__ == "__main__":
                 + p9.scale_y_continuous(labels=lambda ticks: [f'{tick:.0%}' for tick in ticks])
                 + p9.scale_x_continuous(labels=lambda ticks: [f'{tick:.0%}' for tick in ticks])
                 + p9.scale_color_discrete(
-                    breaks = ["goal", "uni", "half"],
-                    labels = ["0% masking", "U[0%, 100%] masking", "Sample 50/50"],
+                    breaks = ["goal", "uni", "half-ran", 'half-det'],
+                    labels = ["0% masking", "U[0%, 100%] masking", "Sample 50/50", "Use 50/50"],
                     aesthetics = ["colour", "fill"],
                     name='fine-tuning strategy'
                 )
