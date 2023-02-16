@@ -1,5 +1,4 @@
 
-import glob
 import json
 import argparse
 import os
@@ -7,12 +6,10 @@ import pathlib
 
 from tqdm import tqdm
 import pandas as pd
-import numpy as np
-import scipy.stats
 import plotnine as p9
 
 from ecoroar.dataset import datasets
-from ecoroar.plot import bootstrap_confint
+from ecoroar.plot import bootstrap_confint, annotation
 
 def select_target_metric(partial_df):
     column_name = partial_df.loc[:, 'target_metric'].iat[0]
@@ -107,7 +104,7 @@ if __name__ == "__main__":
                     })
             )
 
-            df_data = df_subset.append(df_goal)
+            df_data = pd.concat([df_subset, df_goal])
 
             df_plot = (df_data
                     .groupby(['args.model', 'args.dataset', 'args.max_epochs', 'args.masking_strategy'])
@@ -122,11 +119,18 @@ if __name__ == "__main__":
                 + p9.geom_jitter(p9.aes(y='metric', color='args.masking_strategy'),
                                  shape='+', alpha=0.8, position=p9.position_jitterdodge(0.25), data=df_data)
                 + p9.facet_wrap("args.dataset", scales="free_y", ncol=2)
-                + p9.labs(y='Unmasked performance', shape='', x='Model size')
-                + p9.scale_y_continuous(labels=lambda ticks: [f'{tick:.0%}' for tick in ticks])
+                + p9.scale_y_continuous(
+                    labels=lambda ticks: [f'{tick:.0%}' for tick in ticks],
+                    name='Unmasked performance'
+                )
+                + p9.scale_x_discrete(
+                    breaks = annotation.model.breaks,
+                    labels = annotation.model.labels,
+                    name='Model size'
+                )
                 + p9.scale_color_discrete(
-                    breaks = ["goal", "uni", "half-ran", 'half-det'],
-                    labels = ["0% masking", "U[0%, 100%] masking", "Sample 50/50", "Use 50/50"],
+                    breaks = annotation.masking_strategy.breaks,
+                    labels = annotation.masking_strategy.labels,
                     aesthetics = ["colour", "fill"],
                     name='fine-tuning strategy'
                 )

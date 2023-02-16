@@ -1,5 +1,4 @@
 
-import glob
 import json
 import argparse
 import os
@@ -7,12 +6,10 @@ import pathlib
 
 from tqdm import tqdm
 import pandas as pd
-import numpy as np
-import scipy.stats
 import plotnine as p9
 
 from ecoroar.dataset import datasets
-from ecoroar.plot import bootstrap_confint
+from ecoroar.plot import bootstrap_confint, annotation
 
 def select_target_metric(partial_df):
     column_name = partial_df.loc[:, 'target_metric'].iat[0]
@@ -118,9 +115,20 @@ if __name__ == "__main__":
                 + p9.geom_point(p9.aes(y='metric_mean', color='args.model', shape='args.model'))
                 + p9.geom_line(p9.aes(y='metric_mean', color='args.model'), linetype='dashed', data=df_goal)
                 + p9.facet_wrap("args.dataset", scales="free_y", ncol=2)
-                + p9.labs(y='Unmasked performance', shape='', x='Max masking ratio')
-                + p9.scale_y_continuous(labels=lambda ticks: [f'{tick:.0%}' for tick in ticks])
-                + p9.scale_x_continuous(labels=lambda ticks: [f'{tick:.0f}%' for tick in ticks])
+                + p9.scale_y_continuous(
+                    labels=lambda ticks: [f'{tick:.0%}' for tick in ticks],
+                    name='Unmasked performance'
+                )
+                + p9.scale_x_continuous(
+                    labels=lambda ticks: [f'{tick:.0f}%' for tick in ticks],
+                    name='Max masking ratio'
+                )
+                + p9.scale_color_discrete(
+                    breaks = annotation.model.breaks,
+                    labels = annotation.model.labels,
+                    aesthetics = ["colour", "fill"],
+                    name='Model'
+                )
                 + p9.scale_shape_discrete(guide=False)
                 + p9.theme(subplots_adjust={'wspace': 0.25}))
 

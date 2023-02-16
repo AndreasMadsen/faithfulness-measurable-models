@@ -1,5 +1,4 @@
 
-import glob
 import json
 import argparse
 import os
@@ -7,12 +6,10 @@ import pathlib
 
 from tqdm import tqdm
 import pandas as pd
-import numpy as np
-import scipy.stats
 import plotnine as p9
 
 from ecoroar.dataset import datasets
-from ecoroar.plot import bootstrap_confint
+from ecoroar.plot import bootstrap_confint, annotation
 
 def select_target_metric(partial_df):
     column_name = partial_df.loc[:, 'target_metric'].iat[0]
@@ -102,7 +99,7 @@ if __name__ == "__main__":
                             `args.masking_strategy` == "uni"')
                     .assign(**{'args.masking_strategy': 'goal'}))
 
-            df_data = df_model_category.append(df_goal)
+            df_data = pd.concat([df_model_category, df_goal])
             df_plot = (df_data
                     .groupby(['args.model', 'args.dataset', 'args.max_epochs', 'args.masking_strategy',
                               'results.masking_ratio'])
@@ -117,13 +114,18 @@ if __name__ == "__main__":
                 + p9.geom_ribbon(p9.aes(ymin='metric_lower', ymax='metric_upper', fill='args.masking_strategy'), alpha=0.35)
                 + p9.geom_line(p9.aes(y='metric_mean', color='args.masking_strategy', shape='args.model'))
                 + p9.geom_point(p9.aes(y='metric_mean', color='args.masking_strategy', shape='args.model'))
-                + p9.facet_grid("args.model ~ args.dataset", scales="free_y")
-                + p9.labs(y='Masked performance', shape='', x='Test masking ratio')
-                + p9.scale_y_continuous(labels=lambda ticks: [f'{tick:.0%}' for tick in ticks])
-                + p9.scale_x_continuous(labels=lambda ticks: [f'{tick:.0%}' for tick in ticks])
+                + p9.facet_grid("args.model ~ args.dataset", scales="free_y", labeller=annotation.model.labeller)
+                + p9.scale_y_continuous(
+                    labels=lambda ticks: [f'{tick:.0%}' for tick in ticks],
+                    name='Masked performance'
+                )
+                + p9.scale_x_continuous(
+                    labels=lambda ticks: [f'{tick:.0%}' for tick in ticks],
+                    name='Test masking ratio'
+                )
                 + p9.scale_color_discrete(
-                    breaks = ["goal", "uni", "half-ran", 'half-det'],
-                    labels = ["0% masking", "U[0%, 100%] masking", "Sample 50/50", "Use 50/50"],
+                    breaks = annotation.masking_strategy.breaks,
+                    labels = annotation.masking_strategy.labels,
                     aesthetics = ["colour", "fill"],
                     name='fine-tuning strategy'
                 )
