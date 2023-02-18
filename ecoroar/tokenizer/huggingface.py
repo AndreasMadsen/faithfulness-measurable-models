@@ -4,7 +4,7 @@ from typing import List, Iterable
 import tensorflow as tf
 import transformers
 
-from ..types import TokenizedDict
+from ..types import TokenizedDict, Tokenizer
 
 # To save disk space and preprocessing time, map different model_names to the same tokenizer
 # when the tokenizer is known to be the same.
@@ -22,7 +22,7 @@ _ALIAS_MODEL_NAME = {
 }
 
 
-class HuggingfaceTokenizer:
+class HuggingfaceTokenizer(Tokenizer):
     def __init__(self, model_name: str, persistent_dir: str):
         """Wrapper for a huggingface tokenizer, retrieved via transformers.AutoTokenizer
 
@@ -118,13 +118,14 @@ class HuggingfaceTokenizer:
 
     @tf.function
     def __call__(self, texts: Iterable[tf.Tensor]) -> TokenizedDict:
-        """Tokenizes, encodes, and joins text, then annotates with the type and mask
+        """Tokenizes, encodes, and joins text, then annotates with attention_mask
 
         Args:
-            texts (Tuple[tf.Tensor]): Tuple of text tensor, can be batched
+            texts (Iterable[tf.Tensor]): Tuple of text tensor. Each is a scalar.
 
         Returns:
-            TokenizedDict: Dict of input_ids, token_type_ids, and attention_mask
+            TokenizedDict: Dict of input_ids and attention_mask.
+                Both have shape [sequence_length].
         """
         input_ids, attention_mask = tf.py_function(
             self._wrap_tokenizer_call,

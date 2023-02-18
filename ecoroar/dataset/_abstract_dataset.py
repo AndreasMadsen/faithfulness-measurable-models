@@ -7,7 +7,7 @@ from abc import ABCMeta, abstractmethod
 import tensorflow as tf
 import tensorflow_datasets as tfds
 
-from ..tokenizer._abstract_tokenizer import AbstractTokenizer
+from ..types import Tokenizer
 from ..metric import AUROC, F1Score, Matthew, Pearson
 
 class AbstractDataset(metaclass=ABCMeta):
@@ -105,7 +105,7 @@ class AbstractDataset(metaclass=ABCMeta):
                                               shuffle_files=True,
                                               read_config=tfds.ReadConfig(shuffle_seed=self._seed))
 
-    def _preprocess_path(self, split: Union['train', 'valid', 'test'], tokenizer: AbstractTokenizer=None):
+    def _preprocess_path(self, split: Union['train', 'valid', 'test'], tokenizer: Tokenizer=None):
         dirname = self._persistent_dir / 'cache' / 'dataset_preprocess'
         if tokenizer:
             filename = f'd-{self.name.lower()}_s-{self._seed}_t-{tokenizer.alias_name.lower()}.{split}.tfds'
@@ -113,7 +113,7 @@ class AbstractDataset(metaclass=ABCMeta):
             filename = f'd-{self.name.lower()}_s-{self._seed}.{split}.tfds'
         return dirname / filename
 
-    def _process_dataset(self, dataset: tf.data.Dataset, tokenizer: AbstractTokenizer=None):
+    def _process_dataset(self, dataset: tf.data.Dataset, tokenizer: Tokenizer=None):
         # process dataset
         dataset = dataset.map(self._as_supervised, num_parallel_calls=tf.data.AUTOTUNE, deterministic=True)
         if tokenizer:
@@ -121,13 +121,13 @@ class AbstractDataset(metaclass=ABCMeta):
 
         return dataset
 
-    def preprocess(self, tokenizer: AbstractTokenizer=None):
+    def preprocess(self, tokenizer: Tokenizer=None):
         """Creates preprocessed datasets, for each train, valid, and test split.
 
         These datasets uses tf.data.Dataset.save as the storage format, and generally loads much faster.
 
         Args:
-            tokenizer (AbstractTokenizer, optional): If provided, the datasets will be tokenized. Defaults to None.
+            tokenizer (Tokenizer, optional): If provided, the datasets will be tokenized. Defaults to None.
         """
         for split, dataset in zip(['train', 'valid', 'test'], self._datasets):
             # save dataset
@@ -136,7 +136,7 @@ class AbstractDataset(metaclass=ABCMeta):
                 shutil.rmtree(path)
             self._process_dataset(dataset, tokenizer).save(str(path))
 
-    def _load(self, split: Union['train', 'valid', 'test'], tokenizer: AbstractTokenizer=None):
+    def _load(self, split: Union['train', 'valid', 'test'], tokenizer: Tokenizer=None):
         if self._use_snapshot:
             path = self._preprocess_path(split, tokenizer)
             if not path.exists():
@@ -157,7 +157,7 @@ class AbstractDataset(metaclass=ABCMeta):
         """
         return self.info.splits[self._split_train].num_examples
 
-    def train(self, tokenizer: AbstractTokenizer=None) -> tf.data.Dataset:
+    def train(self, tokenizer: Tokenizer=None) -> tf.data.Dataset:
         """Get training dataset
         """
         return self._load('train', tokenizer)
@@ -168,7 +168,7 @@ class AbstractDataset(metaclass=ABCMeta):
         """
         return self.info.splits[self._split_valid].num_examples
 
-    def valid(self, tokenizer: AbstractTokenizer=None) -> tf.data.Dataset:
+    def valid(self, tokenizer: Tokenizer=None) -> tf.data.Dataset:
         """Validation dataset
         """
         return self._load('valid', tokenizer)
@@ -179,7 +179,7 @@ class AbstractDataset(metaclass=ABCMeta):
         """
         return self.info.splits[self._split_test].num_examples
 
-    def test(self, tokenizer: AbstractTokenizer=None) -> tf.data.Dataset:
+    def test(self, tokenizer: Tokenizer=None) -> tf.data.Dataset:
         """Test dataset
         """
         return self._load('test', tokenizer)

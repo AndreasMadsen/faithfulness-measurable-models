@@ -1,5 +1,5 @@
 
-__all__ = ['TokenizedDict']
+__all__ = ['TokenizedDict', 'Tokenizer', 'InputTransform']
 
-from .tokenizer import TokenizedDict
+from .tokenizer import TokenizedDict, Tokenizer
 from .transform import InputTransform
