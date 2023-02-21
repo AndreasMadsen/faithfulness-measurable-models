@@ -9,6 +9,9 @@ class TokenizedDict(TypedDict):
     input_ids: Union[tf.Tensor, tf.RaggedTensor]
     attention_mask: Union[tf.Tensor, tf.RaggedTensor]
 
+class EmbeddingDict(TypedDict):
+    inputs_embeds: Union[tf.Tensor, tf.RaggedTensor]
+    attention_mask: Union[tf.Tensor, tf.RaggedTensor]
 
 class Tokenizer(metaclass=ABCMeta):
 

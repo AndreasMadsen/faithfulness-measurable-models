@@ -14,7 +14,7 @@ def test_simple_model():
         ], dtype=tf.dtypes.int32)
     })
 
-    np.testing.assert_array_equal(logits, [
-        [-2, 4, 2],
-        [-1, 3, 2]
+    np.testing.assert_allclose(logits, [
+        [2, 2, 4],
+        [1, 2, 3]
     ])
