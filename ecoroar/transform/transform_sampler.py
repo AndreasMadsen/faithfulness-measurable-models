@@ -12,7 +12,7 @@ def _slice_structure(structure, slicer):
 def _concat_structure(structures, **kwargs):
     return tf.nest.map_structure(lambda *tensors: tf.concat(tensors, **kwargs), *structures)
 
-class TransformSampler:
+class TransformSampler(InputTransform):
     def __init__(self, transforms: List[InputTransform], stochastic=False, seed: int = None):
         """_summary_
 

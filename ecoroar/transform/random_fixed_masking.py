@@ -3,14 +3,14 @@ from typing import Union
 
 import tensorflow as tf
 
-from ..types import TokenizedDict, InputTransform
+from ..types import TokenizedDict, InputTransform, Tokenizer
 
 def _float_int_multiple(float_tensor, int_tensor):
     return tf.cast(float_tensor * tf.cast(int_tensor, dtype=float_tensor.dtype), dtype=int_tensor.dtype)
 
 
 class RandomFixedMasking(InputTransform):
-    def __init__(self, fixed_masking_ratio: Union[float, int], tokenizer, seed: int = None):
+    def __init__(self, fixed_masking_ratio: Union[float, int], tokenizer: Tokenizer, seed: int = None):
         """Masks the input
 
         The masking procedure is:
