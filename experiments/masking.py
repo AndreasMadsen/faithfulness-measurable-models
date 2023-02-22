@@ -1,5 +1,4 @@
 import os
-import sys
 import pathlib
 import argparse
 import json
@@ -8,10 +7,11 @@ import tempfile
 from timeit import default_timer as timer
 
 import tensorflow as tf
+
 from ecoroar.util import generate_experiment_id, model_name_to_huggingface_repo, default_jit_compile, default_max_epochs
 from ecoroar.dataset import datasets
 from ecoroar.tokenizer import HuggingfaceTokenizer
-from ecoroar.model import HuggingfaceModel
+from ecoroar.model import huggingface_model_from_repo
 from ecoroar.transform import RandomFixedMasking, RandomMaxMasking, BucketedPaddedBatch, TransformSampler
 from ecoroar.optimizer import AdamW
 from ecoroar.scheduler import LinearSchedule
@@ -133,7 +133,7 @@ if __name__ == '__main__':
     # Initialize tokenizer, dataset, and model
     tokenizer = HuggingfaceTokenizer(args.huggingface_repo, persistent_dir=args.persistent_dir)
     dataset = datasets[args.dataset](persistent_dir=args.persistent_dir, seed=args.seed)
-    model = HuggingfaceModel(args.huggingface_repo, persistent_dir=args.persistent_dir, num_classes=dataset.num_classes)
+    model = huggingface_model_from_repo(args.huggingface_repo, persistent_dir=args.persistent_dir, num_classes=dataset.num_classes)
 
     # Load datasets
     dataset_train = dataset.train(tokenizer)
@@ -195,7 +195,6 @@ if __name__ == '__main__':
 
     checkpoint_dir = tempfile.mkdtemp()
     tensorboard_dir = tempfile.mkdtemp()
-
 
     # Train models and collect validation performance at each epoch
     durations['setup'] = timer() - setup_time_start
