@@ -5,13 +5,19 @@ import tensorflow as tf
 from ..types import TokenizedDict, Tokenizer, Model
 
 class ImportanceMeasure(ABC):
-    name: str
-    implements_explain_batch: bool = False
+    _name: str
+    _implements_explain_batch: bool = False
 
     def __init__(self, tokenizer: Tokenizer, model: Model) -> None:
         super().__init__()
         self._tokenizer = tokenizer
         self._model = model
+
+    @property
+    def name(self) -> str:
+        """Name of the dataset
+        """
+        return self._name
 
     def _explain_observation(self, x: TokenizedDict, y: tf.Tensor) -> tf.Tensor:
         """Explains a single observation.
@@ -114,7 +120,7 @@ class ImportanceMeasure(ABC):
                 Note, that by default the tokenizer.padding_values were used to infer the sequence_length.
         """
 
-        if self.implements_explain_batch:
+        if self._implements_explain_batch:
             return self._wrap_explain_batch(x, y)
         else:
             return self._wrap_explain_observation(x, y)

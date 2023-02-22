@@ -5,8 +5,8 @@ from ._importance_measure import ImportanceMeasure
 
 
 class GradientExplainer(ImportanceMeasure):
-    name = 'gradient'
-    implements_explain_batch = True
+    _name = 'grad'
+    _implements_explain_batch = True
 
     #@tf.function
     def _explain_batch(self, x, y):

@@ -5,8 +5,8 @@ from ._importance_measure import ImportanceMeasure
 
 
 class InputTimesGradientExplainer(ImportanceMeasure):
-    name = 'input-times-gradient'
-    implements_explain_batch = True
+    _name = 'inp-grad'
+    _implements_explain_batch = True
 
     def _explain_batch(self, x, y):
         x_embed = self._model.inputs_embeds(x)
