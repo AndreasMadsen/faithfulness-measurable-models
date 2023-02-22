@@ -33,8 +33,8 @@ def test_explainer_gradient(tokenizer, model, x):
 
     im = (explainer(x, tf.constant([0, 1])) ** 2).to_tensor(default_value=-1).numpy()
     np.testing.assert_allclose(im, [
-        [0, 4, 4, 0],
-        [8, 0, 8, -1]
+        [0,  4,  4, 0],
+        [12, 0, 12, -1]
     ])
 
 def test_explainer_input_times_gradient(tokenizer, model, x):

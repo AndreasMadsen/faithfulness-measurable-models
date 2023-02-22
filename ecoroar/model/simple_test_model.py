@@ -9,7 +9,8 @@ _default_embedding = [
     [0, 1],  # BOS
     [0, 1],  # EOS
     [0, 0],  # PAD
-    [1, 0]   # TEXT
+    [1, 0],  # TOKEN
+    [0, 1]   # MASK
 ]
 
 _defalt_kernel = [
@@ -32,12 +33,12 @@ class SimpleTestModel(tf.keras.Model):
         self.config = SimpleTestConfig(vocab_size=embeddings_initializer.shape[0])
 
         self._embedding = tf.keras.layers.Embedding(
-            input_dim=4,
-            output_dim=2,
+            input_dim=embeddings_initializer.shape[0],
+            output_dim=embeddings_initializer.shape[1],
             embeddings_initializer=tf.keras.initializers.Constant(embeddings_initializer)
         )
         self._dense = tf.keras.layers.Dense(
-            units=3,
+            units=kernel_initializer.shape[1],
             use_bias=False,
             kernel_initializer=tf.keras.initializers.Constant(kernel_initializer)
         )
