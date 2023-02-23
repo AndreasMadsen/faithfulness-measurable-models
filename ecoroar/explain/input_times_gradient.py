@@ -12,7 +12,7 @@ class InputTimesGradientExplainer(ImportanceMeasure):
         x_embed = self._model.inputs_embeds(x)
         with tf.GradientTape(watch_accessed_variables=False) as g:
             g.watch(x_embed['inputs_embeds'])
-            logits = self._model(x_embed)
+            logits = self._model(x_embed).logits
             logits_at_y = tf.gather(logits, y, batch_dims=1)
 
         # compute a batch gradient, this works because the logits_at_y are independent.

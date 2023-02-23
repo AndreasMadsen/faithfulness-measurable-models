@@ -1,4 +1,5 @@
 
+from dataclasses import dataclass
 from typing import Union
 
 import tensorflow as tf
@@ -17,6 +18,10 @@ _defalt_kernel = [
     [1, 0, 1],
     [0, 1, 1]
 ]
+
+@dataclass
+class SimpleOutput():
+    logits: tf.Tensor
 
 class SimpleTestConfig():
     model_type = 'simple test'
@@ -51,7 +56,7 @@ class SimpleTestModel(tf.keras.Model):
         z = z * z
         z = tf.math.reduce_sum(z, axis=1)
         z = self._dense(z, training=training)
-        return z
+        return SimpleOutput(logits=z)
 
     def inputs_embeds(self, x: TokenizedDict, training=False) -> EmbeddingDict:
         z = self._embedding(x['input_ids'], training=training)
