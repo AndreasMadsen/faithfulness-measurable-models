@@ -6,7 +6,7 @@ import transformers
 from transformers import AutoConfig
 
 from ..types import Model
-from .roberta import ExtraRoBERTaForSequenceClassification
+from .roberta import TFRoBERTaForSequenceClassificationExtra
 
 @contextmanager
 def silence_huggingface():
@@ -26,7 +26,7 @@ def huggingface_constructor(config: AutoConfig):
     """
     match config.model_type:
         case 'roberta':
-            return ExtraRoBERTaForSequenceClassification
+            return TFRoBERTaForSequenceClassificationExtra
 
     raise NotImplementedError(f'An embedding abstraction have been implemented for a {config.model_type} model')
 
@@ -47,7 +47,7 @@ def huggingface_model_from_repo(repo: str, persistent_dir: pathlib.Path, num_cla
 
     with silence_huggingface():
         return SequenceClassification.from_pretrained(
-            config=config,
+            repo,
             num_classes=num_classes,
             cache_dir=persistent_dir / 'cache' / 'transformers'
         )
@@ -63,7 +63,8 @@ def huggingface_model_from_local(filepath: str) -> Model:
     """
     config = AutoConfig.from_pretrained(filepath)
     SequenceClassification = huggingface_constructor(config)
-    return SequenceClassification.from_pretrained(
-        config=config,
-        local_files_only=True
-    )
+    with silence_huggingface():
+        return SequenceClassification.from_pretrained(
+            filepath,
+            local_files_only=True
+        )

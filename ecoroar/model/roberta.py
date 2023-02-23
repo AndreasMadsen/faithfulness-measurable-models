@@ -4,7 +4,7 @@ import tensorflow as tf
 from transformers import TFRobertaForSequenceClassification
 from ..types import TokenizedDict, EmbeddingDict
 
-class ExtraRoBERTaForSequenceClassification(TFRobertaForSequenceClassification):
+class TFRoBERTaForSequenceClassificationExtra(TFRobertaForSequenceClassification):
     # Argument ExtraRoBERTaForSequenceClassification with methods for managing the embedding,
     #  these methods are neccesary for computing gradients wrt. input.
 
@@ -21,7 +21,7 @@ class ExtraRoBERTaForSequenceClassification(TFRobertaForSequenceClassification):
                 f" {tf.math.reduce_max(input_ids)} >= {self.config.vocab_size})"
             ),
         )
-        inputs_embeds = tf.gather(params=self.weight, indices=input_ids)
+        inputs_embeds = tf.gather(params=self.embedding_matrix, indices=input_ids)
 
         return {
             'attention_mask': x['attention_mask'],
