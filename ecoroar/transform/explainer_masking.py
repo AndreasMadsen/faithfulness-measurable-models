@@ -6,24 +6,19 @@ from ..types import TokenizedDict, InputTransform, Tokenizer
 
 
 class ExplainerMasking(InputTransform):
-    def __init__(self, masking_ratio: float, explainer, tokenizer: Tokenizer):
+    def __init__(self, explainer, tokenizer: Tokenizer):
         """Masks the input according to the importance measure provided by an explainer
 
         Args:
-            masking_ratio (float): The ratio of tokens to mask according to the explainer,
-                between 0 and 1 inclusive
             explainer (ImportanceMeasure): this will be called to explain the (x, y) pair
             tokenizer (Tokenizer): tokenizer, specifically used to provide the mask_token_id
         """
-        if not (0 <= float(masking_ratio) <= 1):
-            raise TypeError(f'masking_ratio must be a float between 0 and 1, was "{masking_ratio}"')
 
-        self._masking_ratio = tf.convert_to_tensor(float(masking_ratio), dtype=tf.dtypes.float32)
         self._explainer = explainer
         self._tokenizer = tokenizer
 
     @tf.function(reduce_retracing=True)
-    def _mask_inputs_ids_with_im(self, input_ids: tf.Tensor, im: tf.RaggedTensor):
+    def _mask_inputs_ids_with_im(self, input_ids: tf.Tensor, im: tf.RaggedTensor, masking_ratio: tf.Tensor):
         # ensure that already masked values will continue to be masked,
         # by assigning them infinite importance.
         im_dense = im.to_tensor(default_value=-np.inf, shape=tf.shape(input_ids))
@@ -45,7 +40,7 @@ class ExplainerMasking(InputTransform):
             tf.cast(kept_tokens, sequence_length.dtype),
             axis=1)
         mask_lengths = tf.cast(
-            tf.cast(maskable_num_of_tokens, self._masking_ratio.dtype) * self._masking_ratio,
+            tf.cast(maskable_num_of_tokens, masking_ratio.dtype) * masking_ratio,
             dtype=sequence_length.dtype)
         mask_ranking = tf.RaggedTensor.from_tensor(ranking, lengths=mask_lengths)
 
@@ -59,12 +54,14 @@ class ExplainerMasking(InputTransform):
             updates=tf.fill((tf.size(mask_ranking), ), self._tokenizer.mask_token_id)
         )
 
-    def __call__(self, x: TokenizedDict, y: tf.Tensor) -> TokenizedDict:
+    def __call__(self, x: TokenizedDict, y: tf.Tensor, masking_ratio: tf.Tensor) -> TokenizedDict:
         """Mask tokens according to the explainer.
 
         Args:
             x (TokenizedDict): Tokenized input
             y (tf.Tensor): the target label to explain
+            masking_ratio (float): The ratio of tokens to mask according to the explainer,
+                between 0 and 1 inclusive
 
         Returns:
             TokenizedDict: Masked tokenized input
@@ -73,6 +70,6 @@ class ExplainerMasking(InputTransform):
         im = self._explainer(x, y)
 
         return {
-            'input_ids': self._mask_inputs_ids_with_im(x['input_ids'], im),
+            'input_ids': self._mask_inputs_ids_with_im(x['input_ids'], im, masking_ratio),
             'attention_mask': x['attention_mask']
         }
