@@ -122,7 +122,6 @@ if __name__ == '__main__':
         tf.config.experimental.enable_op_determinism()
     tf.keras.utils.set_random_seed(args.seed)
     tf.keras.mixed_precision.set_global_policy(args.precision)
-    tf.debugging.disable_traceback_filtering()
 
     # Initialize tokenizer, dataset, and model
     tokenizer = HuggingfaceTokenizer(args.huggingface_repo, persistent_dir=args.persistent_dir)
@@ -134,6 +133,7 @@ if __name__ == '__main__':
         max_masking_ratio=args.max_masking_ratio, masking_strategy=args.masking_strategy
     ))
     explainer = explainers[args.explainer](tokenizer, model)
+    masker = ExplainerMasking(explainer, tokenizer)
 
     # Load datasets
     dataset_test = dataset.test(tokenizer)
@@ -160,16 +160,6 @@ if __name__ == '__main__':
                         num_parallel_calls=tf.data.AUTOTUNE)) \
         .prefetch(tf.data.AUTOTUNE)
 
-    masker = ExplainerMasking(explainer, tokenizer)
-
-    def create_generator(masking_ratio, dataset):
-        masking_ratio = tf.convert_to_tensor(float(masking_ratio), dtype=tf.dtypes.float32)
-        def _generator():
-            for x, y in tqdm(dataset, desc='Masking dataset'):
-                yield (masker(x, y, masking_ratio), y)
-            print('')
-        return _generator
-
     # Evalute test performance at different masking ratios
     results_test = []
     for masking_ratio in [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]:
@@ -177,10 +167,10 @@ if __name__ == '__main__':
         # Create masked dataset. This is cached because it is used twice.
         # 1. To evaluate method
         # 2. To create next masking dataset
-        dataset_test_masked = tf.data.Dataset.from_generator(
-            create_generator(masking_ratio, dataset_test_masked),
-            output_signature=tf.data.experimental.get_structure(dataset_test_masked)
-        ).cache().prefetch(tf.data.AUTOTUNE)
+        dataset_test_masked = dataset_test_masked \
+            .apply(masker(masking_ratio)) \
+            .cache() \
+            .prefetch(tf.data.AUTOTUNE)
 
         results_test.append({
             'masking_ratio': masking_ratio,

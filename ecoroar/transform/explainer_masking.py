@@ -1,4 +1,6 @@
 
+from typing import Callable
+
 import numpy as np
 import tensorflow as tf
 
@@ -54,18 +56,8 @@ class ExplainerMasking(InputTransform):
             updates=tf.fill((tf.size(mask_ranking), ), self._tokenizer.mask_token_id)
         )
 
-    def __call__(self, x: TokenizedDict, y: tf.Tensor, masking_ratio: tf.Tensor) -> TokenizedDict:
-        """Mask tokens according to the explainer.
-
-        Args:
-            x (TokenizedDict): Tokenized input
-            y (tf.Tensor): the target label to explain
-            masking_ratio (float): The ratio of tokens to mask according to the explainer,
-                between 0 and 1 inclusive
-
-        Returns:
-            TokenizedDict: Masked tokenized input
-        """
+    @tf.function(reduce_retracing=True)
+    def _mask_input(self, x: TokenizedDict, y: tf.Tensor, masking_ratio: tf.Tensor) -> TokenizedDict:
         # Compute importance measure
         im = self._explainer(x, y)
 
@@ -73,3 +65,36 @@ class ExplainerMasking(InputTransform):
             'input_ids': self._mask_inputs_ids_with_im(x['input_ids'], im, masking_ratio),
             'attention_mask': x['attention_mask']
         }
+
+    def __call__(self, masking_ratio: float) -> Callable[[tf.data.Dataset], tf.data.Dataset]:
+        """Mask tokens according to the explainer.
+
+        Args:
+            masking_ratio (float): The ratio of tokens to mask according to the explainer,
+                between 0 and 1 inclusive
+
+        Returns:
+            Callable[[tf.data.Dataset], tf.data.Dataset]: function that maps from dataset to dataset
+        """
+        if not (0 <= float(masking_ratio) <= 1):
+            raise TypeError(f'masking_ratio must be between 0 and 1, was "{masking_ratio}"')
+
+        masking_ratio = tf.convert_to_tensor(masking_ratio, dtype=tf.dtypes.float32)
+
+        def masked_dataset(dataset):
+            # tf.Dataset.from_generator is used because tf.Dataset.map will run on the CPU,
+            # and the explainer is likely to do model inference and perhaps derivatives.
+            # Those are expensive calculations, and should be done on the GPU. using
+            # `with tf.device('GPU')` to force calculations on the GPU is an option too.
+            # However, this is still 2x-3x slower, likely because data is not prefetched to
+            # the GPU.
+            def _generator():
+                for x, y in dataset.prefetch(tf.data.AUTOTUNE):
+                    yield (self._mask_input(x, y, masking_ratio), y)
+
+            return tf.data.Dataset.from_generator(
+                _generator,
+                output_signature=tf.data.experimental.get_structure(dataset)
+            ).apply(tf.data.experimental.assert_cardinality(dataset.cardinality()))
+
+        return masked_dataset
