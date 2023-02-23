@@ -20,30 +20,28 @@ def model():
 
 
 @pytest.fixture
-def x(tokenizer):
-    return tf.data.Dataset.from_tensor_slices([
-        '[BOS] token token [EOS] [PAD]',
-        '[BOS] token [EOS] [PAD] [PAD]',
-    ]).map(lambda doc: tokenizer((doc, ))) \
-      .batch(2) \
-      .get_single_element()
+def dataset(tokenizer):
+    return tf.data.experimental.from_list([
+        ('[BOS] token token [EOS] [PAD]', 0),
+        ('[BOS] token [EOS] [PAD] [PAD]', 1)
+    ]).map(lambda doc, y: (tokenizer((doc, )), y)) \
+      .batch(2)
 
 
 @pytest.fixture
-def x_masked(tokenizer):
-    return tf.data.Dataset.from_tensor_slices([
-        '[BOS] token [MASK] [EOS] [PAD]',
-        '[BOS] [MASK] [EOS] [PAD] [PAD]',
-    ]).map(lambda doc: tokenizer((doc, ))) \
-      .batch(2) \
-      .get_single_element()
+def masked_dataset(tokenizer):
+    return tf.data.experimental.from_list([
+        ('[BOS] token [MASK] [EOS] [PAD]', 0),
+        ('[BOS] [MASK] [EOS] [PAD] [PAD]', 1)
+    ]).map(lambda doc, y: (tokenizer((doc, )), y)) \
+      .batch(2)
 
 
-def test_explainer_masking_from_plain(tokenizer, model, x):
+def test_explainer_masking_from_plain(tokenizer, model, dataset):
     explainer = GradientExplainer(tokenizer, model)
+    masker = ExplainerMasking(explainer, tokenizer)
 
-    masker_50 = ExplainerMasking(0.5, explainer, tokenizer)
-    x_masked_50 = masker_50(x, tf.constant([0, 1]))
+    x_masked_50, _ = dataset.apply(masker(0.5)).get_single_element()
     np.testing.assert_array_equal(x_masked_50['input_ids'], [
         [0, 4, 3, 1, 2],
         [0, 3, 1, 2, 2]
@@ -54,11 +52,11 @@ def test_explainer_masking_from_plain(tokenizer, model, x):
     ])
 
 
-def test_explainer_masking_from_masked(tokenizer, model, x_masked):
+def test_explainer_masking_from_masked(tokenizer, model, masked_dataset):
     explainer = GradientExplainer(tokenizer, model)
+    masker = ExplainerMasking(explainer, tokenizer)
 
-    masker_50 = ExplainerMasking(0.5, explainer, tokenizer)
-    x_masked_50 = masker_50(x_masked, tf.constant([0, 1]))
+    x_masked_50, _ = masked_dataset.apply(masker(0.5)).get_single_element()
     np.testing.assert_array_equal(x_masked_50['input_ids'], [
         [0, 3, 4, 1, 2],
         [0, 4, 1, 2, 2]
@@ -69,11 +67,11 @@ def test_explainer_masking_from_masked(tokenizer, model, x_masked):
     ])
 
 
-def test_explainer_masking_kept_tokens(tokenizer, model, x):
+def test_explainer_masking_kept_tokens(tokenizer, model, dataset):
     explainer = GradientExplainer(tokenizer, model)
+    masker = ExplainerMasking(explainer, tokenizer)
 
-    masker_100 = ExplainerMasking(1, explainer, tokenizer)
-    x_masked_100 = masker_100(x, tf.constant([0, 1]))
+    x_masked_100, _ = dataset.apply(masker(1)).get_single_element()
     np.testing.assert_array_equal(x_masked_100['input_ids'], [
         [0, 4, 4, 1, 2],
         [0, 4, 1, 2, 2]

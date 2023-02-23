@@ -12,7 +12,7 @@ def test_simple_model():
             [0, 3, 3, 1, 2],
             [0, 3, 1, 2, 2]
         ], dtype=tf.dtypes.int32)
-    })
+    }).logits
 
     np.testing.assert_allclose(logits, [
         [2, 2, 4],
