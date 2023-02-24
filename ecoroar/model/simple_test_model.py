@@ -30,7 +30,10 @@ class SimpleTestConfig():
         self.vocab_size = vocab_size
 
 class SimpleTestModel(Model):
-    def __init__(self, embeddings_initializer=_default_embedding, kernel_initializer=_defalt_kernel) -> None:
+    def __init__(self,
+                 embeddings_initializer=_default_embedding,
+                 kernel_initializer=_defalt_kernel,
+                 auto_initialize=True) -> None:
         super().__init__()
         embeddings_initializer = tf.convert_to_tensor(embeddings_initializer, dtype=tf.float32)
         kernel_initializer = tf.convert_to_tensor(kernel_initializer, dtype=tf.float32)
@@ -48,7 +51,15 @@ class SimpleTestModel(Model):
             kernel_initializer=tf.keras.initializers.Constant(kernel_initializer)
         )
 
-    def call(self, x: Union[TokenizedDict, EmbeddingDict], training=False) -> SimpleOutput:
+        if auto_initialize:
+            self({
+                'input_ids': tf.constant([[0, 0]], dtype=tf.dtypes.int32),
+                'attention_mask': tf.constant([[1, 1]], dtype=tf.dtypes.int8),
+            })
+
+    def call(self, inputs: Union[TokenizedDict, EmbeddingDict], training=False) -> SimpleOutput:
+        x = inputs
+
         if 'inputs_embeds' not in x:
             x = self.inputs_embeds(x, training=training)
 
