@@ -5,7 +5,8 @@ import numpy as np
 
 from ecoroar.model import SimpleTestModel
 from ecoroar.tokenizer import SimpleTestTokenizer
-from ecoroar.explain import GradientExplainer, InputTimesGradientExplainer, IntegratedGradientExplainer
+from ecoroar.explain import \
+    RandomExplainer, GradientExplainer, InputTimesGradientExplainer, IntegratedGradientExplainer
 
 
 @pytest.fixture
@@ -27,6 +28,15 @@ def x(tokenizer):
       .batch(2) \
       .get_single_element()
 
+
+def test_explainer_random(tokenizer, model, x):
+    explainer = RandomExplainer(tokenizer, model, seed=0)
+
+    im = (explainer(x, tf.constant([0, 1])) ** 2).to_tensor(default_value=-1).numpy()
+    np.testing.assert_allclose(im, [
+        [9.7e-02, 6.8e-01, 4.7e-01, 4.5e-05],
+        [1.5e-01, 8.6e-02, 9.8e-01, -1]
+    ], rtol=0.1)
 
 def test_explainer_gradient(tokenizer, model, x):
     explainer = GradientExplainer(tokenizer, model)

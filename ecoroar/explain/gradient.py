@@ -8,7 +8,6 @@ class GradientExplainer(ImportanceMeasure):
     _name = 'grad'
     _implements_explain_batch = True
 
-    #@tf.function
     def _explain_batch(self, x, y):
         x = self._model.inputs_embeds(x)
         with tf.GradientTape(watch_accessed_variables=False) as g:

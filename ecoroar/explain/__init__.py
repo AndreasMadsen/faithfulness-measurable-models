@@ -4,9 +4,10 @@ __all__ = ['GradientExplainer', 'InputTimesGradientExplainer', 'IntegratedGradie
 from .gradient import GradientExplainer
 from .input_times_gradient import InputTimesGradientExplainer
 from .integrated_gradient import IntegratedGradientExplainer
+from .random import RandomExplainer
 
 explainers = {
     Explainer._name: Explainer
     for Explainer
-    in [GradientExplainer, InputTimesGradientExplainer, IntegratedGradientExplainer]
+    in [RandomExplainer, GradientExplainer, InputTimesGradientExplainer, IntegratedGradientExplainer]
 }
