@@ -153,7 +153,6 @@ if __name__ == '__main__':
         jit_compile=args.jit_compile
     )
     durations['setup'] = timer() - setup_time_start
-    results_time_start = timer()
 
     # Compute faithfulness curve
     dataset_test_masked = dataset_test \
@@ -164,21 +163,31 @@ if __name__ == '__main__':
 
     # Evalute test performance at different masking ratios
     results = []
+    explain_time = 0
+    evaluate_time = 0
     for masking_ratio in [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]:
 
         # Create masked dataset. This is cached because it is used twice.
         # 1. To evaluate method
         # 2. To create next masking dataset
+        explain_time_start = timer()
         dataset_test_masked = dataset_test_masked \
             .apply(masker(masking_ratio)) \
             .cache() \
             .prefetch(tf.data.AUTOTUNE)
+        for x, y in tqdm(dataset_test_masked, desc=f'Explaing dataset ({masking_ratio:.0%})', mininterval=1):
+            pass
+        explain_time += timer() - explain_time_start
 
+        evaluate_time_start = timer()
         results.append({
             'masking_ratio': masking_ratio,
             **model.evaluate(dataset_test_masked, return_dict=True)
         })
-    durations['results'] = timer() - results_time_start
+        evaluate_time += timer() - evaluate_time_start
+
+    durations['explain'] = explain_time
+    durations['evaluate'] = evaluate_time
 
     os.makedirs(args.persistent_dir / 'results', exist_ok=True)
     with open(args.persistent_dir / 'results' / f'{experiment_id}.json', "w") as f:
