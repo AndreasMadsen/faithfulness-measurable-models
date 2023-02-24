@@ -24,7 +24,7 @@ function join_by {
 submit_seeds () {
     local walltime=$1
     local seeds=$2
-    local experiment_name=$(python experiments/experiment-name.py "${@:5}" --seed 9999)
+    local experiment_name=$(python experiments/experiment-name.py "${@:4}" --seed 9999)
 
     local run_seeds=()
     local filename

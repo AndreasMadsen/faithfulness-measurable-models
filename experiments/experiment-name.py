@@ -1,8 +1,14 @@
+import pathlib
+
 import argparse
 
 from ecoroar.util import generate_experiment_id, default_max_epochs
 
 parser = argparse.ArgumentParser()
+parser.add_argument('scriptpath',
+                    action='store',
+                    type=pathlib.Path,
+                    help='The script path that the job will execute')
 parser.add_argument('--seed',
                     action='store',
                     default=0,
@@ -39,7 +45,7 @@ if __name__ == '__main__':
     args.max_epochs = default_max_epochs(args)
 
     experiment_id = generate_experiment_id(
-        'masking',
+        args.scriptpath.name.rstrip('.py'),
         model=args.model, dataset=args.dataset,
         seed=args.seed, max_epochs=args.max_epochs,
         max_masking_ratio=args.max_masking_ratio, masking_strategy=args.masking_strategy
