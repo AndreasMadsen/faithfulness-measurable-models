@@ -75,10 +75,10 @@ parser.add_argument('--masking-strategy',
                     type=str,
                     help='The masking strategy to use for masking during fune-tuning')
 parser.add_argument('--explainer',
-                    default='uni',
+                    default='grad',
                     choices=explainers.keys(),
                     type=str,
-                    help='The masking strategy to use for masking during fune-tuning')
+                    help='The importance measure algorithm to use for explanation')
 
 if __name__ == '__main__':
     durations = {}
@@ -96,7 +96,8 @@ if __name__ == '__main__':
         'faithfulness',
         model=args.model, dataset=args.dataset,
         seed=args.seed, max_epochs=args.max_epochs,
-        max_masking_ratio=args.max_masking_ratio, masking_strategy=args.masking_strategy
+        max_masking_ratio=args.max_masking_ratio, masking_strategy=args.masking_strategy,
+        explainer=args.explainer
     )
 
     # Print configuration

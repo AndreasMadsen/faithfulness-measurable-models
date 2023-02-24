@@ -2,7 +2,8 @@
 def generate_experiment_id(name: str,
                            model: str = None, dataset: str = None,
                            seed: int = None, max_epochs: int = None,
-                           max_masking_ratio: int = None, masking_strategy: str = None):
+                           max_masking_ratio: int = None, masking_strategy: str = None,
+                           explainer: str = None):
     """Creates a standardized experiment name.
 
     The format is
@@ -17,6 +18,7 @@ def generate_experiment_id(name: str,
         max_epochs (int, optional): the max number of epochs to train.
         max_masking_ratio (int, optional): the max masking ratio used during training in percentage.
         masking_strategy (str, optional): the masking strategy to use for masking during fune-tuning.
+        explainer (str, optional): the explanation algorithm used.
 
     Returns:
         str: the experiment identifier
@@ -34,5 +36,7 @@ def generate_experiment_id(name: str,
         experiment_id += f"_r-{max_masking_ratio}"
     if isinstance(max_masking_ratio, int):
         experiment_id += f"_y-{masking_strategy}"
+    if isinstance(explainer, str):
+        experiment_id += f"_x-{explainer}"
 
     return experiment_id
