@@ -2,11 +2,10 @@
 from abc import ABCMeta, abstractmethod
 
 import tensorflow as tf
-from transformers import TFAutoModelForSequenceClassification
 
 from ..types import TokenizedDict, EmbeddingDict
 
-class Model(TFAutoModelForSequenceClassification, metaclass=ABCMeta):
+class Model(tf.keras.Model, metaclass=ABCMeta):
     @abstractmethod
     def inputs_embeds(self, x: TokenizedDict, training=False) -> EmbeddingDict:
         """Converts the input_ids format an inputs_embeds format

@@ -1,3 +1,4 @@
+import pathlib
 from functools import cached_property
 from typing import List, Iterable
 
@@ -23,12 +24,12 @@ _ALIAS_MODEL_NAME = {
 
 
 class HuggingfaceTokenizer(Tokenizer):
-    def __init__(self, model_name: str, persistent_dir: str):
+    def __init__(self, model_name: str, persistent_dir: pathlib.Path):
         """Wrapper for a huggingface tokenizer, retrieved via transformers.AutoTokenizer
 
         Args:
             model_name (str): the model name as input to transformers.AutoTokenizer
-            persistent_dir (str): used to store the downloaded tokenizer
+            persistent_dir (pathlib.Path): used to store the downloaded tokenizer
         """
         self._model_name = model_name
         self._tokenizer = transformers.AutoTokenizer.from_pretrained(

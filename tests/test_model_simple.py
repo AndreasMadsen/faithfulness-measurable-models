@@ -11,7 +11,11 @@ def test_simple_model():
         'input_ids': tf.constant([
             [0, 3, 3, 1, 2],
             [0, 3, 1, 2, 2]
-        ], dtype=tf.dtypes.int32)
+        ], dtype=tf.dtypes.int32),
+        'attention_mask': tf.constant([
+            [1, 1, 1, 1, 0],
+            [1, 1, 1, 0, 0]
+        ], dtype=tf.dtypes.int8)
     }).logits
 
     np.testing.assert_allclose(logits, [

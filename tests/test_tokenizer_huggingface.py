@@ -10,7 +10,7 @@ from ecoroar.tokenizer import HuggingfaceTokenizer
 
 
 def test_padding_values():
-    tokenizer = HuggingfaceTokenizer('roberta-base', persistent_dir='.')
+    tokenizer = HuggingfaceTokenizer('roberta-base', persistent_dir=pathlib.Path('.'))
     np.testing.assert_array_equal(tokenizer.padding_values['input_ids'].numpy(),
                                   np.array(tokenizer.pad_token_id, np.int32))
     np.testing.assert_array_equal(tokenizer.padding_values['attention_mask'].numpy(),

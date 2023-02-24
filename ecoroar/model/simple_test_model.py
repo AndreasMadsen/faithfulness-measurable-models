@@ -4,7 +4,7 @@ from typing import Union
 
 import tensorflow as tf
 
-from ..types import TokenizedDict, EmbeddingDict
+from ..types import TokenizedDict, EmbeddingDict, Model
 
 _default_embedding = [
     [0, 1],  # BOS
@@ -29,7 +29,7 @@ class SimpleTestConfig():
     def __init__(self, vocab_size=4) -> None:
         self.vocab_size = vocab_size
 
-class SimpleTestModel(tf.keras.Model):
+class SimpleTestModel(Model):
     def __init__(self, embeddings_initializer=_default_embedding, kernel_initializer=_defalt_kernel) -> None:
         super().__init__()
         embeddings_initializer = tf.convert_to_tensor(embeddings_initializer, dtype=tf.float32)
@@ -48,7 +48,7 @@ class SimpleTestModel(tf.keras.Model):
             kernel_initializer=tf.keras.initializers.Constant(kernel_initializer)
         )
 
-    def call(self, x: Union[TokenizedDict, EmbeddingDict], training=False) -> tf.Tensor:
+    def call(self, x: Union[TokenizedDict, EmbeddingDict], training=False) -> SimpleOutput:
         if 'inputs_embeds' not in x:
             x = self.inputs_embeds(x, training=training)
 
@@ -61,7 +61,8 @@ class SimpleTestModel(tf.keras.Model):
     def inputs_embeds(self, x: TokenizedDict, training=False) -> EmbeddingDict:
         z = self._embedding(x['input_ids'], training=training)
         return {
-            'inputs_embeds': z
+            'inputs_embeds': z,
+            'attention_mask': x['attention_mask']
         }
 
     @property

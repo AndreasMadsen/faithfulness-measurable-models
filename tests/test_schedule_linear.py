@@ -1,4 +1,5 @@
 
+import tensorflow as tf
 import numpy as np
 
 from ecoroar.scheduler import LinearSchedule
@@ -6,7 +7,7 @@ from ecoroar.scheduler import LinearSchedule
 
 def test_learning_rate():
     lr_schedule = LinearSchedule(0.1, 50)
-    lr = np.array([lr_schedule(i).numpy() for i in range(50)])
+    lr = np.array([lr_schedule(i).numpy() for i in tf.range(50)])
 
     np.testing.assert_allclose(lr, [
         0.        , 0.03333334, 0.06666667, 0.1       , 0.09787234, 0.09574468,
