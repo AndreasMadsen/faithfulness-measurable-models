@@ -5,7 +5,7 @@ import numpy as np
 
 from ecoroar.model import SimpleTestModel
 from ecoroar.tokenizer import SimpleTestTokenizer
-from ecoroar.explain import GradientExplainer, InputTimesGradientExplainer
+from ecoroar.explain import GradientExplainer, InputTimesGradientExplainer, IntegratedGradientExplainer
 
 
 @pytest.fixture
@@ -44,4 +44,22 @@ def test_explainer_input_times_gradient(tokenizer, model, x):
     np.testing.assert_allclose(im, [
         [0, 4, 4, 0],
         [4, 0, 4, -1]
+    ])
+
+def test_explainer_integrated_gradient_1_sample(tokenizer, model, x):
+    explainer = IntegratedGradientExplainer(tokenizer, model, riemann_samples=1)
+
+    im = (explainer(x, tf.constant([0, 1])) ** 2).to_tensor(default_value=-1).numpy()
+    np.testing.assert_allclose(im, [
+        [0, 4, 4, 0],
+        [4, 0, 4, -1]
+    ])
+
+def test_explainer_integrated_gradient_2_samples(tokenizer, model, x):
+    explainer = IntegratedGradientExplainer(tokenizer, model, riemann_samples=2)
+
+    im = (explainer(x, tf.constant([0, 1])) ** 2).to_tensor(default_value=-1).numpy()
+    np.testing.assert_allclose(im, [
+        [0, 1.5625, 1.5625, 0],
+        [1.5625, 0, 1.5625, -1]
     ])
