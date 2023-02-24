@@ -132,7 +132,7 @@ if __name__ == '__main__':
         seed=args.seed, max_epochs=args.max_epochs,
         max_masking_ratio=args.max_masking_ratio, masking_strategy=args.masking_strategy
     ))
-    explainer = explainers[args.explainer](tokenizer, model)
+    explainer = explainers[args.explainer](tokenizer, model, run_eagerly=False, jit_compile=args.jit_compile)
     masker = ExplainerMasking(explainer, tokenizer)
 
     # Load datasets

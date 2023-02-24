@@ -8,10 +8,42 @@ class ImportanceMeasure(ABC):
     _name: str
     _implements_explain_batch: bool = False
 
-    def __init__(self, tokenizer: Tokenizer, model: Model) -> None:
+    def __init__(self, tokenizer: Tokenizer, model: Model,
+                 run_eagerly: bool = False,
+                 jit_compile: bool = False) -> None:
+        """Computes explanation where each input token is given an attribution score.
+
+        Args:
+            tokenizer (Tokenizer): The tokenizer used, this is for defining padding.
+            model (Model): The model used, explainations are produced by probing the model.
+            run_eagerly (bool, optional): If True, tf.function is not used. Defaults to False.
+            jit_compile (bool, optional): If True, XLA compiling is enabled. Defaults to False.
+
+        Raises:
+            ValueError: when both run_eagerly and jit_compile are True
+        """
         super().__init__()
         self._tokenizer = tokenizer
         self._model = model
+
+        # define compiler
+        if run_eagerly:
+            if jit_compile:
+                raise ValueError('run_eagerly must be false when jit_compile is True')
+            else:
+                compiler = lambda x: x
+        else:
+            if jit_compile:
+                compiler = tf.function(reduce_retracing=True, jit_compile=True)
+            else:
+                compiler = tf.function(reduce_retracing=True)
+
+        # setup explainer function
+        if self._implements_explain_batch:
+            self._wrap_explain = compiler(self._wrap_explain_batch)
+        else:
+            self._wrap_explain = compiler(self._wrap_explain_observation)
+
 
     @property
     def name(self) -> str:
@@ -120,7 +152,4 @@ class ImportanceMeasure(ABC):
                 Note, that by default the tokenizer.padding_values were used to infer the sequence_length.
         """
 
-        if self._implements_explain_batch:
-            return self._wrap_explain_batch(x, y)
-        else:
-            return self._wrap_explain_observation(x, y)
+        return self._wrap_explain(x, y)
