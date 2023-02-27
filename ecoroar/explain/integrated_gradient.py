@@ -4,8 +4,8 @@ import tensorflow as tf
 from ._importance_measure import ImportanceMeasure
 
 
-class IntegratedGradientExplainer(ImportanceMeasure):
-    _name = 'int-grad'
+class IntegratedGradientSignExplainer(ImportanceMeasure):
+    _name = 'int-grad-sign'
     _implements_explain_batch = True
 
     def __init__(self, *args, riemann_samples=20, **kwargs) -> None:
@@ -71,6 +71,13 @@ class IntegratedGradientExplainer(ImportanceMeasure):
             # efficient that storing x_yc_wrt_x for each Riemann step.
             online_mean += (yc_wrt_x_compact - online_mean)/tf.cast(riemann_step, dtype)
 
-        # Abs is equivalent to 2-norm, because the naive sum is essentially
-        # sqrt(0^2 + ... + 0^2 + y_wrt_x^2 + 0^2 + ... + 0^2) = abs(y_wrt_x)
-        return tf.math.abs(online_mean)  # (B, T)
+        # Return the signed explanation
+        return online_mean  # (B, T)
+
+
+class IntegratedGradientAbsExplainer(IntegratedGradientSignExplainer):
+    _name = 'int-grad-abs'
+
+    def _explain_batch(self, x, y):
+        yc_wrt_x_compact = super()._explain_batch(x, y)
+        return tf.math.abs(yc_wrt_x_compact)  # (B, T)

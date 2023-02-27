@@ -4,8 +4,8 @@ import tensorflow as tf
 from ._importance_measure import ImportanceMeasure
 
 
-class InputTimesGradientExplainer(ImportanceMeasure):
-    _name = 'x-grad'
+class InputTimesGradientSignExplainer(ImportanceMeasure):
+    _name = 'x-grad-sign'
     _implements_explain_batch = True
 
     def _explain_batch(self, x, y):
@@ -43,6 +43,13 @@ class InputTimesGradientExplainer(ImportanceMeasure):
             optimize='optimal'
         ) # (B, T)
 
-        # Abs is equivalent to 2-norm, because the naive sum is essentially
-        # sqrt(0^2 + ... + 0^2 + y_wrt_x^2 + 0^2 + ... + 0^2) = abs(y_wrt_x)
+        # Return the signed explanation
+        return yc_wrt_x_compact
+
+
+class InputTimesGradientAbsExplainer(InputTimesGradientSignExplainer):
+    _name = 'x-grad-abs'
+
+    def _explain_batch(self, x, y):
+        yc_wrt_x_compact = super()._explain_batch(x, y)
         return tf.math.abs(yc_wrt_x_compact)  # (B, T)

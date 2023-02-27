@@ -4,11 +4,10 @@ import tensorflow as tf
 from ._importance_measure import ImportanceMeasure
 
 
-class GradientExplainer(ImportanceMeasure):
-    _name = 'grad'
+class _GradientGeneralizedExplaner(ImportanceMeasure):
     _implements_explain_batch = True
 
-    def _explain_batch(self, x, y):
+    def _compute_gradient(self, x, y):
         x = self._model.inputs_embeds(x)
         with tf.GradientTape(watch_accessed_variables=False) as g:
             g.watch(x['inputs_embeds'])
@@ -24,5 +23,20 @@ class GradientExplainer(ImportanceMeasure):
         # based on the gradient yc_wrt_embedding.
         # yc_wrt_x = yc_wrt_emb @ emb_wrt_x = yc_wrt_emb @ emb_matix.T
         yc_wrt_x = tf.matmul(yc_wrt_embedding, self._model.embedding_matrix, transpose_b=True)  # [B, T, V]
+        return yc_wrt_x  # [B, T, V]
 
-        return tf.norm(yc_wrt_x,  ord='euclidean', axis=2)  # [B, T]
+
+class GradientL2Explainer(_GradientGeneralizedExplaner):
+    _name = 'grad-l2'
+
+    def _explain_batch(self, x, y):
+        yc_wrt_x = self._compute_gradient(x, y)
+        return tf.norm(yc_wrt_x, ord=2, axis=2)  # [B, T]
+
+
+class GradientL1Explainer(_GradientGeneralizedExplaner):
+    _name = 'grad-l1'
+
+    def _explain_batch(self, x, y):
+        yc_wrt_x = self._compute_gradient(x, y)
+        return tf.norm(yc_wrt_x, ord=1, axis=2)  # [B, T]

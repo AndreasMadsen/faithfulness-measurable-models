@@ -8,7 +8,10 @@ import numpy as np
 from ecoroar.model import SimpleTestModel
 from ecoroar.tokenizer import SimpleTestTokenizer
 from ecoroar.explain import \
-    RandomExplainer, GradientExplainer, InputTimesGradientExplainer, IntegratedGradientExplainer
+    RandomExplainer, \
+    GradientL2Explainer, GradientL1Explainer, \
+    InputTimesGradientSignExplainer, InputTimesGradientAbsExplainer, \
+    IntegratedGradientSignExplainer, IntegratedGradientAbsExplainer
 
 
 @pytest.fixture
@@ -51,8 +54,8 @@ def test_explainer_random(tokenizer, model, x):
     ], rtol=0.1)
 
 @pytest.mark.parametrize("config", compile_configs, ids=lambda config: config.name)
-def test_explainer_gradient(tokenizer, model, x, config):
-    explainer = GradientExplainer(tokenizer, model, **config.args)
+def test_explainer_gradient_l2(tokenizer, model, x, config):
+    explainer = GradientL2Explainer(tokenizer, model, **config.args)
 
     im = (explainer(x, tf.constant([0, 1])) ** 2).to_tensor(default_value=-1).numpy()
     np.testing.assert_allclose(im, [
@@ -61,8 +64,18 @@ def test_explainer_gradient(tokenizer, model, x, config):
     ])
 
 @pytest.mark.parametrize("config", compile_configs, ids=lambda config: config.name)
-def test_explainer_input_times_gradient(tokenizer, model, x, config):
-    explainer = InputTimesGradientExplainer(tokenizer, model, **config.args)
+def test_explainer_gradient_l1(tokenizer, model, x, config):
+    explainer = GradientL1Explainer(tokenizer, model, **config.args)
+
+    im = (explainer(x, tf.constant([0, 1])) ** 2).to_tensor(default_value=-1).numpy()
+    np.testing.assert_allclose(im, [
+        [0,  4,  4, 0],
+        [36, 0, 36, -1]
+    ])
+
+@pytest.mark.parametrize("config", compile_configs, ids=lambda config: config.name)
+def test_explainer_input_times_gradient_abs(tokenizer, model, x, config):
+    explainer = InputTimesGradientAbsExplainer(tokenizer, model, **config.args)
 
     im = (explainer(x, tf.constant([0, 1])) ** 2).to_tensor(default_value=-1).numpy()
     np.testing.assert_allclose(im, [
@@ -71,8 +84,8 @@ def test_explainer_input_times_gradient(tokenizer, model, x, config):
     ])
 
 @pytest.mark.parametrize("config", compile_configs, ids=lambda config: config.name)
-def test_explainer_integrated_gradient_1_sample(tokenizer, model, x, config):
-    explainer = IntegratedGradientExplainer(tokenizer, model, riemann_samples=1, **config.args)
+def test_explainer_input_times_gradient_sign(tokenizer, model, x, config):
+    explainer = InputTimesGradientSignExplainer(tokenizer, model, **config.args)
 
     im = (explainer(x, tf.constant([0, 1])) ** 2).to_tensor(default_value=-1).numpy()
     np.testing.assert_allclose(im, [
@@ -81,8 +94,28 @@ def test_explainer_integrated_gradient_1_sample(tokenizer, model, x, config):
     ])
 
 @pytest.mark.parametrize("config", compile_configs, ids=lambda config: config.name)
-def test_explainer_integrated_gradient_2_samples(tokenizer, model, x, config):
-    explainer = IntegratedGradientExplainer(tokenizer, model, riemann_samples=2, **config.args)
+def test_explainer_integrated_gradient_sign_1_sample(tokenizer, model, x, config):
+    explainer = IntegratedGradientSignExplainer(tokenizer, model, riemann_samples=1, **config.args)
+
+    im = (explainer(x, tf.constant([0, 1])) ** 2).to_tensor(default_value=-1).numpy()
+    np.testing.assert_allclose(im, [
+        [0, 4, 4, 0],
+        [4, 0, 4, -1]
+    ])
+
+@pytest.mark.parametrize("config", compile_configs, ids=lambda config: config.name)
+def test_explainer_integrated_gradient_abs_1_sample(tokenizer, model, x, config):
+    explainer = IntegratedGradientAbsExplainer(tokenizer, model, riemann_samples=1, **config.args)
+
+    im = (explainer(x, tf.constant([0, 1])) ** 2).to_tensor(default_value=-1).numpy()
+    np.testing.assert_allclose(im, [
+        [0, 4, 4, 0],
+        [4, 0, 4, -1]
+    ])
+
+@pytest.mark.parametrize("config", compile_configs, ids=lambda config: config.name)
+def test_explainer_integrated_gradient_abs_2_samples(tokenizer, model, x, config):
+    explainer = IntegratedGradientAbsExplainer(tokenizer, model, riemann_samples=2, **config.args)
 
     im = (explainer(x, tf.constant([0, 1])) ** 2).to_tensor(default_value=-1).numpy()
     np.testing.assert_allclose(im, [
