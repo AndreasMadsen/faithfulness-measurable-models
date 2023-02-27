@@ -25,4 +25,4 @@ class GradientExplainer(ImportanceMeasure):
         # yc_wrt_x = yc_wrt_emb @ emb_wrt_x = yc_wrt_emb @ emb_matix.T
         yc_wrt_x = tf.matmul(yc_wrt_embedding, self._model.embedding_matrix, transpose_b=True)  # [B, T, V]
 
-        return tf.math.reduce_euclidean_norm(yc_wrt_x, axis=2)  # [B, T]
+        return tf.norm(yc_wrt_x,  ord='euclidean', axis=2)  # [B, T]
