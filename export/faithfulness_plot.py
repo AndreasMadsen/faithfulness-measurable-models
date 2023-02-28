@@ -124,6 +124,7 @@ if __name__ == "__main__":
                 + p9.geom_point(p9.aes(y='metric_mean', color='args.explainer'))
                 + p9.geom_line(p9.aes(y='metric_mean', color='args.explainer'))
                 + p9.facet_grid("args.model ~ args.dataset", scales="free_x", labeller=annotation.model.labeller)
+                + p9.scale_x_continuous(name='Masking ratio')
                 + p9.scale_y_continuous(
                     labels=lambda ticks: [f'{tick:.0%}' for tick in ticks],
                     name='IM masked performance'

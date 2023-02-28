@@ -47,8 +47,8 @@ class MaskingStrategy(_AnnotationMapping):
 class Explainer(_AnnotationMapping):
     mapping = {
         'rand': 'Random',
-        'grad-l2': 'Gradient L2-norm',
-        'grad-l1': 'Gradient L1-norm',
+        'grad-l2': 'Gradient (L2-norm)',
+        'grad-l1': 'Gradient (L1-norm)',
         'inp-grad-sign': 'Input-times-gradient (signed)',
         'inp-grad-abs': 'Input-times-gradient (absolute)',
         'int-grad-sign': 'Integrated gradient (signed)',
