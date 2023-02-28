@@ -168,7 +168,7 @@ if __name__ == '__main__':
     results = []
     explain_time = 0
     evaluate_time = 0
-    for masking_ratio in [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]:
+    for masking_ratio in [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]:
 
         # Create masked dataset. This is cached because it is used twice.
         # 1. To evaluate method

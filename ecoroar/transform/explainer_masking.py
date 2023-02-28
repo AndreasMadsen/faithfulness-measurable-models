@@ -82,6 +82,9 @@ class ExplainerMasking(InputTransform):
         masking_ratio = tf.convert_to_tensor(masking_ratio, dtype=tf.dtypes.float32)
 
         def masked_dataset(dataset):
+            if masking_ratio == 0.0:
+                return dataset
+
             # tf.Dataset.from_generator is used because tf.Dataset.map will run on the CPU,
             # and the explainer is likely to do model inference and perhaps derivatives.
             # Those are expensive calculations, and should be done on the GPU. using
