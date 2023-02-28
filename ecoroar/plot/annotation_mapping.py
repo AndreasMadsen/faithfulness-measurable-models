@@ -44,9 +44,21 @@ class MaskingStrategy(_AnnotationMapping):
         'half-det': 'Use 50/50'
     }
 
+class Explainer(_AnnotationMapping):
+    mapping = {
+        'rand': 'Random',
+        'grad-l2': 'Gradient L2-norm',
+        'grad-l1': 'Gradient L1-norm',
+        'inp-grad-sign': 'Input-times-gradient (signed)',
+        'inp-grad-abs': 'Input-times-gradient (absolute)',
+        'int-grad-sign': 'Integrated gradient (signed)',
+        'int-grad-abs': 'Integrated gradient (absolute)',
+    }
+
 class AllAnnotations(_Singleton):
     def __init__(self) -> None:
         self.model = Model()
         self.masking_strategy = MaskingStrategy()
+        self.explainer = Explainer()
 
 annotation = AllAnnotations()
