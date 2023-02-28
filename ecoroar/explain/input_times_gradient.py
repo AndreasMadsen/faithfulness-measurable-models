@@ -5,7 +5,7 @@ from ._importance_measure import ImportanceMeasure
 
 
 class InputTimesGradientSignExplainer(ImportanceMeasure):
-    _name = 'x-grad-sign'
+    _name = 'inp-grad-sign'
     _implements_explain_batch = True
 
     def _explain_batch(self, x, y):
@@ -48,7 +48,7 @@ class InputTimesGradientSignExplainer(ImportanceMeasure):
 
 
 class InputTimesGradientAbsExplainer(InputTimesGradientSignExplainer):
-    _name = 'x-grad-abs'
+    _name = 'inp-grad-abs'
 
     def _explain_batch(self, x, y):
         yc_wrt_x_compact = super()._explain_batch(x, y)
