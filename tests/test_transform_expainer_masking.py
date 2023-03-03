@@ -5,7 +5,7 @@ import numpy as np
 
 from ecoroar.model import SimpleTestModel
 from ecoroar.tokenizer import SimpleTestTokenizer
-from ecoroar.explain import GradientExplainer
+from ecoroar.explain import GradientL2Explainer
 from ecoroar.transform import ExplainerMasking
 
 
@@ -38,7 +38,7 @@ def masked_dataset(tokenizer):
 
 
 def test_explainer_masking_from_plain(tokenizer, model, dataset):
-    explainer = GradientExplainer(tokenizer, model)
+    explainer = GradientL2Explainer(tokenizer, model)
     masker = ExplainerMasking(explainer, tokenizer)
 
     x_masked_50, _ = dataset.apply(masker(0.5)).get_single_element()
@@ -53,7 +53,7 @@ def test_explainer_masking_from_plain(tokenizer, model, dataset):
 
 
 def test_explainer_masking_from_masked(tokenizer, model, masked_dataset):
-    explainer = GradientExplainer(tokenizer, model)
+    explainer = GradientL2Explainer(tokenizer, model)
     masker = ExplainerMasking(explainer, tokenizer)
 
     x_masked_50, _ = masked_dataset.apply(masker(0.5)).get_single_element()
@@ -68,7 +68,7 @@ def test_explainer_masking_from_masked(tokenizer, model, masked_dataset):
 
 
 def test_explainer_masking_kept_tokens(tokenizer, model, dataset):
-    explainer = GradientExplainer(tokenizer, model)
+    explainer = GradientL2Explainer(tokenizer, model)
     masker = ExplainerMasking(explainer, tokenizer)
 
     x_masked_100, _ = dataset.apply(masker(1)).get_single_element()
