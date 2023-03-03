@@ -48,7 +48,7 @@ def huggingface_model_from_repo(repo: str, persistent_dir: pathlib.Path, num_cla
     with silence_huggingface():
         return SequenceClassification.from_pretrained(
             repo,
-            num_classes=num_classes,
+            num_labels=num_classes,
             cache_dir=persistent_dir / 'cache' / 'transformers'
         )
 
