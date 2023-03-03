@@ -4,8 +4,8 @@ from ._abstract_dataset import AbstractDataset
 from .local import LocalBabi
 
 class _BabiDatasetGeneralized(AbstractDataset):
-    _metrics = ['accuracy']
-    _early_stopping_metric = 'accuracy'
+    _metrics = ['accuracy', 'micro_f1']
+    _early_stopping_metric = 'micro_f1'
 
     _split_train = 'train[:80%]'
     _split_valid = 'train[80%:]'
