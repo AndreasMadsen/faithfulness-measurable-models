@@ -16,6 +16,9 @@ class DatasetSize:
     test: int
 
 expected_sizes = [
+    DatasetSize('bAbI-1', 8000, 2000, 1000),
+    DatasetSize('bAbI-2', 8000, 2000, 1000),
+    DatasetSize('bAbI-3', 8000, 2000, 1000),
     DatasetSize('BoolQ', 7542, 1885, 3270),
     DatasetSize('CB', 200, 50, 56),
     DatasetSize('CoLA', 6841, 1710, 1043),
