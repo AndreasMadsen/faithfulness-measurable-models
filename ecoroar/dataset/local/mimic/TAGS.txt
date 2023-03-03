@@ -1,0 +1,6 @@
+content.data-type.text # Contains text data.
+content.language-formality.informal # Contains informal languages.
+content.language.en # Contains text in language English / en.
+content.monolingual # Contains text in 1 natural language.
+content.subject.biology # Relates to biology.
+ml.task.text-classification # Relates to Text Classification, a machine learning task.

@@ -3,6 +3,7 @@ __all__ = ['BoolQDataset', 'CBDataset', 'CoLADataset', 'IMDBDataset',
            'MNLIDataset', 'MRPCDataset', 'QNLIDataset', 'QQPDataset',
            'RTEDataset', 'SST2Dataset', 'WNLIDataset',
            'Babi1Dataset', 'Babi2Dataset', 'Babi3Dataset',
+           'DiabetesDataset', 'AnemiaDataset',
            'datasets']
 
 from .boolq import BoolQDataset
@@ -17,6 +18,7 @@ from .rte import RTEDataset
 from .sst2 import SST2Dataset
 from .wnli import WNLIDataset
 from .babi import Babi1Dataset, Babi2Dataset, Babi3Dataset
+from .mimic import DiabetesDataset, AnemiaDataset
 
 datasets = {
     Dataset._name: Dataset
@@ -24,5 +26,6 @@ datasets = {
     in [BoolQDataset, CBDataset, CoLADataset, IMDBDataset,
         MNLIDataset, MRPCDataset, QNLIDataset, QQPDataset,
         RTEDataset, SST2Dataset, WNLIDataset,
-        Babi1Dataset, Babi2Dataset, Babi3Dataset]
+        Babi1Dataset, Babi2Dataset, Babi3Dataset,
+        DiabetesDataset, AnemiaDataset]
 }

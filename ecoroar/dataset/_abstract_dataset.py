@@ -88,7 +88,10 @@ class AbstractDataset(metaclass=ABCMeta):
         """Downloads dataset
         """
         self._builder_cache.download_and_prepare(
-            download_dir=self._persistent_dir / 'cache' / 'tfds'
+            download_dir=self._persistent_dir / 'cache' / 'tfds',
+            download_config=tfds.download.DownloadConfig(
+                manual_dir=self._persistent_dir
+            )
         )
 
     @cached_property
