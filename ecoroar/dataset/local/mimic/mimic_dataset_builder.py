@@ -75,16 +75,16 @@ class LocalMimic(tfds.core.GeneratorBasedBuilder):
             .assign(**{
                 'ICD9_MATCH': lambda x: (
                     x['ICD9_CODE'].str.slice(0, 3) + '.' + x['ICD9_CODE'].str.slice(3)
-                ).str.startswith(self.builder_config.icd9_prefix_code),
+                ).str.startswith(self.builder_config.icd9_prefix_code)
             }) \
             .groupby(['SUBJECT_ID', 'HADM_ID', 'SPLIT']) \
             .agg({
-                'ICD9_MATCH': lambda col: np.logical_xor.reduce(col),
+                'ICD9_MATCH': lambda col: np.logical_xor.reduce(col)
             }) \
             .reset_index(['SPLIT'])
 
         # Get discharge summary
-        df_notes = pd.read_csv(dl_manager.manual_dir / 'mimic' / 'NOTEEVENTS.csv.gz',
+        df_notes = pd.read_csv(dl_manager.manual_dir / 'mimic' / 'noteevents.csv.gz',
                             compression='gzip',
                             usecols=['SUBJECT_ID', 'HADM_ID', 'CATEGORY', 'CHARTDATE', 'DESCRIPTION', 'TEXT'],
                             engine='c') \
@@ -95,7 +95,7 @@ class LocalMimic(tfds.core.GeneratorBasedBuilder):
             .sort_values(by=['DESCRIPTION', 'CHARTDATE']) \
             .groupby(['SUBJECT_ID', 'HADM_ID', 'SPLIT', 'ICD9_MATCH'], as_index=False) \
             .agg({
-                'TEXT': lambda col: col.str.cat(sep=' ').strip(),
+                'TEXT': lambda col: col.str.cat(sep=' ').strip()
             })
 
         # Generate splits
