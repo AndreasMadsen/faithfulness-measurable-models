@@ -29,6 +29,11 @@ upload-code-cedar:
 		--filter=':- .gitignore' --exclude='.git/' \
 		-e ssh ./ cc-cedar:~/workspace/economical-roar
 
+upload-mimic-cedar:
+	rsync --info=progress2 -urltv --delete \
+		--filter=':- .gitignore' --exclude='.git/' \
+		-e ssh ./mimic/ cc-cedar:~/scratch/ecoroar/mimic
+
 upload-code-mila:
 	rsync --info=progress2 -urltv --delete \
 		--filter=':- .gitignore' --exclude='.git/' \
