@@ -1,13 +1,10 @@
 
 import tensorflow as tf
 
-from transformers import TFRobertaForSequenceClassification
+from transformers import TFRobertaForSequenceClassification, TFRobertaPreLayerNormForSequenceClassification
 from ..types import TokenizedDict, EmbeddingDict
 
-class TFRoBERTaForSequenceClassificationExtra(TFRobertaForSequenceClassification):
-    # Argument ExtraRoBERTaForSequenceClassification with methods for managing the embedding,
-    #  these methods are neccesary for computing gradients wrt. input.
-
+class TFRoBERTaLikeEmbeddingAbstraction():
     def inputs_embeds(self, x: TokenizedDict, training=False) -> EmbeddingDict:
         input_ids = x['input_ids']
 
@@ -28,6 +25,18 @@ class TFRoBERTaForSequenceClassificationExtra(TFRobertaForSequenceClassification
             'inputs_embeds': inputs_embeds
         }
 
+class TFRoBERTaForSequenceClassificationExtra(TFRoBERTaLikeEmbeddingAbstraction, TFRobertaForSequenceClassification):
+    # Argument TFRobertaForSequenceClassification with methods for managing the embedding,
+    #  these methods are neccesary for computing gradients wrt. input.
+
     @property
     def embedding_matrix(self) -> tf.Variable:
         return self.roberta.embeddings.weight
+
+class TFRoBERTaPreLayerNormForSequenceClassificationExtra(TFRoBERTaLikeEmbeddingAbstraction, TFRobertaPreLayerNormForSequenceClassification):
+    # Argument TFRobertaPreLayerNormForSequenceClassification with methods for managing the embedding,
+    #  these methods are neccesary for computing gradients wrt. input.
+
+    @property
+    def embedding_matrix(self) -> tf.Variable:
+        return self.roberta_prelayernorm.embeddings.weight

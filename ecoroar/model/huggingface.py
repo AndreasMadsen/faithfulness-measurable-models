@@ -6,7 +6,7 @@ import transformers
 from transformers import AutoConfig
 
 from ..types import Model
-from .roberta import TFRoBERTaForSequenceClassificationExtra
+from .roberta import TFRoBERTaForSequenceClassificationExtra, TFRoBERTaPreLayerNormForSequenceClassificationExtra
 
 @contextmanager
 def silence_huggingface():
@@ -27,6 +27,8 @@ def huggingface_constructor(config: AutoConfig):
     match config.model_type:
         case 'roberta':
             return TFRoBERTaForSequenceClassificationExtra
+        case 'roberta-prelayernorm':
+            return TFRoBERTaPreLayerNormForSequenceClassificationExtra
 
     raise NotImplementedError(f'An embedding abstraction have been implemented for a {config.model_type} model')
 
