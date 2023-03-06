@@ -6,6 +6,7 @@ from .local import LocalBabi
 class _BabiDatasetGeneralized(AbstractDataset):
     _metrics = ['accuracy', 'micro_f1']
     _early_stopping_metric = 'micro_f1'
+    _target_name = 'answer'
 
     _split_train = 'train[:80%]'
     _split_valid = 'train[80%:]'

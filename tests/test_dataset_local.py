@@ -1,6 +1,8 @@
 import pathlib
 
-from ecoroar.dataset import Babi1Dataset, Babi2Dataset, Babi3Dataset, DiabetesDataset, AnemiaDataset
+from ecoroar.dataset import \
+    Babi1Dataset, Babi2Dataset, Babi3Dataset, \
+    MimicDiabetesDataset, MimicAnemiaDataset
 
 def test_local_babi_1():
     dataset = Babi1Dataset(persistent_dir=pathlib.Path('.'), use_snapshot=False, use_cache=False)
@@ -93,16 +95,16 @@ def test_local_babi_3():
         assert question.numpy() == b'Where was the milk before the bathroom?'
         assert answer.numpy() == 2
 
-def test_local_diabetes():
-    dataset = DiabetesDataset(persistent_dir=pathlib.Path('.'), use_snapshot=False, use_cache=False)
+def test_local_mimic_diabetes():
+    dataset = MimicDiabetesDataset(persistent_dir=pathlib.Path('.'), use_snapshot=False, use_cache=False)
 
     # HIPPA prevents testing this accuately
     for (text, ), answer in dataset.train().take(1):
         assert len(text.numpy().decode('utf-8').split(' ')) == 1546
         assert answer.numpy() == 0
 
-def test_local_anemia():
-    dataset = AnemiaDataset(persistent_dir=pathlib.Path('.'), use_snapshot=False, use_cache=False)
+def test_local_mimic_anemia():
+    dataset = MimicAnemiaDataset(persistent_dir=pathlib.Path('.'), use_snapshot=False, use_cache=False)
 
     # HIPPA prevents testing this accuately
     for (text, ), answer in dataset.train().take(1):

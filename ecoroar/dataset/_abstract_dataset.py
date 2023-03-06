@@ -14,6 +14,7 @@ class AbstractDataset(metaclass=ABCMeta):
     _name: str
     _metrics: List[str]
     _early_stopping_metric: str
+    _target_name: str = 'label'
 
     _split_train: str
     _split_valid: str
@@ -82,7 +83,7 @@ class AbstractDataset(metaclass=ABCMeta):
     def num_classes(self) -> int:
         """Number of classes in the dataset
         """
-        return self.info.features['label'].num_classes
+        return self.info.features[self._target_name].num_classes
 
     def download(self):
         """Downloads dataset
