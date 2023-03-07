@@ -7,12 +7,12 @@ declare -A size=( ["roberta-sb"]="small" ["roberta-sl"]="large"
                   ["roberta-m15"]="large" ["roberta-m20"]="large" ["roberta-m30"]="large" ["roberta-m40"]="large" ["roberta-m50"]="large" )
 
 #                   V100                       V100                        epochs
-declare -A time=( # ["small bAbI-1"]="0:??:0"  ["large bAbI-1"]="0:??:0"   20
-                    ["small bAbI-1"]="1:00:0"  ["large bAbI-1"]="2:00:0"
-                  # ["small bAbI-2"]="0:??:0"  ["large bAbI-2"]="0:??:0"   20
-                    ["small bAbI-2"]="1:00:0"  ["large bAbI-2"]="2:00:0"
-                  # ["small bAbI-3"]="0:??:0"  ["large bAbI-3"]="0:??:0"   20
-                    ["small bAbI-3"]="1:00:0"  ["large bAbI-3"]="2:00:0"
+declare -A time=( # ["small bAbI-1"]="0:21:0"  ["large bAbI-1"]="0:44:0"   20
+                    ["small bAbI-1"]="0:40:0"  ["large bAbI-1"]="1:00:0"
+                  # ["small bAbI-2"]="0:33:0"  ["large bAbI-2"]="1:14:0"   20
+                    ["small bAbI-2"]="0:50:0"  ["large bAbI-2"]="1:30:0"
+                  # ["small bAbI-3"]="1:02:0"  ["large bAbI-3"]="2:29:0"   20
+                    ["small bAbI-3"]="1:20:0"  ["large bAbI-3"]="3:00:0"
                   # ["small BoolQ"]="0:35:0"   ["large BoolQ"]="1:16:0"    15
                     ["small BoolQ"]="1:00:0"   ["large BoolQ"]="1:50:0"
                   # ["small CB"]="0:21:0"      ["large CB"]="0:17:0"       50
@@ -21,10 +21,10 @@ declare -A time=( # ["small bAbI-1"]="0:??:0"  ["large bAbI-1"]="0:??:0"   20
                     ["small CoLA"]="1:40:0"    ["large CoLA"]="3:00:0"
                   # ["small IMDB"]="1:44:0"    ["large IMDB"]="4:16:0"     10
                     ["small IMDB"]="2:20:0"    ["large IMDB"]="5:40:0"
-                  # ["small MIMIC-a"]="0:??:0" ["large MIMIC-a"]="0:??:0"  20
-                    ["small MIMIC-a"]="1:00:0" ["large MIMIC-a"]="2:00:0"
-                  # ["small MIMIC-d"]="0:??:0" ["large MIMIC-d"]="0:??:0"  0
-                    ["small MIMIC-d"]="1:00:0" ["large MIMIC-d"]="2:00:0"
+                  # ["small MIMIC-a"]="0:38:0" ["large MIMIC-a"]="1:26:0"  20
+                    ["small MIMIC-a"]="1:00:0" ["large MIMIC-a"]="1:50:0"
+                  # ["small MIMIC-d"]="1:02:0" ["large MIMIC-d"]="2:32:0"  20
+                    ["small MIMIC-d"]="1:30:0" ["large MIMIC-d"]="3:00:0"
                   # ["small MNLI"]="5:20:0"    ["large MNLI"]="10:30:0"    10
                     ["small MNLI"]="6:20:0"    ["large MNLI"]="11:30:0"
                   # ["small MRPC"]="0:11:0"    ["large MRPC"]="0:20:0"     20
