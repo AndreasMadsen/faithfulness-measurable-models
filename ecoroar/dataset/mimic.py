@@ -4,8 +4,8 @@ from ._abstract_dataset import AbstractDataset
 from .local import LocalMimic
 
 class _MimicDatasetGeneralized(AbstractDataset):
-    _metrics = ['accuracy', 'macro-f1']
-    _early_stopping_metric = 'macro-f1'
+    _metrics = ['accuracy', 'macro_f1']
+    _early_stopping_metric = 'macro_f1'
     _target_name = 'diagnosis'
 
     _split_train = 'train'
