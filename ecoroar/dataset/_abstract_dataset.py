@@ -138,7 +138,20 @@ class AbstractDataset(metaclass=ABCMeta):
             path = self._preprocess_path(split, tokenizer)
             if path.exists():
                 shutil.rmtree(path)
-            self._process_dataset(dataset, tokenizer).save(str(path))
+            dataset = self._process_dataset(dataset, tokenizer)
+            dataset.save(str(path))
+
+    def is_preprocess_valid(self, tokenizer: Tokenizer=None):
+        for name, split in [('train', self._split_train), ('valid', self._split_valid), ('test', self._split_test)]:
+            path = self._preprocess_path(name, tokenizer)
+            if not path.exists():
+                print(f'File missing mismatch: {path}')
+                return False
+            dataset = tf.data.Dataset.load(str(path))
+            if dataset.cardinality() != self.info.splits[split].num_examples:
+                print(f'Cadinality mismatch: {dataset.cardinality()} {self.info.splits[split].num_examples}')
+                return False
+        return True
 
     def _load(self, split: Union['train', 'valid', 'test'], tokenizer: Tokenizer=None):
         if self._use_snapshot:
