@@ -4,6 +4,7 @@ from dataclasses import dataclass
 
 import pytest
 import tensorflow as tf
+import numpy as np
 
 from ecoroar.dataset import datasets
 from ecoroar.tokenizer import HuggingfaceTokenizer
@@ -66,3 +67,30 @@ def test_tokenizer_integration(info):
             (x_encoded['input_ids'], ('T', )),
             (x_encoded['attention_mask'], ('T', ))
         ])
+
+@pytest.mark.parametrize("info", expected_sizes, ids=lambda info: info.name)
+@pytest.mark.slow
+def test_class_count(info):
+    dataset = datasets[info.name](persistent_dir=pathlib.Path('.'), use_snapshot=False, use_cache=False)
+
+    def class_count(d):
+        return d \
+            .map(lambda x, y: y) \
+            .reduce(
+                tf.zeros((dataset.num_classes, ), dtype=tf.dtypes.int32),
+                lambda r, y: tf.tensor_scatter_nd_add(r, [[y]], [1])
+            ) \
+            .numpy() \
+            .tolist()
+
+    train_class_count = class_count(dataset.train())
+    assert train_class_count == dataset.train_class_count
+    assert sum(train_class_count) == dataset.train_num_examples
+
+    valid_class_count = class_count(dataset.valid())
+    assert valid_class_count == dataset.valid_class_count
+    assert sum(valid_class_count) == dataset.valid_num_examples
+
+    test_class_count = class_count(dataset.test())
+    assert test_class_count == dataset.test_class_count
+    assert sum(test_class_count) == dataset.test_num_examples

@@ -12,6 +12,10 @@ class CBDataset(AbstractDataset):
     _split_valid = 'train[80%:]'
     _split_test = 'validation'
 
+    _class_count_train = [88, 100, 12]
+    _class_count_valid = [27, 19, 4]
+    _class_count_test = [23, 28, 5]
+
     def _builder(self, data_dir):
         return tfds.builder("super_glue/cb", data_dir=data_dir)
 

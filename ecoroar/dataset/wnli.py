@@ -12,6 +12,10 @@ class WNLIDataset(AbstractDataset):
     _split_valid = 'train[80%:]'
     _split_test = 'validation'
 
+    _class_count_train = [250, 258]
+    _class_count_valid = [73, 54]
+    _class_count_test = [40, 31]
+
     def _builder(self, data_dir):
         return tfds.builder("glue/wnli", data_dir=data_dir)
 

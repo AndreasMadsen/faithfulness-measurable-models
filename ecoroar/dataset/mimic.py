@@ -19,11 +19,19 @@ class _MimicDatasetGeneralized(AbstractDataset):
 class MimicAnemiaDataset(_MimicDatasetGeneralized):
     _name = 'MIMIC-a'
 
+    _class_count_train = [1522, 2740]
+    _class_count_valid = [263, 466]
+    _class_count_test = [450, 793]
+
     def _builder(self, data_dir):
         return LocalMimic(data_dir=data_dir, config='anemia')
 
 class MimicDiabetesDataset(_MimicDatasetGeneralized):
     _name = 'MIMIC-d'
+
+    _class_count_train = [6650, 1416]
+    _class_count_valid = [1284, 289]
+    _class_count_test = [1389, 340]
 
     def _builder(self, data_dir):
         return LocalMimic(data_dir=data_dir, config='diabetes')

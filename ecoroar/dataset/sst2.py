@@ -12,6 +12,10 @@ class SST2Dataset(AbstractDataset):
     _split_valid = 'train[80%:]'
     _split_test = 'validation'
 
+    _class_count_train = [23825, 30054]
+    _class_count_valid = [5955, 7515]
+    _class_count_test = [428, 444]
+
     def _builder(self, data_dir):
         return tfds.builder("glue/sst2", data_dir=data_dir)
 

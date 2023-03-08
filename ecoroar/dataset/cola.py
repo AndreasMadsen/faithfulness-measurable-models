@@ -12,6 +12,10 @@ class CoLADataset(AbstractDataset):
     _split_valid = 'train[80%:]'
     _split_test = 'validation'
 
+    _class_count_train = [2014, 4827]
+    _class_count_valid = [514, 1196]
+    _class_count_test = [322, 721]
+
     def _builder(self, data_dir):
         return tfds.builder("glue/cola", data_dir=data_dir)
 

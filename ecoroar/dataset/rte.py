@@ -12,6 +12,10 @@ class RTEDataset(AbstractDataset):
     _split_valid = 'train[80%:]'
     _split_test = 'validation'
 
+    _class_count_train = [995, 997]
+    _class_count_valid = [254, 244]
+    _class_count_test = [146, 131]
+
     def _builder(self, data_dir):
         return tfds.builder("glue/rte", data_dir=data_dir)
 

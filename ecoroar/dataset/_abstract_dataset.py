@@ -24,6 +24,10 @@ class AbstractDataset(metaclass=ABCMeta):
     _builder_cache: tfds.core.DatasetBuilder
     _seed: int
 
+    _class_count_train: List[int]
+    _class_count_valid: List[int]
+    _class_count_test: List[int]
+
     def __init__(self, persistent_dir: pathlib.Path, seed: int = 0, use_snapshot=True, use_cache=True):
         """Abstract Base Class for defining a dataset with standard train/valid/test semantics.
 
@@ -174,6 +178,12 @@ class AbstractDataset(metaclass=ABCMeta):
         """
         return self.info.splits[self._split_train].num_examples
 
+    @property
+    def train_class_count(self) -> List[int]:
+        """Number of training obsevations
+        """
+        return self._class_count_train.copy()
+
     def train(self, tokenizer: Tokenizer=None) -> tf.data.Dataset:
         """Get training dataset
         """
@@ -185,6 +195,12 @@ class AbstractDataset(metaclass=ABCMeta):
         """
         return self.info.splits[self._split_valid].num_examples
 
+    @property
+    def valid_class_count(self) -> List[int]:
+        """Number of validation obsevations
+        """
+        return self._class_count_valid.copy()
+
     def valid(self, tokenizer: Tokenizer=None) -> tf.data.Dataset:
         """Validation dataset
         """
@@ -195,6 +211,12 @@ class AbstractDataset(metaclass=ABCMeta):
         """Number of test obsevations
         """
         return self.info.splits[self._split_test].num_examples
+
+    @property
+    def test_class_count(self) -> List[int]:
+        """Number of test obsevations
+        """
+        return self._class_count_test.copy()
 
     def test(self, tokenizer: Tokenizer=None) -> tf.data.Dataset:
         """Test dataset
