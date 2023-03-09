@@ -14,3 +14,8 @@ export TF_CPP_MIN_LOG_LEVEL=1
 # Install project
 cd $HOME/workspace/economical-roar
 python -m pip install --no-index --find-links $HOME/python_wheels -e .
+
+unalias py
+py () {
+    python -u -X faulthandler "$1" "${@:2}" --persistent-dir $SCRATCH/ecoroar
+}
