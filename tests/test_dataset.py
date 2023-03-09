@@ -57,6 +57,7 @@ def test_dataset_size(info):
     assert dataset.test_num_examples == info.test
 
 @pytest.mark.parametrize("info", expected_sizes, ids=lambda info: info.name)
+@pytest.mark.slow
 def test_tokenizer_integration(info):
     tokenizer = HuggingfaceTokenizer('roberta-base', persistent_dir=pathlib.Path('.'))
     dataset = datasets[info.name](persistent_dir=pathlib.Path('.'), use_snapshot=False, use_cache=False)
@@ -94,3 +95,23 @@ def test_class_count(info):
     test_class_count = class_count(dataset.test())
     assert test_class_count == dataset.test_class_count
     assert sum(test_class_count) == dataset.test_num_examples
+
+@pytest.mark.parametrize("info", expected_sizes, ids=lambda info: info.name)
+def test_majority_classifier_test_performance(info):
+    Dataset = datasets[info.name]
+    metrics = Dataset(persistent_dir=pathlib.Path('.'), use_snapshot=False, use_cache=False).metrics()
+    performance = Dataset.majority_classifier_test_performance()
+
+    class_count_test = np.asarray(Dataset._class_count_test)
+    best_class_idx = np.argmax(Dataset._class_count_train)
+
+    y_true = np.vstack([
+        np.full((count, 1), label, dtype=np.int64)
+        for label, count in enumerate(class_count_test)
+    ])
+    y_pred = np.zeros((np.sum(class_count_test), class_count_test.size), dtype=np.float32)
+    y_pred[:, best_class_idx] = 1
+
+    for metric in metrics:
+        metric.update_state(y_true, y_pred)
+        np.testing.assert_allclose(metric.result(), performance[metric.name])

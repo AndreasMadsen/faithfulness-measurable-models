@@ -4,6 +4,7 @@ from functools import cached_property, partial
 from typing import List, Tuple, Dict, Union, Iterable
 from abc import ABCMeta, abstractmethod
 
+import numpy as np
 import tensorflow as tf
 import tensorflow_datasets as tfds
 
@@ -70,6 +71,29 @@ class AbstractDataset(metaclass=ABCMeta):
     @property
     def early_stopping_metric(self) -> str:
         return f'val_{self._early_stopping_metric}'
+
+    @classmethod
+    def majority_classifier_test_performance(cls):
+        class_count_train = np.asarray(cls._class_count_train)
+        class_count_test = np.asarray(cls._class_count_test)
+        best_class_idx = np.argmax(class_count_train)
+        num_classes = class_count_train.size
+
+        # Some notation from https://en.wikipedia.org/wiki/Phi_coefficient
+        c = class_count_test[best_class_idx] # total number of smaples correctly predicted
+        s = np.sum(class_count_test) # total number of samples
+
+        possible_metric = {
+            'accuracy': c / s,
+            'auroc': None,  # Can not be meaningfully computed without continues values
+            'macro_f1': (1/num_classes) * c / (0.5*s + 0.5*c),  # One class, will have a non-zero score
+            'micro_f1': c / s,  # Micro is always accuracy, for a majority classifier
+            'matthew': 0  # Mathhew is always zero, for majority classifier
+        }
+
+        return {
+            metric_name: possible_metric[metric_name] for metric_name in cls._metrics
+        }
 
     @property
     def name(self) -> str:
