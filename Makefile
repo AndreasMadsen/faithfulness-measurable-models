@@ -7,6 +7,7 @@ noop:
 plot:
 	python export/epoch_by_mmr_plot.py
 	python export/epoch_by_ms_plot.py
+	python export/faithfulness_plot.py
 	python export/masked_performance_by_mmr_plot.py
 	python export/masked_performance_by_ms_plot.py
 	python export/unmasked_performance_by_mmr_plot.py
