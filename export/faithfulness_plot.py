@@ -38,7 +38,11 @@ if __name__ == "__main__":
     args, unknown = parser.parse_known_args()
 
     dataset_mapping = pd.DataFrame([
-        { 'args.dataset': dataset._name, 'target_metric': dataset._early_stopping_metric }
+        {
+            'args.dataset': dataset._name,
+            'target_metric': dataset._early_stopping_metric,
+            'baseline': dataset.majority_classifier_test_performance()[dataset._early_stopping_metric]
+        }
         for dataset in datasets.values()
     ])
     model_mapping = pd.DataFrame([
@@ -65,6 +69,7 @@ if __name__ == "__main__":
         df_faithfulness = pd.json_normalize(results).explode('results', ignore_index=True)
         results = pd.json_normalize(df_faithfulness.pop('results')).add_prefix('results.')
         df_faithfulness = pd.concat([df_faithfulness, results], axis=1)
+        df_faithfulness = df_faithfulness.query('`results.masking_ratio` > 0')
 
         # Read JSON files into dataframe
         results = []
@@ -94,7 +99,7 @@ if __name__ == "__main__":
               .merge(model_mapping, on='args.model')
               .groupby(['args.model', 'args.seed', 'args.dataset', 'args.max_masking_ratio', 'args.max_epochs', 'args.masking_strategy', 'args.explainer',
                         'results.masking_ratio',
-                        'model_category'], group_keys=True)
+                        'model_category', 'baseline'], group_keys=True)
               .apply(select_target_metric)
               .reset_index())
 
@@ -118,11 +123,17 @@ if __name__ == "__main__":
                 .apply(bootstrap_confint(['metric']))
                 .reset_index())
 
+            df_baseline = (df_model_category
+                .groupby(['args.model', 'args.dataset', 'results.masking_ratio'], group_keys=True)
+                .apply(bootstrap_confint(['baseline']))
+                .reset_index())
+
             # Generate plot
             p = (p9.ggplot(df_plot, p9.aes(x='results.masking_ratio'))
                 + p9.geom_ribbon(p9.aes(ymin='metric_lower', ymax='metric_upper', fill='args.explainer'), alpha=0.35)
                 + p9.geom_point(p9.aes(y='metric_mean', color='args.explainer'))
                 + p9.geom_line(p9.aes(y='metric_mean', color='args.explainer'))
+                + p9.geom_line(p9.aes(y='baseline_mean'), color='black', data=df_baseline)
                 + p9.facet_grid("args.model ~ args.dataset", scales="free_x", labeller=annotation.model.labeller)
                 + p9.scale_x_continuous(name='Masking ratio')
                 + p9.scale_y_continuous(
