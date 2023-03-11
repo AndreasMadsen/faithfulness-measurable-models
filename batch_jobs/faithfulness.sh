@@ -159,7 +159,8 @@ do
                   --max-masking-ratio 100 \
                   --masking-strategy half-det \
                   --explainer "${explainer}" \
-                  --jit-compile
+                  --jit-compile \
+                  --save-masked-datasets
         done
     done
 done

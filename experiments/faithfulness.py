@@ -52,6 +52,10 @@ parser.add_argument('--dataset',
                     choices=datasets.keys(),
                     type=str,
                     help='The dataset to fine-tune on')
+parser.add_argument('--save-masked-datasets',
+                    action=argparse.BooleanOptionalAction,
+                    default=False,
+                    help='Save masked dataset')
 parser.add_argument('--deterministic',
                     action='store_true',
                     help='Use determinstic computations')
@@ -157,7 +161,6 @@ if __name__ == '__main__':
         run_eagerly=False,
         jit_compile=args.jit_compile
     )
-    durations['setup'] = timer() - setup_time_start
 
     # Compute faithfulness curve
     dataset_test_masked = dataset_test \
@@ -166,27 +169,36 @@ if __name__ == '__main__':
                         num_parallel_calls=tf.data.AUTOTUNE)) \
         .prefetch(tf.data.AUTOTUNE)
 
+    durations['setup'] = timer() - setup_time_start
+
     # Evalute test performance at different masking ratios
     results = []
     explain_time = 0
     evaluate_time = 0
-    for masking_ratio in [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]:
+    masked_dataset_dir = args.persistent_dir / 'intermediate' / 'masked_dataset'
+    os.makedirs(masked_dataset_dir, exist_ok=True)
+    for masking_ratio in [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]:
 
         # Create masked dataset. This is cached because it is used twice.
         # 1. To evaluate method
         # 2. To create next masking dataset
         explain_time_start = timer()
         dataset_test_masked = dataset_test_masked \
-            .apply(masker(masking_ratio)) \
+            .apply(masker(masking_ratio / 100)) \
             .cache() \
             .prefetch(tf.data.AUTOTUNE)
-        for x, y in tqdm(dataset_test_masked, desc=f'Explaing dataset ({masking_ratio:.0%})', mininterval=1):
+        for x, y in tqdm(dataset_test_masked, desc=f'Explaing dataset ({masking_ratio}%)', mininterval=1):
             pass
         explain_time += timer() - explain_time_start
 
+        if args.save_masked_datasets:
+            dataset_test_masked.save(
+                str((masked_dataset_dir / experiment_id).with_suffix(f'.{masking_ratio}.tfds'))
+            )
+
         evaluate_time_start = timer()
         results.append({
-            'masking_ratio': masking_ratio,
+            'masking_ratio': masking_ratio / 100,
             **model.evaluate(dataset_test_masked, return_dict=True)
         })
         evaluate_time += timer() - evaluate_time_start
