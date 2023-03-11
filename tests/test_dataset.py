@@ -72,14 +72,15 @@ def test_tokenizer_integration(info):
 @pytest.mark.parametrize("info", expected_sizes, ids=lambda info: info.name)
 @pytest.mark.slow
 def test_class_count(info):
-    dataset = datasets[info.name](persistent_dir=pathlib.Path('.'), use_snapshot=False, use_cache=False)
+    dataset = datasets[info.name](persistent_dir=pathlib.Path('.'), use_snapshot=False, use_cache=False, seed=0)
 
     def class_count(d):
         return d \
-            .map(lambda x, y: y) \
+            .map(lambda x, y: y, num_parallel_calls=tf.data.AUTOTUNE, deterministic=False) \
+            .batch(4096, num_parallel_calls=tf.data.AUTOTUNE, deterministic=False) \
             .reduce(
                 tf.zeros((dataset.num_classes, ), dtype=tf.dtypes.int32),
-                lambda r, y: tf.tensor_scatter_nd_add(r, [[y]], [1])
+                lambda r, y: r + tf.math.bincount(tf.cast(y, dtype=tf.dtypes.int32), minlength=dataset.num_classes, maxlength=dataset.num_classes)
             ) \
             .numpy() \
             .tolist()
