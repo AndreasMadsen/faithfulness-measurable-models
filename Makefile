@@ -1,5 +1,5 @@
 
-.PHONY: noop download-checkpoints-cedar download-tensorboard-cedar download-results-cedar upload-code-cedar upload-code-mila
+.PHONY: noop download-intermediate-cedar download-checkpoints-cedar download-tensorboard-cedar download-results-cedar upload-code-cedar upload-code-mila
 
 noop:
 	echo "preventing default action"
@@ -13,9 +13,13 @@ plot:
 	python export/unmasked_performance_by_mmr_plot.py
 	python export/unmasked_performance_by_ms_plot.py
 
+download-intermediate-cedar:
+	rsync --info=progress2 -urltv --delete \
+		-e ssh cc-cedar:~/scratch/ecoroar/intermediate/ ./intermediate
+
 download-checkpoints-cedar:
 	rsync --info=progress2 -urltv --delete \
-		-e ssh cc-cedar:~/scratch/ecoroar/checkpoints/ ./checkpoints
+		-e ssh cc-cedar:~/scratch/ecoroar/checkpoints/masking_m-roberta-sb_d-sst2_s-0_e-10_r-100_y-half-det/ ./checkpoints/masking_m-roberta-sb_d-sst2_s-0_e-10_r-100_y-half-det
 
 download-tensorboard-cedar:
 	rsync --info=progress2 -urltv --delete \

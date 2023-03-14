@@ -84,6 +84,7 @@ class AbstractDataset(metaclass=ABCMeta):
         s = np.sum(class_count_test) # total number of samples
 
         possible_metric = {
+            'loss': np.nan,  # Not possible to compute cross entropy of zero probability
             'accuracy': c / s,
             'auroc': None,  # Can not be meaningfully computed without continues values
             'macro_f1': (1/num_classes) * c / (0.5*s + 0.5*c),  # One class, will have a non-zero score
@@ -92,7 +93,7 @@ class AbstractDataset(metaclass=ABCMeta):
         }
 
         return {
-            metric_name: possible_metric[metric_name] for metric_name in cls._metrics
+            metric_name: possible_metric[metric_name] for metric_name in cls._metrics + ['loss']
         }
 
     @property
@@ -112,6 +113,12 @@ class AbstractDataset(metaclass=ABCMeta):
         """Number of classes in the dataset
         """
         return self.info.features[self._target_name].num_classes
+
+    @property
+    def class_names(self) -> List[str]:
+        """Class names
+        """
+        return self.info.features[self._target_name].names
 
     def download(self):
         """Downloads dataset
