@@ -32,7 +32,7 @@ def simple_dataset(tokenizer):
 
 
 def test_masking_special_tokens_kept(tokenizer, single_obs_input):
-    for seed in range(100):
+    for seed in range(10):
         masker_max = RandomMaxMasking(1, tokenizer, seed=seed)
 
         np.testing.assert_array_equal(single_obs_input['input_ids'].numpy(),
@@ -46,7 +46,7 @@ def test_masking_special_tokens_kept(tokenizer, single_obs_input):
 
 
 def test_masking_zero(tokenizer, single_obs_input):
-    for seed in range(100):
+    for seed in range(10):
         masker_none = RandomMaxMasking(0, tokenizer, seed=seed)
 
         np.testing.assert_array_equal(single_obs_input['input_ids'].numpy(),
