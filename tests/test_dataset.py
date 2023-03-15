@@ -49,12 +49,26 @@ def test_dataset_num_classes(info):
     assert dataset.num_classes == info.num_classes
 
 @pytest.mark.parametrize("info", expected_sizes, ids=lambda info: info.name)
-def test_dataset_size(info):
+def test_dataset_num_examples(info):
     dataset = datasets[info.name](persistent_dir=pathlib.Path('.'), use_snapshot=False, use_cache=False)
 
     assert dataset.train_num_examples == info.train
+    assert dataset.num_examples('train') == info.train
     assert dataset.valid_num_examples == info.valid
+    assert dataset.num_examples('valid') == info.valid
     assert dataset.test_num_examples == info.test
+    assert dataset.num_examples('test') == info.test
+
+@pytest.mark.parametrize("info", expected_sizes, ids=lambda info: info.name)
+def test_dataset_cadinality(info):
+    dataset = datasets[info.name](persistent_dir=pathlib.Path('.'), use_snapshot=False, use_cache=False)
+
+    assert dataset.train().cardinality() == info.train
+    assert dataset.load('train').cardinality() == info.train
+    assert dataset.valid().cardinality() == info.valid
+    assert dataset.load('valid').cardinality() == info.valid
+    assert dataset.test().cardinality() == info.test
+    assert dataset.load('test').cardinality() == info.test
 
 @pytest.mark.parametrize("info", expected_sizes, ids=lambda info: info.name)
 @pytest.mark.slow

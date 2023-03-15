@@ -83,6 +83,12 @@ parser.add_argument('--explainer',
                     choices=explainers.keys(),
                     type=str,
                     help='The importance measure algorithm to use for explanation')
+parser.add_argument('--split',
+                    default='test',
+                    choices=['train', 'valid', 'test'],
+                    type=str,
+                    help='The importance measure algorithm to use for explanation')
+
 
 if __name__ == '__main__':
     durations = {}
@@ -101,7 +107,8 @@ if __name__ == '__main__':
         model=args.model, dataset=args.dataset,
         seed=args.seed, max_epochs=args.max_epochs,
         max_masking_ratio=args.max_masking_ratio, masking_strategy=args.masking_strategy,
-        explainer=args.explainer
+        explainer=args.explainer,
+        split=args.split
     )
 
     # Print configuration
@@ -112,7 +119,9 @@ if __name__ == '__main__':
     print('  Huggingface Repo:', args.huggingface_repo)
     print('  Max masking ratio:', args.max_masking_ratio)
     print('  Masking strategy:', args.masking_strategy)
+    print('')
     print('  Explainer:', args.explainer)
+    print('  Split:', args.split)
     print('')
     print('  Batch size:', args.batch_size)
     print('  Max epochs:', args.max_epochs)
@@ -145,11 +154,11 @@ if __name__ == '__main__':
     masker = ExplainerMasking(explainer, tokenizer)
 
     # Load datasets
-    dataset_test = dataset.test(tokenizer)
+    dataset_split = dataset.load(args.split, tokenizer)
 
     # Setup batching routine
     if args.jit_compile:
-        batcher = BucketedPaddedBatch([dataset_test], batch_size=args.batch_size)
+        batcher = BucketedPaddedBatch([dataset_split], batch_size=args.batch_size)
     else:
         batcher = lambda batch_size, padding_values, num_parallel_calls: \
             lambda dataset: dataset.padded_batch(batch_size, padding_values=padding_values)
@@ -163,7 +172,7 @@ if __name__ == '__main__':
     )
 
     # Compute faithfulness curve
-    dataset_test_masked = dataset_test \
+    dataset_split_masked = dataset_split \
         .apply(batcher(args.batch_size,
                         padding_values=(tokenizer.padding_values, None),
                         num_parallel_calls=tf.data.AUTOTUNE)) \
@@ -183,23 +192,23 @@ if __name__ == '__main__':
         # 1. To evaluate method
         # 2. To create next masking dataset
         explain_time_start = timer()
-        dataset_test_masked = dataset_test_masked \
+        dataset_split_masked = dataset_split_masked \
             .apply(masker(masking_ratio / 100)) \
             .cache() \
             .prefetch(tf.data.AUTOTUNE)
-        for x, y in tqdm(dataset_test_masked, desc=f'Explaing dataset ({masking_ratio}%)', mininterval=1):
+        for x, y in tqdm(dataset_split_masked, desc=f'Explaing dataset ({masking_ratio}%)', mininterval=1):
             pass
         explain_time += timer() - explain_time_start
 
         if args.save_masked_datasets:
-            dataset_test_masked.save(
+            dataset_split_masked.save(
                 str((masked_dataset_dir / experiment_id).with_suffix(f'.{masking_ratio}.tfds'))
             )
 
         evaluate_time_start = timer()
         results.append({
             'masking_ratio': masking_ratio / 100,
-            **model.evaluate(dataset_test_masked, return_dict=True)
+            **model.evaluate(dataset_split_masked, return_dict=True)
         })
         evaluate_time += timer() - evaluate_time_start
 
