@@ -1,5 +1,5 @@
 # Load modules
-module load python/3.10.2 gcc/9.3.0 git-lfs/2.11.0
+module load python/3.10.2 gcc/9.3.0 git-lfs/2.11.0 hdf5/1.12.1
 
 # Create environment
 virtualenv --app-data $SCRATCH/virtualenv --no-download $SLURM_TMPDIR/env

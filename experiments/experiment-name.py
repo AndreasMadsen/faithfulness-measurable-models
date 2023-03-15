@@ -28,6 +28,11 @@ parser.add_argument('--max-masking-ratio',
                     default=0,
                     type=int,
                     help='The maximum masking ratio (percentage integer) to apply on the training dataset')
+parser.add_argument('--masking-strategy',
+                    default='uni',
+                    choices=['uni', 'half-det', 'half-ran'],
+                    type=str,
+                    help='The masking strategy to use for masking during fune-tuning')
 
 if __name__ == '__main__':
     args, unknown = parser.parse_known_args()
@@ -36,7 +41,7 @@ if __name__ == '__main__':
     experiment_id = generate_experiment_id(
         'masking',
         model=args.model, dataset=args.dataset,
-        seed=args.seed, max_masking_ratio=args.max_masking_ratio,
-        max_epochs=args.max_epochs
+        seed=args.seed, max_epochs=args.max_epochs,
+        max_masking_ratio=args.max_masking_ratio, masking_strategy=args.masking_strategy
     )
     print(experiment_id)

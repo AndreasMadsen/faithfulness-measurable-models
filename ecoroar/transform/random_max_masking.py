@@ -1,10 +1,10 @@
 
 import tensorflow as tf
 
-from ..types import TokenizedDict
+from ..types import TokenizedDict, InputTransform
 
 
-class RandomMaxMasking:
+class RandomMaxMasking(InputTransform):
     def __init__(self, max_masking_ratio: float, tokenizer, seed: int = None):
         """Masks the input
 
@@ -20,10 +20,10 @@ class RandomMaxMasking:
             tokenizer (Tokenizer): tokenizer, specifically used to provide the mask_token_id
             seed (int, optional): Seed used to generate random masking. Defaults to None.
         """
-        if not isinstance(max_masking_ratio, float) or not (0 <= max_masking_ratio <= 1):
+        if not (0 <= float(max_masking_ratio) <= 1):
             raise TypeError(f'max_masking_ratio must be a float between 0 and 1, was "{max_masking_ratio}"')
 
-        self._max_masking_ratio = max_masking_ratio
+        self._max_masking_ratio = float(max_masking_ratio)
         self._tokenizer = tokenizer
         self._seed = seed
 
@@ -42,16 +42,18 @@ class RandomMaxMasking:
         Returns:
             TokenizedDict: Masked tokenized input
         """
-        input_ids = tf.ensure_shape(x['input_ids'], [None])
-        attention_mask = tf.ensure_shape(x['attention_mask'], [None])
+        input_ids = tf.ensure_shape(x['input_ids'], [None, None])
+        attention_mask = tf.ensure_shape(x['attention_mask'], [None, None])
+        batch_size, max_sequence_length = tf.unstack(tf.shape(input_ids), num=2)
 
         if self._max_masking_ratio > 0:
             # True if token is allowed to be masked.
             # This prevents [BOS], [SEP], and [EOS] from being masked.
             maskable_indicator = tf.math.reduce_all(
-                tf.expand_dims(input_ids, 0) != tf.expand_dims(self._tokenizer.kept_tokens, -1),
+                tf.expand_dims(input_ids, 0) != tf.reshape(self._tokenizer.kept_tokens, [-1, 1, 1]),
                 axis=0
             )
+
             # This prevents unattended tokens from being masked, such as [PAD].
             maskable_indicator = tf.math.logical_and(
                 maskable_indicator,
@@ -59,9 +61,9 @@ class RandomMaxMasking:
             )
 
             # masking ratio will be [0, max_masking_ratio)
-            masking_ratio = self._rng.uniform([1], maxval=self._max_masking_ratio)
+            masking_ratio = self._rng.uniform((batch_size, 1), maxval=self._max_masking_ratio)
             masking_indicator = tf.math.logical_and(
-                self._rng.uniform(tf.shape(input_ids)) <= masking_ratio,
+                self._rng.uniform((batch_size, max_sequence_length)) <= masking_ratio,
                 maskable_indicator
             )
 
