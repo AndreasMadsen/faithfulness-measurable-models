@@ -7,15 +7,16 @@ import pathlib
 from tqdm import tqdm
 import pandas as pd
 import plotnine as p9
+import numpy as np
 
 from ecoroar.dataset import datasets
 from ecoroar.plot import bootstrap_confint, annotation
 
-def select_target_metric(partial_df):
-    column_name = partial_df.loc[:, 'target_metric'].iat[0]
-    return pd.Series({
-        'metric': partial_df.loc[:, f'results.{column_name}'].iat[0]
-    })
+def select_target_metric(df):
+    idx, cols = pd.factorize('results.' + df.loc[:, 'target_metric'])
+    return df.assign(
+        metric = df.reindex(cols, axis=1).to_numpy()[np.arange(len(df)), idx]
+    )
 
 
 parser = argparse.ArgumentParser(
@@ -32,6 +33,12 @@ parser.add_argument('--stage',
                     type=str,
                     choices=['preprocess', 'plot', 'both'],
                     help='Which export stage should be performed. Mostly just useful for debugging.')
+parser.add_argument('--performance-metric',
+                    action='store',
+                    default='primary',
+                    type=str,
+                    choices=['primary', 'loss', 'accuracy'],
+                    help='Which metric to use as a performance metric.')
 
 if __name__ == "__main__":
     pd.set_option('display.max_rows', None)
@@ -40,8 +47,10 @@ if __name__ == "__main__":
     dataset_mapping = pd.DataFrame([
         {
             'args.dataset': dataset._name,
-            'target_metric': dataset._early_stopping_metric,
-            'baseline': dataset.majority_classifier_test_performance()[dataset._early_stopping_metric]
+            'target_metric': dataset._early_stopping_metric if args.performance_metric == 'primary' else args.performance_metric,
+            'baseline': dataset.majority_classifier_test_performance()[
+                dataset._early_stopping_metric if args.performance_metric == 'primary' else args.performance_metric
+            ]
         }
         for dataset in datasets.values()
     ])
@@ -94,14 +103,11 @@ if __name__ == "__main__":
             ])
 
         # Select test metric
-        df = (pd.concat([df_goal, df_faithfulness])
+        df = (pd.concat([df_faithfulness, df_goal])
               .merge(dataset_mapping, on='args.dataset')
               .merge(model_mapping, on='args.model')
-              .groupby(['args.model', 'args.seed', 'args.dataset', 'args.max_masking_ratio', 'args.max_epochs', 'args.masking_strategy', 'args.explainer',
-                        'results.masking_ratio',
-                        'model_category', 'baseline'], group_keys=True)
-              .apply(select_target_metric)
-              .reset_index())
+              .transform(select_target_metric))
+        df.to_csv('test.csv')
 
     if args.stage in ['preprocess']:
         os.makedirs(f'{args.persistent_dir}/pandas', exist_ok=True)
