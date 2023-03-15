@@ -3,7 +3,6 @@ import pytest
 import tensorflow as tf
 import numpy as np
 
-from ecoroar.model import SimpleTestModel
 from ecoroar.tokenizer import SimpleTestTokenizer
 
 @pytest.fixture
