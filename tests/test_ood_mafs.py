@@ -7,6 +7,7 @@ import numpy as np
 from ecoroar.model import SimpleTestModel
 from ecoroar.tokenizer import SimpleTestTokenizer
 from ecoroar.ood import MaSF
+from ecoroar.ood.masf import _emerical_fit, _emerical_cdf
 
 @pytest.fixture
 def tokenizer():
@@ -42,8 +43,12 @@ compile_configs = [
 
 @pytest.mark.parametrize("config", compile_configs, ids=lambda config: config.name)
 def test_odd_mafs(config, tokenizer, model, dataset):
-    dist = MaSF(tokenizer, model, **config.args)
+    dist = MaSF(tokenizer, model, verbose=False, **config.args)
     dist.fit(dataset)
 
+    # Note that due to the simplicity of the SimpleTestModel, the intermediate
+    # representations are too sparse and discrete to provide a satifiying
+    # distribution. So everything, is more or less going to test as
+    # in-distribution.
     for x, _ in dataset:
         np.testing.assert_allclose(dist(x).numpy(), [1, 1])
