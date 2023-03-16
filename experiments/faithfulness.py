@@ -5,7 +5,6 @@ import argparse
 from timeit import default_timer as timer
 
 from tqdm import tqdm
-import numpy as np
 import tensorflow as tf
 
 from ecoroar.util import generate_experiment_id, model_name_to_huggingface_repo, default_jit_compile, default_max_epochs
@@ -87,7 +86,7 @@ parser.add_argument('--split',
                     default='test',
                     choices=['train', 'valid', 'test'],
                     type=str,
-                    help='The importance measure algorithm to use for explanation')
+                    help='The dataset split to evaluate faithfulness on')
 
 
 if __name__ == '__main__':
