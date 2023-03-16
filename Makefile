@@ -1,5 +1,5 @@
 
-.PHONY: noop download-intermediate-cedar download-checkpoints-cedar download-tensorboard-cedar download-results-cedar upload-code-cedar upload-code-mila
+.PHONY: noop download-intermediate-cedar download-table-cedar download-checkpoints-cedar download-tensorboard-cedar download-results-cedar upload-code-cedar upload-code-mila
 
 noop:
 	echo "preventing default action"
@@ -16,6 +16,10 @@ plot:
 download-intermediate-cedar:
 	rsync --info=progress2 -urltv --delete \
 		-e ssh cc-cedar:~/scratch/ecoroar/intermediate/ ./intermediate
+
+download-table-cedar:
+	rsync --info=progress2 -urltv --delete \
+		-e ssh cc-cedar:~/scratch/ecoroar/tables/ ./tables
 
 download-checkpoints-cedar:
 	rsync --info=progress2 -urltv --delete \
