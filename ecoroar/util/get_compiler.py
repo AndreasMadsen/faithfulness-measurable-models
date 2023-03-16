@@ -1,7 +1,9 @@
 
-import tensorflow as tf
-
 def get_compiler(run_eagerly, jit_compile):
+    # Lazy load, as ecoroar.util is used in experiment_name.py and
+    # the startup time for that script is too slow, if tensorflow as to be loaded.
+    import tensorflow as tf
+
     # define compiler
     if run_eagerly:
         if jit_compile:
