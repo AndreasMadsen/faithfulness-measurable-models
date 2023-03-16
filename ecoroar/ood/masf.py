@@ -1,6 +1,7 @@
 
 import tensorflow as tf
 import numpy as np
+from tqdm import tqdm
 
 from ..types import TokenizedDict, Tokenizer, Model
 from ..util import get_compiler
@@ -90,6 +91,7 @@ def _two_sided_p_value(cdf_values: tf.Tensor) -> tf.Tensor:
 
 class MaSF():
     def __init__(self, tokenizer: Tokenizer, model: Model,
+                 verbose=True,
                  run_eagerly: bool = False,
                  jit_compile: bool = False) -> None:
         """Implementation of MaSF
@@ -105,6 +107,7 @@ class MaSF():
         """
         self._model = model
         self._tokenizer = tokenizer
+        self._verbose = verbose
 
         self._emperical_distribution_level_1 = None
         self._emperical_distribution_level_2 = None
@@ -155,7 +158,7 @@ class MaSF():
             infer_shape=False,
             element_shape=(None, self._model.config.num_hidden_layers + 1, self._model.config.hidden_size)
         )
-        for i, (x, _) in dataset.enumerate():
+        for i, (x, _) in tqdm(dataset.enumerate(), desc='accumulating statistics', disable=not self._verbose):
             hidden_states = self._wrap_get_hidden_state_signal(x)
             accumulating_hidden_states = accumulating_hidden_states.write(i, hidden_states)
 
