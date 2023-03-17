@@ -1,11 +1,12 @@
 
-from typing import Callable
+from typing import Callable, Any
 
 import tensorflow as tf
 
 class MapOnGPU:
-    def __init__(self, mapper) -> None:
+    def __init__(self, mapper: Callable[..., Any], output_signature: Callable[[tf.data.Dataset], Any]) -> None:
         self._mapper = mapper
+        self._output_signature = output_signature
 
     def __call__(self, dataset: tf.data.Dataset) -> tf.data.Dataset:
         """Map the dataset using the provided mapper function on the GPU.
@@ -28,5 +29,5 @@ class MapOnGPU:
 
         return tf.data.Dataset.from_generator(
             _generator,
-            output_signature=tf.data.experimental.get_structure(dataset)
+            output_signature=self._output_signature(dataset)
         ).apply(tf.data.experimental.assert_cardinality(dataset.cardinality()))

@@ -85,6 +85,9 @@ class ExplainerMasking(InputTransform):
             return (lambda dataset: dataset)
 
         def _mapper(x, y):
-            yield (self._mask_input(x, y, masking_ratio), y)
+            return (self._mask_input(x, y, masking_ratio), y)
 
-        return MapOnGPU(_mapper)
+        def _output_signature(dataset):
+            return tf.data.experimental.get_structure(dataset)
+
+        return MapOnGPU(_mapper, _output_signature)

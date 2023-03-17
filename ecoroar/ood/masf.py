@@ -132,7 +132,7 @@ class MaSF():
         hidden_states = tf.stack(hidden_states, axis=1)  # tf.Tensor[B, L, T, D]
 
         mask = tf.reshape(x['input_ids'] == self._tokenizer.pad_token_id, (batch_size, 1, sequence_length, 1)) # tf.Tensor[B, 1, T, 1]
-        hidden_states = tf.where(mask, -np.inf, hidden_states)  # tf.Tensor[B, L, T, D]
+        hidden_states = tf.where(mask, -tf.cast(np.inf, dtype=hidden_states.dtype), hidden_states)  # tf.Tensor[B, L, T, D]
         hidden_states = tf.math.reduce_max(hidden_states, axis=2)  # tf.Tensor[B, L, D]
         return hidden_states
 
@@ -152,14 +152,18 @@ class MaSF():
             size == None
 
         # Acumulate the hidden_states
-        accumulating_hidden_states = tf.TensorArray(
-            tf.dtypes.float32,
-            size=size,
-            infer_shape=False,
-            element_shape=(None, self._model.config.num_hidden_layers + 1, self._model.config.hidden_size)
-        )
+        accumulating_hidden_states = None
         for i, (x, _) in tqdm(dataset.enumerate(), desc='accumulating statistics', disable=not self._verbose):
             hidden_states = self._wrap_get_hidden_state_signal(x)
+
+            if accumulating_hidden_states is None:
+                accumulating_hidden_states = tf.TensorArray(
+                    hidden_states.dtype,
+                    size=size,
+                    infer_shape=False,
+                    element_shape=(None, self._model.config.num_hidden_layers + 1, self._model.config.hidden_size)
+                )
+
             accumulating_hidden_states = accumulating_hidden_states.write(i, hidden_states)
 
         # Fit emperical distributions and get p-values
