@@ -225,17 +225,20 @@ if __name__ == '__main__':
     ood_annotated_dataset_dir = args.persistent_dir / 'intermediate' / 'ood_annotated'
     os.makedirs(ood_annotated_dataset_dir, exist_ok=True)
     for masking_ratio in [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]:
-        dataset_split_masked = dataset_split_masked.load(
+        dataset_split_masked = tf.data.Dataset.load(
             str(masked_dataset_prefix.with_suffix(f'.{masking_ratio}.tfds'))
         )
 
         measure_time_start = timer()
         # assigns p-values to each observation
         dataset_split_annotated = dataset_split_masked \
-            .apply(MapOnGPU(lambda x, y: (x, y, ood_detector(x)))) \
+            .apply(MapOnGPU(
+                lambda x, y: (x, y, ood_detector(x)),
+                lambda dataset: (*tf.data.experimental.get_structure(dataset), tf.TensorSpec(shape=[None], dtype=tf.dtypes.float32))
+            )) \
             .cache()
 
-        for x, y in tqdm(dataset_split_annotated, desc=f'OOD annotating dataset ({masking_ratio}%)', mininterval=1):
+        for x, y, ood in tqdm(dataset_split_annotated, desc=f'OOD annotating dataset ({masking_ratio}%)', mininterval=1):
             pass
         measure_time += timer() - measure_time_start
 
@@ -254,10 +257,10 @@ if __name__ == '__main__':
                 tf.expand_dims(batch[2], 0) < tf.expand_dims(p_value_thresholds, 1),
                 dtype=tf.dtypes.int32), axis=1)
         )
-        p_values_histogram_prop = p_values_histogram_count / dataset_split_annotated.cardinality()
+        p_values_histogram_prop = p_values_histogram_count / tf.cast(dataset_split_annotated.cardinality(), dtype=tf.dtypes.int32)
 
         # save summarized results
-        for threshold, proportion in zip(p_values_histogram_prop.numpy(), p_value_thresholds.numpy()):
+        for threshold, proportion in zip(p_value_thresholds.numpy(), p_values_histogram_prop.numpy()):
             results.append({
                 'masking_ratio': masking_ratio / 100,
                 'proportion': proportion,
