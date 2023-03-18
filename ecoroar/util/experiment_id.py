@@ -40,10 +40,10 @@ def generate_experiment_id(name: str,
     if isinstance(max_masking_ratio, int):
         experiment_id += f"_y-{masking_strategy}"
     if isinstance(explainer, str):
-        experiment_id += f"_x-{explainer}"
+        experiment_id += f"_x-{explainer.lower()}"
     if isinstance(ood, str):
-        experiment_id += f"_o-{ood}"
+        experiment_id += f"_o-{ood.lower()}"
     if isinstance(split, str):
-        experiment_id += f"_sp-{split}"
+        experiment_id += f"_sp-{split.lower()}"
 
     return experiment_id

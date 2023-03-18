@@ -44,7 +44,7 @@ parser.add_argument('--explainer',
                     type=str,
                     help='The importance measure algorithm to use for explanation')
 parser.add_argument('--ood',
-                    default='MaSF',
+                    default=None,
                     choices=['MaSF'],
                     type=str,
                     help='The OOD detection method')
