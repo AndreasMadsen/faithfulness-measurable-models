@@ -6,8 +6,12 @@ from tqdm import tqdm
 from ..types import TokenizedDict, Tokenizer, Model
 from ..util import get_compiler
 
-def _emerical_fit(samples: tf.Tensor) -> tf.Tensor:
+def _emerical_fit_sort(samples: tf.Tensor) -> tf.Tensor:
     """Construct the distribution from the samples
+
+    This one uses O(n*log(n)) for fit and O(log(n)) for cdf.
+    However, this depends on a transform operation,
+        which can become impractical for large sample sizes.,
 
     Args:
         samples (tf.Tensor): Samples with shape [N, ...]
@@ -20,10 +24,15 @@ def _emerical_fit(samples: tf.Tensor) -> tf.Tensor:
     dist = tf.sort(samples, axis=-1, direction='ASCENDING')  # [..., N]
     return dist
 
-def _emerical_cdf(dist: tf.Tensor, samples: tf.Tensor)-> tf.Tensor:
-    """Evalute the CDF of samples given the distribution from _emerical_distribution_fit
+def _emerical_cdf_sort(dist: tf.Tensor, samples: tf.Tensor)-> tf.Tensor:
+    """Evalute the CDF of samples given the distribution from _emerical_fit_sort
+
+    This one uses O(n*log(n)) for fit and O(log(n)) for cdf.
+    However, this depends on a transform operation,
+        which can become impractical for large sample sizes.,
 
     Args:
+        dist (tf.Tensor): Distributional representation.
         samples (tf.Tensor): Samples with shape [N, ...]
 
     Returns:
@@ -47,6 +56,42 @@ def _emerical_cdf(dist: tf.Tensor, samples: tf.Tensor)-> tf.Tensor:
     # convert indices to probabilites by dividing
     num_of_obs = tf.shape(dist)[-1]
     probs = indices / num_of_obs
+    return tf.cast(probs, dtype=tf.dtypes.float32)
+
+def _emerical_fit_scan(samples: tf.Tensor) -> tf.Tensor:
+    """Construct the distribution from the samples
+
+    This one uses O(1) for fit and O(n) for cdf.
+
+    Args:
+        samples (tf.Tensor): Samples with shape [N, ...]
+
+    Returns:
+        tf.Tensor: tensor representing the distribution
+    """
+    return samples
+
+def _emerical_cdf_scan(dist: tf.Tensor, samples: tf.Tensor)-> tf.Tensor:
+    """Evalute the CDF of samples given the distribution from _emerical_fit_scan
+
+    This one uses O(1) for fit and O(n) for cdf.
+
+    Args:
+        dist (tf.Tensor): Distributional representation.
+        samples (tf.Tensor): Samples with shape [N, ...]
+
+    Returns:
+        tf.Tensor: probablity, with shape [N, ...]
+    """
+    counts = tf.vectorized_map(
+        lambda sample: tf.math.reduce_sum(tf.cast(
+            dist < tf.expand_dims(sample, axis=0),
+            dtype=tf.dtypes.int32), axis=0),
+        samples)
+
+    # convert indices to probabilites by dividing
+    num_of_obs = tf.shape(dist)[0]
+    probs = counts / num_of_obs
     return tf.cast(probs, dtype=tf.dtypes.float32)
 
 def _reduce_simes(p_values: tf.Tensor, axis: int=-1) -> tf.Tensor:
@@ -93,7 +138,8 @@ class MaSF():
     def __init__(self, tokenizer: Tokenizer, model: Model,
                  verbose=True,
                  run_eagerly: bool = False,
-                 jit_compile: bool = False) -> None:
+                 jit_compile: bool = False,
+                 cdf_algorithm: str = 'scan') -> None:
         """Implementation of MaSF
 
         MaSF is an out-of-distribution detection methods, that uses non-parametic
@@ -104,7 +150,14 @@ class MaSF():
         Args:
             tokenizer (Tokenizer): Tokenizer used to inform about padding tokens
             model (Model): Model to infer OOD statistics on
+            run_eagerly (bool, optional): If True, tf.function is not used. Defaults to False.
+            jit_compile (bool, optional): If True, XLA compiling is enabled. Defaults to False.
+            cdf_algorithm ('sort' | 'scan', optional): Selects the algorithm use for computing CDFs.
+                Defaults to 'scan'.
         """
+        if cdf_algorithm not in ['scan', 'sort']:
+            raise ValueError('cdf_algorithm must be either sort or scan')
+
         self._model = model
         self._tokenizer = tokenizer
         self._verbose = verbose
@@ -119,8 +172,8 @@ class MaSF():
         compiler = get_compiler(run_eagerly, jit_compile)
         self._wrap_get_hidden_state_signal = compiler(self._get_hidden_state_signal)
         self._wrap_estimate_p_values = compiler(self._estimate_p_values)
-        self._emerical_fit = compiler(_emerical_fit)
-        self._emerical_cdf = compiler(_emerical_cdf)
+        self._emerical_fit = compiler(_emerical_fit_scan if cdf_algorithm == 'scan' else _emerical_fit_sort)
+        self._emerical_cdf = compiler(_emerical_cdf_scan if cdf_algorithm == 'scan' else _emerical_cdf_sort)
         self._reduce_simes = compiler(_reduce_simes)
         self._reduce_fisher = compiler(_reduce_fisher)
         self._two_sided_p_value = compiler(_two_sided_p_value)
@@ -152,18 +205,14 @@ class MaSF():
             size == None
 
         # Acumulate the hidden_states
-        accumulating_hidden_states = None
+        accumulating_hidden_states = tf.TensorArray(
+            tf.keras.mixed_precision.global_policy().compute_dtype,
+            size=size,
+            infer_shape=False,
+            element_shape=(None, self._model.config.num_hidden_layers + 1, self._model.config.hidden_size)
+        )
         for i, (x, _) in tqdm(dataset.enumerate(), desc='accumulating statistics', disable=not self._verbose):
             hidden_states = self._wrap_get_hidden_state_signal(x)
-
-            if accumulating_hidden_states is None:
-                accumulating_hidden_states = tf.TensorArray(
-                    hidden_states.dtype,
-                    size=size,
-                    infer_shape=False,
-                    element_shape=(None, self._model.config.num_hidden_layers + 1, self._model.config.hidden_size)
-                )
-
             accumulating_hidden_states = accumulating_hidden_states.write(i, hidden_states)
 
         # Fit emperical distributions and get p-values
