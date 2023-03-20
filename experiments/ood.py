@@ -250,20 +250,26 @@ if __name__ == '__main__':
 
         # aggregate p-value statistics as a basic histogram
         summary_time_start = timer()
-        p_value_thresholds = tf.constant([0.001, 0.005, 0.01, 0.05, 0.1], dtype=tf.dtypes.float32)
-        p_values_histogram_count = dataset_split_annotated.reduce(
-            tf.zeros(5, dtype=tf.dtypes.int32),
-            lambda hist, batch: hist + tf.math.reduce_sum(tf.cast(
-                tf.expand_dims(batch[2], 0) < tf.expand_dims(p_value_thresholds, 1),
-                dtype=tf.dtypes.int32), axis=1)
+        p_value_thresholds = [0.001, 0.005, 0.01, 0.05, 0.1]
+        p_values_histogram = dataset_split_annotated.reduce(
+            (
+                tf.zeros(0, dtype=tf.dtypes.int32),  # count
+                tf.zeros(len(p_value_thresholds), dtype=tf.dtypes.int32)  # hist
+            ),
+            lambda state, batch: (
+                state[1] + tf.shape(batch[2])[0],
+                state[1] + tf.math.reduce_sum(tf.cast(
+                    tf.expand_dims(batch[2], 0) < tf.expand_dims(p_value_thresholds, 1),
+                    dtype=tf.dtypes.int32), axis=1)
+            )
         )
-        p_values_histogram_prop = p_values_histogram_count / tf.cast(dataset_split_annotated.cardinality(), dtype=tf.dtypes.int32)
+        p_values_histogram_prop = p_values_histogram[1] / p_values_histogram[0]
 
         # save summarized results
-        for threshold, proportion in zip(p_value_thresholds.numpy(), p_values_histogram_prop.numpy()):
+        for threshold, proportion in zip(p_value_thresholds, p_values_histogram_prop.numpy()):
             results.append({
                 'masking_ratio': masking_ratio / 100,
-                'proportion': proportion,
+                'proportion': proportion.item(),
                 'threshold': threshold
             })
         summary_time = timer() - summary_time_start
