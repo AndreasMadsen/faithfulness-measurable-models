@@ -201,6 +201,7 @@ if __name__ == '__main__':
     # Note, this dataset needs to be masked the same way as the training dataset during training.
     odd_fit_time_start = timer()
     dataset_valid_masked = dataset_valid \
+        .repeat(args.max_epochs) \
         .apply(batcher(args.batch_size,
                         padding_values=(tokenizer.padding_values, None),
                         num_parallel_calls=tf.data.AUTOTUNE)) \
