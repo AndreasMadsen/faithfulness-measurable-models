@@ -16,8 +16,8 @@ class ImportanceMeasure(ABC):
 
         Args:
             tokenizer (Tokenizer): The tokenizer used, this is for defining padding.
-            model (Model): The model used, explainations are produced by probing the model.
-            seed (int): Seed use for some explanation methods, for example random explanation. Defaults to None.
+            model (Model): The model used, explanations are produced by probing the model.
+            seed (int): Seed uses for some explanation methods, for example random explanation. Defaults to None.
             run_eagerly (bool, optional): If True, tf.function is not used. Defaults to False.
             jit_compile (bool, optional): If True, XLA compiling is enabled. Defaults to False.
 
