@@ -257,8 +257,8 @@ if __name__ == '__main__':
                 tf.zeros(0, dtype=tf.dtypes.int32),  # count
                 tf.zeros(len(p_value_thresholds), dtype=tf.dtypes.int32)  # hist
             ),
-            lambda state, batch: (
-                state[1] + tf.shape(batch[2])[0],
+            lambda state, batch: (  # state = (count, hist), batch = (x, y, ood)
+                state[0] + tf.shape(batch[2])[0],
                 state[1] + tf.math.reduce_sum(tf.cast(
                     tf.expand_dims(batch[2], 0) < tf.expand_dims(p_value_thresholds, 1),
                     dtype=tf.dtypes.int32), axis=1)
