@@ -200,14 +200,17 @@ if __name__ == '__main__':
     # Train distributional representation using  validation dataset
     # Note, this dataset needs to be masked the same way as the training dataset during training.
     odd_fit_time_start = timer()
+    # TODO: figure out what is the appropiate number of repeats
     dataset_valid_masked = dataset_valid \
-        .repeat(args.max_epochs) \
+        .repeat(1) \
         .apply(batcher(args.batch_size,
                         padding_values=(tokenizer.padding_values, None),
                         num_parallel_calls=tf.data.AUTOTUNE)) \
         .map(lambda x, y: (masker_train(x), y), num_parallel_calls=tf.data.AUTOTUNE) \
         .prefetch(tf.data.AUTOTUNE)
 
+    # TODO: Rerunning this for every --explainer argument is quite the waste,
+    #   since the distributed representation will be the same for every --explainer
     ood_detector.fit(dataset_valid_masked)
     durations['ood_fit'] = timer() - odd_fit_time_start
 

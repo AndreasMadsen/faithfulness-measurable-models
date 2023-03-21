@@ -13,6 +13,10 @@ def _emerical_fit_sort(samples: tf.Tensor) -> tf.Tensor:
     However, this depends on a transform operation,
         which can become impractical for large sample sizes.,
 
+    TODO: The very expensive transpose operation, could potentionally
+        be optimized out, by manually implementing a binary search method,
+        that works along the first axis.
+
     Args:
         samples (tf.Tensor): Samples with shape [N, ...]
 
@@ -30,6 +34,10 @@ def _emerical_cdf_sort(dist: tf.Tensor, samples: tf.Tensor)-> tf.Tensor:
     This one uses O(n*log(n)) for fit and O(log(n)) for cdf.
     However, this depends on a transform operation,
         which can become impractical for large sample sizes.,
+
+    TODO: The very expensive transpose operation, could potentionally
+        be optimized out, by manually implementing a binary search method,
+        that works along the first axis.
 
     Args:
         dist (tf.Tensor): Distributional representation.
