@@ -7,7 +7,7 @@ from tqdm import tqdm
 from ecoroar.util import model_name_to_huggingface_repo
 from ecoroar.dataset import datasets
 from ecoroar.tokenizer import HuggingfaceTokenizer
-from ecoroar.model import HuggingfaceModel
+from ecoroar.model import huggingface_model_from_repo
 
 thisdir = path.dirname(path.realpath(__file__))
 parser = argparse.ArgumentParser()
@@ -36,4 +36,4 @@ if __name__ == "__main__":
         pbar.set_description(f'Downloading model {model_name}')
         repo_name = model_name_to_huggingface_repo(model_name)
         tokenizer = HuggingfaceTokenizer(repo_name, persistent_dir=args.persistent_dir)
-        model = HuggingfaceModel(repo_name, persistent_dir=args.persistent_dir, num_classes=2)
+        model = huggingface_model_from_repo(repo_name, persistent_dir=args.persistent_dir, num_classes=2)

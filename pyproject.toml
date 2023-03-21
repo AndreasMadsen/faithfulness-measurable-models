@@ -26,12 +26,14 @@ dependencies = [
     "tensorflow >= 2.11.0; sys_platform != 'darwin'",
     "tensorflow_macos >= 2.11.0; sys_platform == 'darwin'",
     "tensorflow_addons >= 0.19.0",
-    "tensorflow_datasets >= 4.7.0",
+    "tensorflow_datasets >= 4.8.2",
     "transformers == 4.26.0"
 ]
 
 [project.optional-dependencies]
 test = [
+    "pytest-skip-slow >= 0.0.5",  # enables pytest.mark.slow
     "pytest >= 7.2.1",
-    "tox >= 3.24.4"
+    "tox >= 3.24.4",
+    "scikit-learn >= 1.1.2"
 ]

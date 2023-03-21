@@ -12,6 +12,10 @@ class MRPCDataset(AbstractDataset):
     _split_valid = 'train[80%:]'
     _split_test = 'validation'
 
+    _class_count_train = [961, 1973]
+    _class_count_valid = [233, 501]
+    _class_count_test = [129, 279]
+
     def _builder(self, data_dir):
         return tfds.builder("glue/mrpc", data_dir=data_dir)
 

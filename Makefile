@@ -7,6 +7,7 @@ noop:
 plot:
 	python export/epoch_by_mmr_plot.py
 	python export/epoch_by_ms_plot.py
+	python export/faithfulness_plot.py
 	python export/masked_performance_by_mmr_plot.py
 	python export/masked_performance_by_ms_plot.py
 	python export/unmasked_performance_by_mmr_plot.py
@@ -28,6 +29,11 @@ upload-code-cedar:
 	rsync --info=progress2 -urltv --delete \
 		--filter=':- .gitignore' --exclude='.git/' \
 		-e ssh ./ cc-cedar:~/workspace/economical-roar
+
+upload-mimic-cedar:
+	rsync --info=progress2 -urltv --delete \
+		--filter=':- .gitignore' --exclude='.git/' \
+		-e ssh ./mimic/ cc-cedar:~/scratch/ecoroar/mimic
 
 upload-code-mila:
 	rsync --info=progress2 -urltv --delete \

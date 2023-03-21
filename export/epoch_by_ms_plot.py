@@ -37,7 +37,6 @@ if __name__ == "__main__":
     pd.set_option('display.max_rows', None)
     args, unknown = parser.parse_known_args()
 
-    # TODO: figure out why only loss and accuarcy are logged by .evalaute
     dataset_mapping = pd.DataFrame([
         { 'args.dataset': dataset._name, 'target_metric': dataset._early_stopping_metric }
         for dataset in datasets.values()

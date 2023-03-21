@@ -3,8 +3,7 @@ import numpy as np
 import tensorflow as tf
 
 from typing import List, Callable
-from ..types import TokenizedDict, InputTransform
-from ..tokenizer._abstract_tokenizer import AbstractTokenizer
+from ..types import InputTransform
 
 @tf.function
 def _get_bounding_shape(x, y):

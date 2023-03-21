@@ -4,16 +4,18 @@ from functools import cached_property, partial
 from typing import List, Tuple, Dict, Union, Iterable
 from abc import ABCMeta, abstractmethod
 
+import numpy as np
 import tensorflow as tf
 import tensorflow_datasets as tfds
 
-from ..tokenizer._abstract_tokenizer import AbstractTokenizer
+from ..types import Tokenizer
 from ..metric import AUROC, F1Score, Matthew, Pearson
 
 class AbstractDataset(metaclass=ABCMeta):
     _name: str
     _metrics: List[str]
     _early_stopping_metric: str
+    _target_name: str = 'label'
 
     _split_train: str
     _split_valid: str
@@ -22,6 +24,10 @@ class AbstractDataset(metaclass=ABCMeta):
     _persistent_dir: pathlib.Path
     _builder_cache: tfds.core.DatasetBuilder
     _seed: int
+
+    _class_count_train: List[int]
+    _class_count_valid: List[int]
+    _class_count_test: List[int]
 
     def __init__(self, persistent_dir: pathlib.Path, seed: int = 0, use_snapshot=True, use_cache=True):
         """Abstract Base Class for defining a dataset with standard train/valid/test semantics.
@@ -66,6 +72,29 @@ class AbstractDataset(metaclass=ABCMeta):
     def early_stopping_metric(self) -> str:
         return f'val_{self._early_stopping_metric}'
 
+    @classmethod
+    def majority_classifier_test_performance(cls):
+        class_count_train = np.asarray(cls._class_count_train)
+        class_count_test = np.asarray(cls._class_count_test)
+        best_class_idx = np.argmax(class_count_train)
+        num_classes = class_count_train.size
+
+        # Some notation from https://en.wikipedia.org/wiki/Phi_coefficient
+        c = class_count_test[best_class_idx] # total number of smaples correctly predicted
+        s = np.sum(class_count_test) # total number of samples
+
+        possible_metric = {
+            'accuracy': c / s,
+            'auroc': None,  # Can not be meaningfully computed without continues values
+            'macro_f1': (1/num_classes) * c / (0.5*s + 0.5*c),  # One class, will have a non-zero score
+            'micro_f1': c / s,  # Micro is always accuracy, for a majority classifier
+            'matthew': 0  # Mathhew is always zero, for majority classifier
+        }
+
+        return {
+            metric_name: possible_metric[metric_name] for metric_name in cls._metrics
+        }
+
     @property
     def name(self) -> str:
         """Name of the dataset
@@ -82,13 +111,16 @@ class AbstractDataset(metaclass=ABCMeta):
     def num_classes(self) -> int:
         """Number of classes in the dataset
         """
-        return self.info.features['label'].num_classes
+        return self.info.features[self._target_name].num_classes
 
     def download(self):
         """Downloads dataset
         """
         self._builder_cache.download_and_prepare(
-            download_dir=self._persistent_dir / 'cache' / 'tfds'
+            download_dir=self._persistent_dir / 'cache' / 'tfds',
+            download_config=tfds.download.DownloadConfig(
+                manual_dir=self._persistent_dir
+            )
         )
 
     @cached_property
@@ -105,7 +137,7 @@ class AbstractDataset(metaclass=ABCMeta):
                                               shuffle_files=True,
                                               read_config=tfds.ReadConfig(shuffle_seed=self._seed))
 
-    def _preprocess_path(self, split: Union['train', 'valid', 'test'], tokenizer: AbstractTokenizer=None):
+    def _preprocess_path(self, split: Union['train', 'valid', 'test'], tokenizer: Tokenizer=None):
         dirname = self._persistent_dir / 'cache' / 'dataset_preprocess'
         if tokenizer:
             filename = f'd-{self.name.lower()}_s-{self._seed}_t-{tokenizer.alias_name.lower()}.{split}.tfds'
@@ -113,7 +145,7 @@ class AbstractDataset(metaclass=ABCMeta):
             filename = f'd-{self.name.lower()}_s-{self._seed}.{split}.tfds'
         return dirname / filename
 
-    def _process_dataset(self, dataset: tf.data.Dataset, tokenizer: AbstractTokenizer=None):
+    def _process_dataset(self, dataset: tf.data.Dataset, tokenizer: Tokenizer=None):
         # process dataset
         dataset = dataset.map(self._as_supervised, num_parallel_calls=tf.data.AUTOTUNE, deterministic=True)
         if tokenizer:
@@ -121,22 +153,35 @@ class AbstractDataset(metaclass=ABCMeta):
 
         return dataset
 
-    def preprocess(self, tokenizer: AbstractTokenizer=None):
+    def preprocess(self, tokenizer: Tokenizer=None):
         """Creates preprocessed datasets, for each train, valid, and test split.
 
         These datasets uses tf.data.Dataset.save as the storage format, and generally loads much faster.
 
         Args:
-            tokenizer (AbstractTokenizer, optional): If provided, the datasets will be tokenized. Defaults to None.
+            tokenizer (Tokenizer, optional): If provided, the datasets will be tokenized. Defaults to None.
         """
         for split, dataset in zip(['train', 'valid', 'test'], self._datasets):
             # save dataset
             path = self._preprocess_path(split, tokenizer)
             if path.exists():
                 shutil.rmtree(path)
-            self._process_dataset(dataset, tokenizer).save(str(path))
+            dataset = self._process_dataset(dataset, tokenizer)
+            dataset.save(str(path))
 
-    def _load(self, split: Union['train', 'valid', 'test'], tokenizer: AbstractTokenizer=None):
+    def is_preprocess_valid(self, tokenizer: Tokenizer=None):
+        for name, split in [('train', self._split_train), ('valid', self._split_valid), ('test', self._split_test)]:
+            path = self._preprocess_path(name, tokenizer)
+            if not path.exists():
+                print(f'File missing mismatch: {path}')
+                return False
+            dataset = tf.data.Dataset.load(str(path))
+            if dataset.cardinality() != self.info.splits[split].num_examples:
+                print(f'Cadinality mismatch: {dataset.cardinality()} {self.info.splits[split].num_examples}')
+                return False
+        return True
+
+    def _load(self, split: Union['train', 'valid', 'test'], tokenizer: Tokenizer=None):
         if self._use_snapshot:
             path = self._preprocess_path(split, tokenizer)
             if not path.exists():
@@ -157,7 +202,13 @@ class AbstractDataset(metaclass=ABCMeta):
         """
         return self.info.splits[self._split_train].num_examples
 
-    def train(self, tokenizer: AbstractTokenizer=None) -> tf.data.Dataset:
+    @property
+    def train_class_count(self) -> List[int]:
+        """Number of training obsevations
+        """
+        return self._class_count_train.copy()
+
+    def train(self, tokenizer: Tokenizer=None) -> tf.data.Dataset:
         """Get training dataset
         """
         return self._load('train', tokenizer)
@@ -168,7 +219,13 @@ class AbstractDataset(metaclass=ABCMeta):
         """
         return self.info.splits[self._split_valid].num_examples
 
-    def valid(self, tokenizer: AbstractTokenizer=None) -> tf.data.Dataset:
+    @property
+    def valid_class_count(self) -> List[int]:
+        """Number of validation obsevations
+        """
+        return self._class_count_valid.copy()
+
+    def valid(self, tokenizer: Tokenizer=None) -> tf.data.Dataset:
         """Validation dataset
         """
         return self._load('valid', tokenizer)
@@ -179,7 +236,13 @@ class AbstractDataset(metaclass=ABCMeta):
         """
         return self.info.splits[self._split_test].num_examples
 
-    def test(self, tokenizer: AbstractTokenizer=None) -> tf.data.Dataset:
+    @property
+    def test_class_count(self) -> List[int]:
+        """Number of test obsevations
+        """
+        return self._class_count_test.copy()
+
+    def test(self, tokenizer: Tokenizer=None) -> tf.data.Dataset:
         """Test dataset
         """
         return self._load('test', tokenizer)

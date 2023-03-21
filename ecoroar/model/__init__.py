@@ -1,4 +1,5 @@
 
-__all__ = ['HuggingfaceModel']
+__all__ = ['huggingface_model_from_repo', 'huggingface_model_from_local', 'SimpleTestModel']
 
-from .huggingface import HuggingfaceModel
+from .huggingface import huggingface_model_from_repo, huggingface_model_from_local
+from .simple_test_model import SimpleTestModel

@@ -1,5 +1,5 @@
 
-__all__ = ['AUROC', 'F1Score']
+__all__ = ['AUROC', 'F1Score', 'Pearson', 'Matthew']
 
 from .auroc import AUROC
 from .f1_score import F1Score

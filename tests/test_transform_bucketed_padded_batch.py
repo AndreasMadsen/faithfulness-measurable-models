@@ -1,6 +1,4 @@
 
-import pathlib
-
 import numpy as np
 import tensorflow as tf
 
@@ -91,4 +89,3 @@ def test_batching_output():
     _assert_identical_batch(batches[7], _expected_batch([4,7], 8))
     _assert_identical_batch(batches[8], _expected_batch([8,8], 8))
     _assert_identical_batch(batches[9], _expected_batch([10], 10))
-

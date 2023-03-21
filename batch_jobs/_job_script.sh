@@ -24,7 +24,7 @@ function join_by {
 submit_seeds () {
     local walltime=$1
     local seeds=$2
-    local experiment_name=$(python experiments/experiment-name.py "${@:5}" --seed 9999)
+    local experiment_name=$(python experiments/experiment-name.py "${@:4}" --seed 9999)
 
     local run_seeds=()
     local filename
@@ -37,14 +37,18 @@ submit_seeds () {
     done
 
     if [ ! "${#run_seeds[@]}" -eq 0 ]; then
-        local walltime_times_nb_seeds=$(python3 -c \
-        "from datetime import datetime; \
-         t = (datetime.strptime('$walltime', '%H:%M:%S') - datetime.strptime('0:0:0', '%H:%M:%S')) * ${#run_seeds[@]}; \
-         print(':'.join(map(str, [*divmod(int(t.total_seconds()) // 60, 60), 0])));
-        ")
+        local walltime_times_nb_seeds;
+        if ! walltime_times_nb_seeds=$(python3 -c \
+            "from datetime import datetime; \
+            t = (datetime.strptime('$walltime', '%H:%M:%S') - datetime.strptime('0:0:0', '%H:%M:%S')) * ${#run_seeds[@]}; \
+            print(':'.join(map(str, [*divmod(int(t.total_seconds()) // 60, 60), 0])));
+        "); then
+            echo -e "\e[31mCould not parse time '${walltime}', error ^^^${walltime_times_nb_seeds}\e[0m" >&2
+        fi
 
         local concat_seeds=$(join_by '' "${run_seeds[@]}")
         local jobname="${experiment_name/9999/$concat_seeds}"
+        local jobid;
         if jobid=$(
             sbatch --time="$walltime_times_nb_seeds" \
                --parsable \

@@ -1,0 +1,5 @@
+content.data-type.text # Contains text data.
+content.language-formality.formality-unknown # Contains languages whose formality is unknown.
+content.language.en # Contains text in language English / en.
+content.monolingual # Contains text in 1 natural language.
+ml.task.question-answering # Relates to Question Answering, a machine learning task.

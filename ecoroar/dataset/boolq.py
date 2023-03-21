@@ -12,6 +12,10 @@ class BoolQDataset(AbstractDataset):
     _split_valid = 'train[80%:]'
     _split_test = 'validation'
 
+    _class_count_train = [2809, 4733]
+    _class_count_valid = [744, 1141]
+    _class_count_test = [1237, 2033]
+
     def _builder(self, data_dir):
         return tfds.builder("super_glue/boolq", data_dir=data_dir)
 

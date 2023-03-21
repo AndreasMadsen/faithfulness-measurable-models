@@ -12,6 +12,10 @@ class QQPDataset(AbstractDataset):
     _split_valid = 'train[80%:]'
     _split_test = 'validation'
 
+    _class_count_train = [183521, 107556]
+    _class_count_valid = [45947, 26822]
+    _class_count_test = [25545, 14885]
+
     def _builder(self, data_dir):
         return tfds.builder("glue/qqp", data_dir=data_dir)
 

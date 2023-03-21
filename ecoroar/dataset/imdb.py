@@ -12,6 +12,10 @@ class IMDBDataset(AbstractDataset):
     _split_valid = 'train[80%:]'
     _split_test = 'test'
 
+    _class_count_train = [10031, 9969]
+    _class_count_valid = [2469, 2531]
+    _class_count_test = [12500, 12500]
+
     def _builder(self, data_dir):
         return tfds.builder("imdb_reviews", data_dir=data_dir)
 
