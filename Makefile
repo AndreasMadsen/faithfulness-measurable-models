@@ -33,6 +33,10 @@ download-results-cedar:
 	rsync --info=progress2 -urltv --delete \
 		-e ssh cc-cedar:~/scratch/ecoroar/results/ ./results
 
+download-cache-cedar:
+	rsync --info=progress2 -urltv --delete \
+		-e ssh cc-cedar:~/scratch/ecoroar/cache/ ./cache
+
 upload-code-cedar:
 	rsync --info=progress2 -urltv --delete \
 		--filter=':- .gitignore' --exclude='.git/' \
