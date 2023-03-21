@@ -257,7 +257,7 @@ if __name__ == '__main__':
         p_value_thresholds = [0.001, 0.005, 0.01, 0.05, 0.1]
         p_values_histogram = dataset_split_annotated.reduce(
             (
-                tf.zeros(0, dtype=tf.dtypes.int32),  # count
+                tf.zeros(1, dtype=tf.dtypes.int32),  # count
                 tf.zeros(len(p_value_thresholds), dtype=tf.dtypes.int32)  # hist
             ),
             lambda state, batch: (  # state = (count, hist), batch = (x, y, ood)
