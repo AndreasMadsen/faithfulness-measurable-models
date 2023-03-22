@@ -40,7 +40,7 @@ parser.add_argument('--performance-metric',
                     type=str,
                     choices=['primary', 'loss', 'accuracy'],
                     help='Which metric to use as a performance metric.')
-parser.add_argument('--model',
+parser.add_argument('--model-category',
                     action='store',
                     default='size',
                     type=str,
@@ -82,7 +82,7 @@ if __name__ == "__main__":
     }
 
     experiment_id = generate_experiment_id('faithfulness',
-                                            model=args.model,
+                                            model=args.model_category,
                                             max_masking_ratio=args.max_masking_ratio,
                                             masking_strategy=args.masking_strategy,
                                             split=args.split)
@@ -101,7 +101,7 @@ if __name__ == "__main__":
                 if data['args']['max_masking_ratio'] == args.max_masking_ratio and \
                    data['args']['masking_strategy'] == args.masking_strategy and \
                    data['args']['split'] == args.split and \
-                   data['args']['model'] in model_categories[args.model]:
+                   data['args']['model'] in model_categories[args.model_category]:
                     results.append(data)
 
         df_faithfulness = pd.json_normalize(results).explode('results', ignore_index=True)
