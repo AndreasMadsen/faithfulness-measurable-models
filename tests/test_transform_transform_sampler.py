@@ -50,6 +50,7 @@ def test_transform_sampler_deterministic(tokenizer, simple_dataset):
     np.testing.assert_array_equal(masked_2, [[0,  713,   21,   41, 6587, 1569,    4,    2,    1,    1,    1, 1],
                                              [0, mask, mask, mask, mask, mask, mask, mask, mask, mask, mask, 2]])
 
+@pytest.mark.slow
 def test_transform_sampler_stocastic_ratio(tokenizer, single_obs_input):
     mask = tokenizer.mask_token_id.numpy()
     source_sequence = np.asarray([[0, 713, 21, 41, 3668, 6587, 1569, 4, 2]])

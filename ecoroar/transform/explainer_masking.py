@@ -5,7 +5,7 @@ import numpy as np
 import tensorflow as tf
 
 from ..types import TokenizedDict, InputTransform, Tokenizer
-
+from .map_on_gpu import MapOnGPU
 
 class ExplainerMasking(InputTransform):
     def __init__(self, explainer, tokenizer: Tokenizer):
@@ -81,23 +81,13 @@ class ExplainerMasking(InputTransform):
 
         masking_ratio = tf.convert_to_tensor(masking_ratio, dtype=tf.dtypes.float32)
 
-        def masked_dataset(dataset):
-            if masking_ratio == 0.0:
-                return dataset
+        if masking_ratio == 0.0:
+            return (lambda dataset: dataset)
 
-            # tf.Dataset.from_generator is used because tf.Dataset.map will run on the CPU,
-            # and the explainer is likely to do model inference and perhaps derivatives.
-            # Those are expensive calculations, and should be done on the GPU. using
-            # `with tf.device('GPU')` to force calculations on the GPU is an option too.
-            # However, this is still 2x-3x slower, likely because data is not prefetched to
-            # the GPU.
-            def _generator():
-                for x, y in dataset.prefetch(tf.data.AUTOTUNE):
-                    yield (self._mask_input(x, y, masking_ratio), y)
+        def _mapper(x, y):
+            return (self._mask_input(x, y, masking_ratio), y)
 
-            return tf.data.Dataset.from_generator(
-                _generator,
-                output_signature=tf.data.experimental.get_structure(dataset)
-            ).apply(tf.data.experimental.assert_cardinality(dataset.cardinality()))
+        def _output_signature(dataset):
+            return tf.data.experimental.get_structure(dataset)
 
-        return masked_dataset
+        return MapOnGPU(_mapper, _output_signature)

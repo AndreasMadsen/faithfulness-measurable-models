@@ -21,6 +21,7 @@ dependencies = [
     "plotnine >= 0.8.0",
     "numexpr >= 2.8.3",  # speedup pandas
     "bottleneck >= 1.3.4",  # speedup pandas
+    "fastparquet >= 2023.2.0",  # parquet support for pandas
     "pandas >= 1.5.0",
     "h5py >= 3.7.0",  # weight saving for keras
     "tensorflow >= 2.11.0; sys_platform != 'darwin'",
@@ -35,5 +36,6 @@ test = [
     "pytest-skip-slow >= 0.0.5",  # enables pytest.mark.slow
     "pytest >= 7.2.1",
     "tox >= 3.24.4",
-    "scikit-learn >= 1.1.2"
+    "scikit-learn >= 1.1.2",
+    "scipy >= 1.10.1"
 ]

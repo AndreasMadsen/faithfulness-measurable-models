@@ -2,7 +2,9 @@
 from abc import ABC, abstractmethod
 
 import tensorflow as tf
+
 from ..types import TokenizedDict, Tokenizer, Model
+from ..util import get_compiler
 
 class ImportanceMeasure(ABC):
     _name: str
@@ -33,19 +35,8 @@ class ImportanceMeasure(ABC):
         else:
             self._rng = tf.random.Generator.from_seed(seed)
 
-        # define compiler
-        if run_eagerly:
-            if jit_compile:
-                raise ValueError('run_eagerly must be false when jit_compile is True')
-            else:
-                compiler = lambda x: x
-        else:
-            if jit_compile:
-                compiler = tf.function(reduce_retracing=True, jit_compile=True)
-            else:
-                compiler = tf.function(reduce_retracing=True)
-
         # setup explainer function
+        compiler = get_compiler(run_eagerly, jit_compile)
         if self._implements_explain_batch:
             self._wrap_explain = compiler(self._wrap_explain_batch)
         else:

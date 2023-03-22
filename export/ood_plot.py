@@ -34,12 +34,6 @@ parser.add_argument('--stage',
                     type=str,
                     choices=['preprocess', 'plot', 'both'],
                     help='Which export stage should be performed. Mostly just useful for debugging.')
-parser.add_argument('--performance-metric',
-                    action='store',
-                    default='primary',
-                    type=str,
-                    choices=['primary', 'loss', 'accuracy'],
-                    help='Which metric to use as a performance metric.')
 parser.add_argument('--model-category',
                     action='store',
                     default='size',
@@ -66,22 +60,12 @@ if __name__ == "__main__":
     pd.set_option('display.max_rows', None)
     args, unknown = parser.parse_known_args()
 
-    dataset_mapping = pd.DataFrame([
-        {
-            'args.dataset': dataset._name,
-            'target_metric': dataset._early_stopping_metric if args.performance_metric == 'primary' else args.performance_metric,
-            'baseline': dataset.majority_classifier_test_performance()[
-                dataset._early_stopping_metric if args.performance_metric == 'primary' else args.performance_metric
-            ]
-        }
-        for dataset in datasets.values()
-    ])
     model_categories = {
         'masking-ratio': ['roberta-m15', 'roberta-m20', 'roberta-m30', 'roberta-m40', 'roberta-m50'],
         'size': ['roberta-sb', 'roberta-sl']
     }
 
-    experiment_id = generate_experiment_id('faithfulness',
+    experiment_id = generate_experiment_id('ood',
                                             model=args.model_category,
                                             max_masking_ratio=args.max_masking_ratio,
                                             masking_strategy=args.masking_strategy,
@@ -90,8 +74,8 @@ if __name__ == "__main__":
     if args.stage in ['both', 'preprocess']:
         # Read JSON files into dataframe
         results = []
-        files = sorted((args.persistent_dir / 'results').glob('faithfulness_*.json'))
-        for file in tqdm(files, desc='Loading faithfulness .json files'):
+        files = sorted((args.persistent_dir / 'results').glob('ood_*.json'))
+        for file in tqdm(files, desc='Loading ood .json files'):
             with open(file, 'r') as fp:
                 try:
                     data = json.load(fp)
@@ -104,14 +88,12 @@ if __name__ == "__main__":
                    data['args']['model'] in model_categories[args.model_category]:
                     results.append(data)
 
-        df_faithfulness = pd.json_normalize(results).explode('results', ignore_index=True)
-        results = pd.json_normalize(df_faithfulness.pop('results')).add_prefix('results.')
-        df_faithfulness = pd.concat([df_faithfulness, results], axis=1)
+        df_ood = pd.json_normalize(results).explode('results', ignore_index=True)
+        results = pd.json_normalize(df_ood.pop('results')).add_prefix('results.')
+        df_ood = pd.concat([df_ood, results], axis=1)
 
         # Select test metric
-        df = (df_faithfulness
-              .merge(dataset_mapping, on='args.dataset')
-              .transform(select_target_metric))
+        df = df_ood
 
     if args.stage in ['preprocess']:
         os.makedirs(f'{args.persistent_dir}/pandas', exist_ok=True)
@@ -121,30 +103,25 @@ if __name__ == "__main__":
 
     if args.stage in ['both', 'plot']:
         df_plot = (df
-            .groupby(['args.model', 'args.dataset', 'args.explainer', 'results.masking_ratio'], group_keys=True)
-            .apply(bootstrap_confint(['metric']))
-            .reset_index())
-
-        df_baseline = (df
-            .groupby(['args.model', 'args.dataset', 'results.masking_ratio'], group_keys=True)
-            .apply(bootstrap_confint(['baseline']))
-            .reset_index())
+            .groupby(['args.model', 'args.dataset', 'args.explainer', 'results.masking_ratio', 'results.threshold'], group_keys=True)
+            .apply(bootstrap_confint(['results.proportion']))
+            .reset_index()
+            .query('`results.threshold` == 0.05'))
 
         # Generate plot
         p = (p9.ggplot(df_plot, p9.aes(x='results.masking_ratio'))
-            + p9.geom_ribbon(p9.aes(ymin='metric_lower', ymax='metric_upper', fill='args.explainer'), alpha=0.35)
-            + p9.geom_point(p9.aes(y='metric_mean', color='args.explainer'))
-            + p9.geom_line(p9.aes(y='metric_mean', color='args.explainer'))
-            + p9.geom_line(p9.aes(y='baseline_mean'), color='black', data=df_baseline)
+            + p9.geom_ribbon(p9.aes(ymin='results.proportion_lower', ymax='results.proportion_upper', fill='args.explainer'), alpha=0.35)
+            + p9.geom_point(p9.aes(y='results.proportion_mean', color='args.explainer'))
+            + p9.geom_line(p9.aes(y='results.proportion_mean', color='args.explainer'))
             + p9.facet_grid("args.model ~ args.dataset", scales="free_x", labeller=annotation.model.labeller)
             + p9.scale_x_continuous(name='Masking ratio')
             + p9.scale_y_continuous(
                 labels=lambda ticks: [f'{tick:.0%}' for tick in ticks],
-                name='IM masked performance'
+                name='p_values < 5%'
             )
             + p9.scale_color_discrete(
-                breaks = annotation.explainer.breaks,
-                labels = annotation.explainer.labels,
+                #breaks = annotation.explainer.breaks,
+                #labels = annotation.explainer.labels,
                 aesthetics = ["colour", "fill"],
                 name='importance measure (IM)'
             )

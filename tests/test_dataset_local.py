@@ -23,7 +23,6 @@ def test_local_babi_2():
     dataset = Babi2Dataset(persistent_dir=pathlib.Path('.'), use_snapshot=False, use_cache=False)
 
     for (paragraph, question), answer in dataset.train().take(1):
-        print(question.numpy())
         assert paragraph.numpy() == (
             b'John went back to the garden.'
             b' Daniel picked up the apple there.'
@@ -45,7 +44,6 @@ def test_local_babi_3():
     dataset = Babi3Dataset(persistent_dir=pathlib.Path('.'), use_snapshot=False, use_cache=False)
 
     for (paragraph, question), answer in dataset.train().take(1):
-        print(question.numpy())
         assert paragraph.numpy() == (
             b'Mary moved to the office.'
             b' John went to the kitchen.'

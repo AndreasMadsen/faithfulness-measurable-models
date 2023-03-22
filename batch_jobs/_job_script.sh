@@ -39,9 +39,11 @@ submit_seeds () {
     if [ ! "${#run_seeds[@]}" -eq 0 ]; then
         local walltime_times_nb_seeds;
         if ! walltime_times_nb_seeds=$(python3 -c \
-            "from datetime import datetime; \
-            t = (datetime.strptime('$walltime', '%H:%M:%S') - datetime.strptime('0:0:0', '%H:%M:%S')) * ${#run_seeds[@]}; \
-            print(':'.join(map(str, [*divmod(int(t.total_seconds()) // 60, 60), 0])));
+            "from datetime import timedelta; \
+            in_h, in_m = '$walltime'.split(':'); \
+            t = timedelta(hours=int(in_h), minutes=int(in_m)) * ${#run_seeds[@]}; \
+            out_h, out_m = divmod(int(t.total_seconds()) // 60, 60); \
+            print(f'{out_h:d}:{out_m:d}:0')
         "); then
             echo -e "\e[31mCould not parse time '${walltime}', error ^^^${walltime_times_nb_seeds}\e[0m" >&2
         fi

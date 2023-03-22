@@ -11,8 +11,9 @@ from ecoroar.util import generate_experiment_id, model_name_to_huggingface_repo,
 from ecoroar.dataset import datasets
 from ecoroar.tokenizer import HuggingfaceTokenizer
 from ecoroar.model import huggingface_model_from_local
-from ecoroar.transform import BucketedPaddedBatch, ExplainerMasking
+from ecoroar.transform import BucketedPaddedBatch, RandomMaxMasking, TransformSampler, ExplainerMasking, MapOnGPU
 from ecoroar.explain import explainers
+from ecoroar.ood import MaSF
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--persistent-dir',
@@ -51,10 +52,10 @@ parser.add_argument('--dataset',
                     choices=datasets.keys(),
                     type=str,
                     help='The dataset to fine-tune on')
-parser.add_argument('--save-masked-datasets',
+parser.add_argument('--save-annotated-datasets',
                     action=argparse.BooleanOptionalAction,
                     default=False,
-                    help='Save masked dataset')
+                    help='Save annotated dataset')
 parser.add_argument('--deterministic',
                     action='store_true',
                     help='Use determinstic computations')
@@ -82,6 +83,11 @@ parser.add_argument('--explainer',
                     choices=explainers.keys(),
                     type=str,
                     help='The importance measure algorithm to use for explanation')
+parser.add_argument('--ood',
+                    default='MaSF',
+                    choices=['MaSF'],
+                    type=str,
+                    help='The OOD detection method')
 parser.add_argument('--split',
                     default='test',
                     choices=['train', 'valid', 'test'],
@@ -102,11 +108,11 @@ if __name__ == '__main__':
 
     # Generate job id
     experiment_id = generate_experiment_id(
-        'faithfulness',
+        'ood',
         model=args.model, dataset=args.dataset,
         seed=args.seed, max_epochs=args.max_epochs,
         max_masking_ratio=args.max_masking_ratio, masking_strategy=args.masking_strategy,
-        explainer=args.explainer,
+        explainer=args.explainer, ood=args.ood,
         split=args.split
     )
 
@@ -120,6 +126,7 @@ if __name__ == '__main__':
     print('  Masking strategy:', args.masking_strategy)
     print('')
     print('  Explainer:', args.explainer)
+    print('  OOD:', args.ood)
     print('  Split:', args.split)
     print('')
     print('  Batch size:', args.batch_size)
@@ -151,16 +158,34 @@ if __name__ == '__main__':
                                            seed=args.seed,
                                            run_eagerly=False, jit_compile=args.jit_compile)
     masker = ExplainerMasking(explainer, tokenizer)
+    ood_detector = MaSF(tokenizer, model,
+                        run_eagerly=False, jit_compile=args.jit_compile)
 
     # Load datasets
+    dataset_valid = dataset.valid(tokenizer)
     dataset_split = dataset.load(args.split, tokenizer)
 
     # Setup batching routine
     if args.jit_compile:
-        batcher = BucketedPaddedBatch([dataset_split], batch_size=args.batch_size)
+        batcher = BucketedPaddedBatch([dataset_valid, dataset_split], batch_size=args.batch_size)
     else:
         batcher = lambda batch_size, padding_values, num_parallel_calls: \
             lambda dataset: dataset.padded_batch(batch_size, padding_values=padding_values)
+
+    # Setup masking routine for training
+    match args.masking_strategy:
+        case 'uni':
+            masker_train = RandomMaxMasking(args.max_masking_ratio / 100, tokenizer, seed=args.seed)
+        case 'half-det':
+            masker_train = TransformSampler([
+                RandomMaxMasking(0, tokenizer, seed=args.seed),
+                RandomMaxMasking(args.max_masking_ratio / 100, tokenizer, seed=args.seed)
+            ], seed=args.seed, stochastic=False)
+        case 'half-ran':
+            masker_train = TransformSampler([
+                RandomMaxMasking(0, tokenizer, seed=args.seed),
+                RandomMaxMasking(args.max_masking_ratio / 100, tokenizer, seed=args.seed)
+            ], seed=args.seed, stochastic=True)
 
     # Configure model
     model.compile(
@@ -170,49 +195,91 @@ if __name__ == '__main__':
         jit_compile=args.jit_compile
     )
 
-    # Compute faithfulness curve
-    dataset_split_masked = dataset_split \
+    durations['setup'] = timer() - setup_time_start
+
+    # Train distributional representation using  validation dataset
+    # Note, this dataset needs to be masked the same way as the training dataset during training.
+    odd_fit_time_start = timer()
+    # TODO: figure out what is the appropiate number of repeats
+    dataset_valid_masked = dataset_valid \
+        .repeat(1) \
         .apply(batcher(args.batch_size,
                         padding_values=(tokenizer.padding_values, None),
                         num_parallel_calls=tf.data.AUTOTUNE)) \
+        .map(lambda x, y: (masker_train(x), y), num_parallel_calls=tf.data.AUTOTUNE) \
         .prefetch(tf.data.AUTOTUNE)
 
-    durations['setup'] = timer() - setup_time_start
+    # TODO: Rerunning this for every --explainer argument is quite the waste,
+    #   since the distributed representation will be the same for every --explainer
+    ood_detector.fit(dataset_valid_masked)
+    durations['ood_fit'] = timer() - odd_fit_time_start
 
-    # Evalute test performance at different masking ratios
+    # Evalute statistical OOD test at each masking ratios
     results = []
-    explain_time = 0
-    evaluate_time = 0
-    masked_dataset_dir = args.persistent_dir / 'intermediate' / 'masked_dataset'
-    os.makedirs(masked_dataset_dir, exist_ok=True)
+    measure_time = 0
+    summary_time = 0
+    masked_dataset_prefix = args.persistent_dir / 'intermediate' / 'masked_dataset' / generate_experiment_id(
+            'faithfulness',
+            model=args.model, dataset=args.dataset,
+            seed=args.seed, max_epochs=args.max_epochs,
+            max_masking_ratio=args.max_masking_ratio, masking_strategy=args.masking_strategy,
+            explainer=args.explainer,
+            split=args.split
+        )
+    ood_annotated_dataset_dir = args.persistent_dir / 'intermediate' / 'ood_annotated'
+    os.makedirs(ood_annotated_dataset_dir, exist_ok=True)
     for masking_ratio in [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]:
+        dataset_split_masked = tf.data.Dataset.load(
+            str(masked_dataset_prefix.with_suffix(f'.{masking_ratio}.tfds'))
+        )
 
-        # Create masked dataset. This is cached because it is used twice.
-        # 1. To evaluate method
-        # 2. To create next masking dataset
-        explain_time_start = timer()
-        dataset_split_masked = dataset_split_masked \
-            .apply(masker(masking_ratio / 100)) \
-            .cache() \
-            .prefetch(tf.data.AUTOTUNE)
-        for x, y in tqdm(dataset_split_masked, desc=f'Explaing dataset ({masking_ratio}%)', mininterval=1):
+        measure_time_start = timer()
+        # assigns p-values to each observation
+        dataset_split_annotated = dataset_split_masked \
+            .apply(MapOnGPU(
+                lambda x, y: (x, y, ood_detector(x)),
+                lambda dataset: (*tf.data.experimental.get_structure(dataset), tf.TensorSpec(shape=[None], dtype=tf.dtypes.float32))
+            )) \
+            .cache()
+
+        for x, y, ood in tqdm(dataset_split_annotated, desc=f'OOD annotating dataset ({masking_ratio}%)', mininterval=1):
             pass
-        explain_time += timer() - explain_time_start
+        measure_time += timer() - measure_time_start
 
-        if args.save_masked_datasets:
-            dataset_split_masked.save(
-                str((masked_dataset_dir / experiment_id).with_suffix(f'.{masking_ratio}.tfds'))
+        # save annotated dataset
+        if args.save_annotated_datasets:
+            dataset_split_annotated.save(
+                str((ood_annotated_dataset_dir / experiment_id).with_suffix(f'.{masking_ratio}.tfds'))
             )
 
-        evaluate_time_start = timer()
-        results.append({
-            'masking_ratio': masking_ratio / 100,
-            **model.evaluate(dataset_split_masked, return_dict=True)
-        })
-        evaluate_time += timer() - evaluate_time_start
+        # aggregate p-value statistics as a basic histogram
+        summary_time_start = timer()
+        p_value_thresholds = [0.001, 0.005, 0.01, 0.05, 0.1]
+        p_values_histogram = dataset_split_annotated.reduce(
+            (
+                tf.zeros(1, dtype=tf.dtypes.int32),  # count
+                tf.zeros(len(p_value_thresholds), dtype=tf.dtypes.int32)  # hist
+            ),
+            lambda state, batch: (  # state = (count, hist), batch = (x, y, ood)
+                state[0] + tf.shape(batch[2])[0],
+                state[1] + tf.math.reduce_sum(tf.cast(
+                    tf.expand_dims(batch[2], 0) < tf.expand_dims(p_value_thresholds, 1),
+                    dtype=tf.dtypes.int32), axis=1)
+            )
+        )
+        p_values_histogram_prop = p_values_histogram[1] / p_values_histogram[0]
 
-    durations['explain'] = explain_time
-    durations['evaluate'] = evaluate_time
+        # save summarized results
+        for threshold, proportion in zip(p_value_thresholds, p_values_histogram_prop.numpy()):
+            results.append({
+                'masking_ratio': masking_ratio / 100,
+                'proportion': proportion.item(),
+                'threshold': threshold
+            })
+        summary_time = timer() - summary_time_start
+
+    durations['measure'] = measure_time
+    durations['summary'] = summary_time
 
     os.makedirs(args.persistent_dir / 'results', exist_ok=True)
     with open(args.persistent_dir / 'results' / f'{experiment_id}.json', "w") as f:

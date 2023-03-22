@@ -43,6 +43,16 @@ parser.add_argument('--explainer',
                     default=None,
                     type=str,
                     help='The importance measure algorithm to use for explanation')
+parser.add_argument('--ood',
+                    default=None,
+                    choices=['MaSF'],
+                    type=str,
+                    help='The OOD detection method')
+parser.add_argument('--split',
+                    default=None,
+                    choices=['train', 'valid', 'test'],
+                    type=str,
+                    help='The dataset split to evaluate faithfulness on')
 
 
 if __name__ == '__main__':
@@ -54,6 +64,7 @@ if __name__ == '__main__':
         model=args.model, dataset=args.dataset,
         seed=args.seed, max_epochs=args.max_epochs,
         max_masking_ratio=args.max_masking_ratio, masking_strategy=args.masking_strategy,
-        explainer=args.explainer
+        explainer=args.explainer, ood=args.ood,
+        split=args.split
     )
     print(experiment_id)

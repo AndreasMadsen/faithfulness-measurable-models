@@ -106,11 +106,17 @@ class HuggingfaceTokenizer(Tokenizer):
             'attention_mask': [self._tokenizer.model_max_length]
         }
 
-    @property
+    @cached_property
     def vocab(self) -> List[str]:
         """Return vocabulary
         """
-        return list(self._vocabulary)
+        vocab = [None] * len(self._tokenizer.vocab)
+        for word, idx in self._tokenizer.vocab.items():
+            vocab[idx] = word
+        for word in vocab:
+            if word is None:
+                raise NotImplementedError('Vocabulary is assumed to be dense')
+        return tf.constant(vocab)
 
     def _wrap_tokenizer_call(self, texts: Iterable[tf.Tensor]):
         texts = tuple(text.numpy().decode('utf-8') for text in texts)
@@ -138,3 +144,6 @@ class HuggingfaceTokenizer(Tokenizer):
             'input_ids': tf.ensure_shape(input_ids, [None]),
             'attention_mask': tf.ensure_shape(attention_mask, [None])
         }
+
+    def covert_ids_to_tokens(self, input_ids: tf.Tensor) -> tf.Tensor:
+        return tf.gather(self.vocab, input_ids)

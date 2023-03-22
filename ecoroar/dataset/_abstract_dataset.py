@@ -84,6 +84,7 @@ class AbstractDataset(metaclass=ABCMeta):
         s = np.sum(class_count_test) # total number of samples
 
         possible_metric = {
+            'loss': np.nan,  # Not possible to compute cross entropy of zero probability
             'accuracy': c / s,
             'auroc': None,  # Can not be meaningfully computed without continues values
             'macro_f1': (1/num_classes) * c / (0.5*s + 0.5*c),  # One class, will have a non-zero score
@@ -92,7 +93,7 @@ class AbstractDataset(metaclass=ABCMeta):
         }
 
         return {
-            metric_name: possible_metric[metric_name] for metric_name in cls._metrics
+            metric_name: possible_metric[metric_name] for metric_name in cls._metrics + ['loss']
         }
 
     @property
@@ -112,6 +113,12 @@ class AbstractDataset(metaclass=ABCMeta):
         """Number of classes in the dataset
         """
         return self.info.features[self._target_name].num_classes
+
+    @property
+    def class_names(self) -> List[str]:
+        """Class names
+        """
+        return self.info.features[self._target_name].names
 
     def download(self):
         """Downloads dataset
@@ -181,7 +188,7 @@ class AbstractDataset(metaclass=ABCMeta):
                 return False
         return True
 
-    def _load(self, split: Union['train', 'valid', 'test'], tokenizer: Tokenizer=None):
+    def load(self, split: Union['train', 'valid', 'test'], tokenizer: Tokenizer=None):
         if self._use_snapshot:
             path = self._preprocess_path(split, tokenizer)
             if not path.exists():
@@ -195,6 +202,17 @@ class AbstractDataset(metaclass=ABCMeta):
             dataset = dataset.cache()
 
         return dataset
+
+    def num_examples(self, split: Union['train', 'valid', 'test']):
+        match split:
+            case 'train':
+                return self.train_num_examples
+            case 'valid':
+                return self.valid_num_examples
+            case 'test':
+                return self.test_num_examples
+            case _:
+                raise ValueError(f'split {split} is not supported')
 
     @property
     def train_num_examples(self) -> int:
@@ -211,7 +229,7 @@ class AbstractDataset(metaclass=ABCMeta):
     def train(self, tokenizer: Tokenizer=None) -> tf.data.Dataset:
         """Get training dataset
         """
-        return self._load('train', tokenizer)
+        return self.load('train', tokenizer)
 
     @property
     def valid_num_examples(self) -> int:
@@ -228,7 +246,7 @@ class AbstractDataset(metaclass=ABCMeta):
     def valid(self, tokenizer: Tokenizer=None) -> tf.data.Dataset:
         """Validation dataset
         """
-        return self._load('valid', tokenizer)
+        return self.load('valid', tokenizer)
 
     @property
     def test_num_examples(self) -> int:
@@ -245,4 +263,4 @@ class AbstractDataset(metaclass=ABCMeta):
     def test(self, tokenizer: Tokenizer=None) -> tf.data.Dataset:
         """Test dataset
         """
-        return self._load('test', tokenizer)
+        return self.load('test', tokenizer)
