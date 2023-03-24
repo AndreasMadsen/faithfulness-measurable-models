@@ -34,6 +34,19 @@ parser.add_argument('--stage',
                     type=str,
                     choices=['preprocess', 'plot', 'both'],
                     help='Which export stage should be performed. Mostly just useful for debugging.')
+parser.add_argument('--format',
+                    action='store',
+                    default='wide',
+                    type=str,
+                    choices=['half', 'wide'],
+                    help='The dimentions and format of the plot.')
+parser.add_argument('--datasets',
+                    action='store',
+                    nargs='+',
+                    default=list(datasets.keys()),
+                    choices=datasets.keys(),
+                    type=str,
+                    help='The datasets to plot')
 parser.add_argument('--model-category',
                     action='store',
                     default='size',
@@ -55,6 +68,11 @@ parser.add_argument('--split',
                     choices=['train', 'valid', 'test'],
                     type=str,
                     help='The dataset split to evaluate faithfulness on')
+parser.add_argument('--threshold',
+                    default=0.05,
+                    choices=[0.001, 0.005, 0.01, 0.05, 0.1],
+                    type=float,
+                    help='The p-value threshold')
 
 if __name__ == "__main__":
     pd.set_option('display.max_rows', None)
@@ -85,50 +103,62 @@ if __name__ == "__main__":
                 if data['args']['max_masking_ratio'] == args.max_masking_ratio and \
                    data['args']['masking_strategy'] == args.masking_strategy and \
                    data['args']['split'] == args.split and \
-                   data['args']['model'] in model_categories[args.model_category]:
+                   data['args']['model'] in model_categories[args.model_category] and \
+                   data['args']['dataset'] in args.datasets:
                     results.append(data)
 
-        df_ood = pd.json_normalize(results).explode('results', ignore_index=True)
-        results = pd.json_normalize(df_ood.pop('results')).add_prefix('results.')
-        df_ood = pd.concat([df_ood, results], axis=1)
-
-        # Select test metric
-        df = df_ood
+        df = pd.json_normalize(results).explode('results', ignore_index=True)
+        results = pd.json_normalize(df.pop('results')).add_prefix('results.')
+        df = pd.concat([df, results], axis=1)
 
     if args.stage in ['preprocess']:
-        os.makedirs(f'{args.persistent_dir}/pandas', exist_ok=True)
+        os.makedirs(args.persistent_dir / 'pandas', exist_ok=True)
         df.to_parquet((args.persistent_dir / 'pandas' / experiment_id).with_suffix('.parquet'))
     elif args.stage in ['plot']:
         df = pd.read_parquet((args.persistent_dir / 'pandas' / experiment_id).with_suffix('.parquet'))
 
     if args.stage in ['both', 'plot']:
         df_plot = (df
-            .groupby(['args.model', 'args.dataset', 'args.explainer', 'results.masking_ratio', 'results.threshold'], group_keys=True)
+            .query('`results.threshold` == @args.threshold')
+            .groupby(['args.model', 'args.dataset', 'args.explainer',
+                      'results.masking_ratio'], group_keys=True)
             .apply(bootstrap_confint(['results.proportion']))
-            .reset_index()
-            .query('`results.threshold` == 0.05'))
+            .reset_index())
+
+        df_baseline = (df
+            .groupby(['args.model', 'args.dataset', 'results.masking_ratio'], group_keys=True)
+            .apply(lambda _: pd.Series({ 'threshold': args.threshold }))
+            .reset_index())
 
         # Generate plot
         p = (p9.ggplot(df_plot, p9.aes(x='results.masking_ratio'))
             + p9.geom_ribbon(p9.aes(ymin='results.proportion_lower', ymax='results.proportion_upper', fill='args.explainer'), alpha=0.35)
             + p9.geom_point(p9.aes(y='results.proportion_mean', color='args.explainer'))
             + p9.geom_line(p9.aes(y='results.proportion_mean', color='args.explainer'))
+            + p9.geom_line(p9.aes(y='threshold'), color='black', data=df_baseline)
             + p9.facet_grid("args.model ~ args.dataset", scales="free_x", labeller=annotation.model.labeller)
             + p9.scale_x_continuous(name='Masking ratio')
             + p9.scale_y_continuous(
                 labels=lambda ticks: [f'{tick:.0%}' for tick in ticks],
-                name='p_values < 5%'
+                name=f'p < {args.threshold:.1%}'
             )
             + p9.scale_color_discrete(
-                #breaks = annotation.explainer.breaks,
-                #labels = annotation.explainer.labels,
+                breaks = annotation.explainer.breaks,
+                labels = annotation.explainer.labels,
                 aesthetics = ["colour", "fill"],
                 name='importance measure (IM)'
             )
-            + p9.scale_shape_discrete(guide=False)
-            + p9.ggtitle(experiment_id))
+            + p9.scale_shape_discrete(guide=False))
 
-        # Save plot, the width is the \linewidth of a collumn in the LaTeX document
+        if args.format == 'half':
+            # The width is the \linewidth of a collumn in the LaTeX document
+            size = (3.03209, 4.5)
+            p += p9.guides(color=p9.guide_legend(ncol=1))
+            p += p9.theme(text=p9.element_text(size=11), subplots_adjust={'bottom': 0.38}, legend_position=(.5, .05))
+        else:
+            size = (20, 7)
+            p += p9.ggtitle(experiment_id)
+
         os.makedirs(f'{args.persistent_dir}/plots', exist_ok=True)
-        p.save(f'{args.persistent_dir}/plots/{experiment_id}.pdf', width=3*6.30045 + 0.2, height=7, units='in')
-        p.save(f'{args.persistent_dir}/plots/{experiment_id}.png', width=3*6.30045 + 0.2, height=7, units='in')
+        p.save(f'{args.persistent_dir}/plots/{experiment_id}.pdf', width=size[0], height=size[1], units='in')
+        p.save(f'{args.persistent_dir}/plots/{experiment_id}.png', width=size[0], height=size[1], units='in')

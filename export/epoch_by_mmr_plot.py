@@ -5,17 +5,19 @@ import os
 import pathlib
 
 from tqdm import tqdm
+import numpy as np
 import pandas as pd
 import plotnine as p9
 
 from ecoroar.dataset import datasets
 from ecoroar.plot import bootstrap_confint, annotation
+from ecoroar.util import generate_experiment_id
 
-def select_target_metric(partial_df):
-    column_name = partial_df.loc[:, 'target_metric'].iat[0]
-    return pd.Series({
-        'metric': partial_df.loc[:, f'history.val_{column_name}'].iat[0]
-    })
+def select_target_metric(df):
+    idx, cols = pd.factorize('history.val_' + df.loc[:, 'target_metric'])
+    return df.assign(
+        metric = df.reindex(cols, axis=1).to_numpy()[np.arange(len(df)), idx]
+    )
 
 
 parser = argparse.ArgumentParser(
@@ -32,35 +34,72 @@ parser.add_argument('--stage',
                     type=str,
                     choices=['preprocess', 'plot', 'both'],
                     help='Which export stage should be performed. Mostly just useful for debugging.')
+parser.add_argument('--format',
+                    action='store',
+                    default='wide',
+                    type=str,
+                    choices=['half', 'wide'],
+                    help='The dimentions and format of the plot.')
+parser.add_argument('--datasets',
+                    action='store',
+                    nargs='+',
+                    default=list(datasets.keys()),
+                    choices=datasets.keys(),
+                    type=str,
+                    help='The datasets to plot')
+parser.add_argument('--performance-metric',
+                    action='store',
+                    default='primary',
+                    type=str,
+                    choices=['primary', 'loss', 'accuracy'],
+                    help='Which metric to use as a performance metric.')
+parser.add_argument('--model-category',
+                    action='store',
+                    default='size',
+                    type=str,
+                    choices=['size', 'masking-ratio'],
+                    help='Which model category to use.')
+parser.add_argument('--masking-strategy',
+                    default='uni',
+                    choices=['uni', 'half-det', 'half-ran'],
+                    type=str,
+                    help='The masking strategy to use for masking during fune-tuning')
 
 if __name__ == "__main__":
     pd.set_option('display.max_rows', None)
     args, unknown = parser.parse_known_args()
 
     dataset_mapping = pd.DataFrame([
-        { 'args.dataset': dataset._name, 'target_metric': dataset._early_stopping_metric }
-        for dataset in datasets.values()
+        {
+            'args.dataset': dataset_name,
+            'target_metric': datasets[dataset_name]._early_stopping_metric if args.performance_metric == 'primary' else args.performance_metric
+        }
+        for dataset_name in args.datasets
     ])
-    model_mapping = pd.DataFrame([
-        { 'args.model': 'roberta-m15', 'model_category': 'masking-ratio' },
-        { 'args.model': 'roberta-m20', 'model_category': 'masking-ratio' },
-        { 'args.model': 'roberta-m30', 'model_category': 'masking-ratio' },
-        { 'args.model': 'roberta-m40', 'model_category': 'masking-ratio' },
-        { 'args.model': 'roberta-m50', 'model_category': 'masking-ratio' },
-        { 'args.model': 'roberta-sb', 'model_category': 'size' },
-        { 'args.model': 'roberta-sl', 'model_category': 'size' }
-    ])
+    model_categories = {
+        'masking-ratio': ['roberta-m15', 'roberta-m20', 'roberta-m30', 'roberta-m40', 'roberta-m50'],
+        'size': ['roberta-sb', 'roberta-sl']
+    }
+
+    experiment_id = generate_experiment_id('epoch_by_mms',
+                                            model=args.model_category,
+                                            masking_strategy=args.masking_strategy)
 
     if args.stage in ['both', 'preprocess']:
         # Read JSON files into dataframe
         results = []
         files = sorted((args.persistent_dir / 'results').glob('masking_*.json'))
-        for file in tqdm(files, desc='Loading .json files'):
+        for file in tqdm(files, desc='Loading masking .json files'):
             with open(file, 'r') as fp:
                 try:
-                    results.append(json.load(fp))
+                    data = json.load(fp)
                 except json.decoder.JSONDecodeError:
                     print(f'{file} has a format error')
+
+                if data['args']['masking_strategy'] == args.masking_strategy and \
+                   data['args']['model'] in model_categories[args.model_category] and \
+                   data['args']['dataset'] in args.datasets:
+                    results.append(data)
 
         df = pd.json_normalize(results).explode('history', ignore_index=True)
         results = pd.json_normalize(df.pop('history')).add_prefix('history.')
@@ -69,69 +108,59 @@ if __name__ == "__main__":
         # Select test metric
         df = (df
               .merge(dataset_mapping, on='args.dataset')
-              .merge(model_mapping, on='args.model')
-              .groupby(['args.model', 'args.seed', 'args.dataset', 'args.max_masking_ratio', 'args.max_epochs', 'args.masking_strategy',
-                        'history.epoch',
-                        'model_category'], group_keys=True)
-              .apply(select_target_metric)
-              .reset_index()
+              .transform(select_target_metric)
               .assign(**{'history.epoch': lambda df: df['history.epoch'] + 1}))
 
     if args.stage in ['preprocess']:
-        os.makedirs(f'{args.persistent_dir}/pandas', exist_ok=True)
-        df.to_pickle(f'{args.persistent_dir}/pandas/epoch.pd.pkl.xz')
+        os.makedirs(args.persistent_dir / 'pandas', exist_ok=True)
+        df.to_parquet((args.persistent_dir / 'pandas' / experiment_id).with_suffix('.parquet'))
     elif args.stage in ['plot']:
-        df = pd.read_pickle(f'{args.persistent_dir}/pandas/epoch.pd.pkl.xz')
+        df = pd.read_parquet((args.persistent_dir / 'pandas' / experiment_id).with_suffix('.parquet'))
 
     if args.stage in ['both', 'plot']:
-        # Compute confint and mean for each group
+        df_plot = (df
+            .groupby(['args.model', 'args.dataset', 'history.epoch', 'args.max_masking_ratio'], group_keys=True)
+            .apply(bootstrap_confint(['metric']))
+            .reset_index())
 
-        for model_category in ['masking-ratio', 'size']:
-            df_model_category = df.query('`model_category` == @model_category & \
-                                          `args.masking_strategy` == "uni"')
-            if df_model_category.shape[0] == 0:
-                print(f'Skipping model category "{model_category}", no observations.')
-                continue
+        df_goal = df_plot.query('`args.max_masking_ratio` == 0')
+        df_goal = pd.concat([
+            df_goal.assign(**{
+                'args.max_masking_ratio': max_masking_ratio,
+            })
+            for max_masking_ratio in [0, 20, 40, 60, 80, 100]
+        ])
 
-            df_goal = (df_model_category
-                .query('`args.max_masking_ratio` == 0')
-                .groupby(['args.model', 'args.dataset', 'history.epoch', 'args.max_epochs'], group_keys=True)
-                .apply(bootstrap_confint(['metric']))
-                .reset_index())
-            df_goal = pd.concat([
-                df_goal.assign(**{
-                    'args.max_masking_ratio': max_masking_ratio,
-                })
-                for max_masking_ratio in [0, 20, 40, 60, 80, 100]
-            ])
+        # Generate plot
+        p = (p9.ggplot(df_plot, p9.aes(x='history.epoch'))
+            + p9.geom_jitter(p9.aes(y='metric', group='args.seed', color='args.model'),
+                             shape='+', alpha=0.5, width=0.25, data=df)
+            + p9.geom_ribbon(p9.aes(ymin='metric_lower', ymax='metric_upper', fill='args.model'), alpha=0.35)
+            + p9.geom_line(p9.aes(y='metric_mean', color='args.model'))
+            + p9.geom_line(p9.aes(y='metric_mean', color='args.model'), linetype='dashed', data=df_goal)
+            + p9.facet_grid("args.max_masking_ratio ~ args.dataset", scales="free_x")
+            + p9.scale_x_continuous(name='Epoch')
+            + p9.scale_y_continuous(
+                labels=lambda ticks: [f'{tick:.0%}' for tick in ticks],
+                name='Unmasked performance'
+            )
+            + p9.scale_color_discrete(
+                breaks = annotation.model.breaks,
+                labels = annotation.model.labels,
+                aesthetics = ["colour", "fill"],
+                name='Model'
+            )
+            + p9.scale_shape_discrete(guide=False))
 
-            df_epochs = (df_model_category
-                .groupby(['args.model', 'args.dataset', 'history.epoch', 'args.max_masking_ratio'], group_keys=True)
-                .apply(bootstrap_confint(['metric']))
-                .reset_index())
+        if args.format == 'half':
+            # The width is the \linewidth of a collumn in the LaTeX document
+            size = (3.03209, 4.5)
+            p += p9.guides(color=p9.guide_legend(ncol=2))
+            p += p9.theme(text=p9.element_text(size=11), subplots_adjust={'bottom': 0.25}, legend_position=(.5, .05))
+        else:
+            size = (20, 7)
+            p += p9.ggtitle(experiment_id)
 
-            # Generate plot
-            p = (p9.ggplot(df_epochs, p9.aes(x='history.epoch'))
-                + p9.geom_jitter(p9.aes(y='metric', group='args.seed', color='args.model'),
-                                shape='+', alpha=0.5, width=0.25, data=df_model_category)
-                + p9.geom_ribbon(p9.aes(ymin='metric_lower', ymax='metric_upper', fill='args.model'), alpha=0.35)
-                + p9.geom_line(p9.aes(y='metric_mean', color='args.model'))
-                + p9.geom_line(p9.aes(y='metric_mean', color='args.model'), linetype='dashed', data=df_goal)
-                + p9.facet_grid("args.max_masking_ratio ~ args.dataset", scales="free_x")
-                + p9.scale_x_continuous(name='Epoch')
-                + p9.scale_y_continuous(
-                    labels=lambda ticks: [f'{tick:.0%}' for tick in ticks],
-                    name='Unmasked performance'
-                )
-                + p9.scale_color_discrete(
-                    breaks = annotation.model.breaks,
-                    labels = annotation.model.labels,
-                    aesthetics = ["colour", "fill"],
-                    name='Model'
-                )
-                + p9.scale_shape_discrete(guide=False))
-
-            # Save plot, the width is the \linewidth of a collumn in the LaTeX document
-            os.makedirs(f'{args.persistent_dir}/plots', exist_ok=True)
-            p.save(f'{args.persistent_dir}/plots/epoch_by_mmr_m-{model_category}.pdf', width=3*6.30045 + 0.2, height=2*7, units='in')
-            p.save(f'{args.persistent_dir}/plots/epoch_by_mmr_m-{model_category}.png', width=3*6.30045 + 0.2, height=2*7, units='in')
+        os.makedirs(f'{args.persistent_dir}/plots', exist_ok=True)
+        p.save(f'{args.persistent_dir}/plots/{experiment_id}.pdf', width=size[0], height=size[1], units='in')
+        p.save(f'{args.persistent_dir}/plots/{experiment_id}.png', width=size[0], height=size[1], units='in')
