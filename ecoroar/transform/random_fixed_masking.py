@@ -36,7 +36,7 @@ class RandomFixedMasking(InputTransform):
         else:
             self._rng = tf.random.Generator.from_seed(seed)
 
-    @tf.function
+    @tf.function(reduce_retracing=True)
     def __call__(self, x: TokenizedDict) -> TokenizedDict:
         """Randomly mask tokenized input.
 
