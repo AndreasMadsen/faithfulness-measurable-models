@@ -183,8 +183,8 @@ if __name__ == '__main__':
     results = []
     explain_time = 0
     evaluate_time = 0
-    masked_dataset_dir = args.persistent_dir / 'intermediate' / 'masked_dataset'
-    os.makedirs(masked_dataset_dir, exist_ok=True)
+    faithfulness_intermediate_dir = args.persistent_dir / 'intermediate' / 'faithfulness'
+    os.makedirs(faithfulness_intermediate_dir, exist_ok=True)
     for masking_ratio in [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]:
 
         # Create masked dataset. This is cached because it is used twice.
@@ -201,7 +201,7 @@ if __name__ == '__main__':
 
         if args.save_masked_datasets:
             dataset_split_masked.save(
-                str((masked_dataset_dir / experiment_id).with_suffix(f'.{masking_ratio}.tfds'))
+                str((faithfulness_intermediate_dir / experiment_id).with_suffix(f'.{masking_ratio}.tfds'))
             )
 
         evaluate_time_start = timer()
@@ -214,8 +214,8 @@ if __name__ == '__main__':
     durations['explain'] = explain_time
     durations['evaluate'] = evaluate_time
 
-    os.makedirs(args.persistent_dir / 'results', exist_ok=True)
-    with open(args.persistent_dir / 'results' / f'{experiment_id}.json', "w") as f:
+    os.makedirs(args.persistent_dir / 'results' / 'faithfulness', exist_ok=True)
+    with open(args.persistent_dir / 'results' / 'faithfulness' / f'{experiment_id}.json', "w") as f:
         del args.persistent_dir
         json.dump({
             'args': vars(args),

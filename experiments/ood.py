@@ -218,7 +218,7 @@ if __name__ == '__main__':
     results = []
     measure_time = 0
     summary_time = 0
-    masked_dataset_prefix = args.persistent_dir / 'intermediate' / 'masked_dataset' / generate_experiment_id(
+    masked_dataset_prefix = args.persistent_dir / 'intermediate' / 'faithfulness' / generate_experiment_id(
             'faithfulness',
             model=args.model, dataset=args.dataset,
             seed=args.seed, max_epochs=args.max_epochs,
@@ -226,8 +226,8 @@ if __name__ == '__main__':
             explainer=args.explainer,
             split=args.split
         )
-    ood_annotated_dataset_dir = args.persistent_dir / 'intermediate' / 'ood_annotated'
-    os.makedirs(ood_annotated_dataset_dir, exist_ok=True)
+    ood_intermediate_dir = args.persistent_dir / 'intermediate' / 'ood'
+    os.makedirs(ood_intermediate_dir, exist_ok=True)
     for masking_ratio in [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]:
         dataset_split_masked = tf.data.Dataset.load(
             str(masked_dataset_prefix.with_suffix(f'.{masking_ratio}.tfds'))
@@ -249,7 +249,7 @@ if __name__ == '__main__':
         # save annotated dataset
         if args.save_annotated_datasets:
             dataset_split_annotated.save(
-                str((ood_annotated_dataset_dir / experiment_id).with_suffix(f'.{masking_ratio}.tfds'))
+                str((ood_intermediate_dir / experiment_id).with_suffix(f'.{masking_ratio}.tfds'))
             )
 
         # aggregate p-value statistics as a basic histogram
@@ -281,8 +281,8 @@ if __name__ == '__main__':
     durations['measure'] = measure_time
     durations['summary'] = summary_time
 
-    os.makedirs(args.persistent_dir / 'results', exist_ok=True)
-    with open(args.persistent_dir / 'results' / f'{experiment_id}.json', "w") as f:
+    os.makedirs(args.persistent_dir / 'results' / 'ood', exist_ok=True)
+    with open(args.persistent_dir / 'results' / 'ood' / f'{experiment_id}.json', "w") as f:
         del args.persistent_dir
         json.dump({
             'args': vars(args),

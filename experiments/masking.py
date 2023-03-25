@@ -274,8 +274,8 @@ if __name__ == '__main__':
     shutil.rmtree(args.persistent_dir / 'tensorboard' / experiment_id, ignore_errors=True)
     shutil.move(tensorboard_dir, args.persistent_dir / 'tensorboard' / experiment_id)
 
-    os.makedirs(args.persistent_dir / 'results', exist_ok=True)
-    with open(args.persistent_dir / 'results' / f'{experiment_id}.json', "w") as f:
+    os.makedirs(args.persistent_dir / 'results' / 'masking', exist_ok=True)
+    with open(args.persistent_dir / 'results' / 'masking' / f'{experiment_id}.json', "w") as f:
         del args.persistent_dir
         json.dump({
             'args': vars(args),
