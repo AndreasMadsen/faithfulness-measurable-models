@@ -189,20 +189,26 @@ if __name__ == '__main__':
         .map(lambda x, y, masker=masker_train: (masker(x), y), num_parallel_calls=tf.data.AUTOTUNE) \
         .prefetch(tf.data.AUTOTUNE)
 
-    # Batch validation dataset
+    # Batch validation dataset, we use .cache() as we don't want random  noise from masker
     dataset_valid_batched = dataset_valid \
         .apply(batcher(args.batch_size,
                        padding_values=(tokenizer.padding_values, None),
                        num_parallel_calls=tf.data.AUTOTUNE)) \
         .map(lambda x, y, masker=masker_valid: (masker(x), y), num_parallel_calls=tf.data.AUTOTUNE) \
+        .cache() \
         .prefetch(tf.data.AUTOTUNE)
 
     validation_at_masking_ratio = []
     for valid_masking_ratio in [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]:
         masker_valid_fixed = RandomFixedMasking(valid_masking_ratio / 100, tokenizer, seed=args.seed)
         validation_at_masking_ratio.append(ExtraValidationDataset(
-            dataset_valid_batched \
-                .map(lambda x, y, masker=masker_valid_fixed: (masker(x), y), num_parallel_calls=tf.data.AUTOTUNE) \
+            dataset_valid \
+                .apply(batcher(args.batch_size,
+                               padding_values=(tokenizer.padding_values, None),
+                               num_parallel_calls=tf.data.AUTOTUNE)) \
+                .map(lambda x, y, masker=masker_valid_fixed: (masker(x), y),
+                     num_parallel_calls=tf.data.AUTOTUNE) \
+                .cache() \
                 .prefetch(tf.data.AUTOTUNE),
             name=f'val_{valid_masking_ratio}',
             verbose=0
