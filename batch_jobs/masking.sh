@@ -7,38 +7,38 @@ declare -A size=( ["roberta-sb"]="small" ["roberta-sl"]="large"
                   ["roberta-m15"]="large" ["roberta-m20"]="large" ["roberta-m30"]="large" ["roberta-m40"]="large" ["roberta-m50"]="large" )
 
 #                   V100                       V100                        epochs
-declare -A time=( # ["small bAbI-1"]="0:21"  ["large bAbI-1"]="0:44"   20
-                    ["small bAbI-1"]="1:40"  ["large bAbI-1"]="2:00"
-                  # ["small bAbI-2"]="0:33"  ["large bAbI-2"]="1:14"   20
-                    ["small bAbI-2"]="1:50"  ["large bAbI-2"]="2:30"
-                  # ["small bAbI-3"]="1:02"  ["large bAbI-3"]="2:29"   20
-                    ["small bAbI-3"]="2:20"  ["large bAbI-3"]="4:00"
-                  # ["small BoolQ"]="0:35"   ["large BoolQ"]="1:16"    15
-                    ["small BoolQ"]="2:00"   ["large BoolQ"]="2:50"
-                  # ["small CB"]="0:21"      ["large CB"]="0:17"       50
-                    ["small CB"]="1:50"      ["large CB"]="2:50"
-                  # ["small CoLA"]="1:08"    ["large CoLA"]="2:33"     15
-                    ["small CoLA"]="2:40"    ["large CoLA"]="4:00"
-                  # ["small IMDB"]="1:44"    ["large IMDB"]="4:16"     10
-                    ["small IMDB"]="3:20"    ["large IMDB"]="6:40"
-                  # ["small MIMIC-a"]="0:38" ["large MIMIC-a"]="1:26"  20
-                    ["small MIMIC-a"]="2:00" ["large MIMIC-a"]="2:50"
-                  # ["small MIMIC-d"]="1:02" ["large MIMIC-d"]="2:32"  20
-                    ["small MIMIC-d"]="2:30" ["large MIMIC-d"]="4:00"
-                  # ["small MNLI"]="5:20"    ["large MNLI"]="10:30"    10
-                    ["small MNLI"]="7:20"    ["large MNLI"]="12:30"
-                  # ["small MRPC"]="0:11"    ["large MRPC"]="0:20"     20
-                    ["small MRPC"]="1:35"    ["large MRPC"]="1:40"
-                  # ["small QNLI"]="2:52"    ["large QNLI"]="6:28"     20
-                    ["small QNLI"]="4:30"    ["large QNLI"]="8:00"
-                  # ["small QQP"]="3:15"     ["large QQP"]="8:05"      10
-                    ["small QQP"]="5:00"     ["large QQP"]="10:00"
-                  # ["small RTE"]="0:25"     ["large RTE"]="0:34"      30
-                    ["small RTE"]="1:55"     ["large RTE"]="1:55"
-                  # ["small SST2"]="0:49"    ["large SST2"]="1:46"     10
-                    ["small SST2"]="2:20"    ["large SST2"]="3:00"
-                  # ["small WNLI"]="0:07"    ["large WNLI"]="0:10"     20
-                    ["small WNLI"]="1:30"    ["large WNLI"]="1:30"  )
+declare -A time=( # ["small bAbI-1"]="0:32"  ["large bAbI-1"]="1:04"   20
+                    ["small bAbI-1"]="0:50"  ["large bAbI-1"]="1:40"
+                  # ["small bAbI-2"]="0:53"  ["large bAbI-2"]="2:05"   20
+                    ["small bAbI-2"]="1:20"  ["large bAbI-2"]="2:40"
+                  # ["small bAbI-3"]="1:47"  ["large bAbI-3"]="?:??"   20
+                    ["small bAbI-3"]="2:10"  ["large bAbI-3"]="5:00"
+                  # ["small BoolQ"]="0:54"   ["large BoolQ"]="2:06"    15
+                    ["small BoolQ"]="1:20"   ["large BoolQ"]="2:40"
+                  # ["small CB"]="0:13"      ["large CB"]="0:18"       50
+                    ["small CB"]="0:30"      ["large CB"]="0:40"
+                  # ["small CoLA"]="0:22"    ["large CoLA"]="0:37"     15
+                    ["small CoLA"]="2:50"    ["large CoLA"]="1:00"
+                  # ["small IMDB"]="2:35"    ["large IMDB"]="6:33"     10
+                    ["small IMDB"]="3:00"    ["large IMDB"]="7:00"
+                  # ["small MIMIC-a"]="0:52" ["large MIMIC-a"]="2:10"  20
+                    ["small MIMIC-a"]="1:20" ["large MIMIC-a"]="2:40"
+                  # ["small MIMIC-d"]="1:35" ["large MIMIC-d"]="3:58"  20
+                    ["small MIMIC-d"]="2:00" ["large MIMIC-d"]="4:30"
+                  # ["small MNLI"]="6:21"    ["large MNLI"]="??:??"    10
+                    ["small MNLI"]="7:00"    ["large MNLI"]="13:30"
+                  # ["small MRPC"]="0:17"    ["large MRPC"]="0:30"     20
+                    ["small MRPC"]="0:40"    ["large MRPC"]="1:00"
+                  # ["small QNLI"]="5:05"    ["large QNLI"]="?:??"     20
+                    ["small QNLI"]="5:40"    ["large QNLI"]="13:00"
+                  # ["small QQP"]="4:39"     ["large QQP"]="?:??"      10
+                    ["small QQP"]="5:00"     ["large QQP"]="13:00"
+                  # ["small RTE"]="0:23"     ["large RTE"]="0:46"      30
+                    ["small RTE"]="0:40"     ["large RTE"]="1:20"
+                  # ["small SST2"]="1:24"    ["large SST2"]="2:42"     10
+                    ["small SST2"]="1:50"    ["large SST2"]="3:10"
+                  # ["small WNLI"]="0:08"    ["large WNLI"]="0:11"     20
+                    ["small WNLI"]="0:30"    ["large WNLI"]="0:30"  )
 
 for model in 'roberta-sb' 'roberta-sl' # 'roberta-m15' 'roberta-m20' 'roberta-m30' 'roberta-m40' 'roberta-m50'
 do
