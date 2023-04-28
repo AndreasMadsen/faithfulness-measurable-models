@@ -98,6 +98,10 @@ parser.add_argument('--split',
                     choices=['train', 'valid', 'test'],
                     type=str,
                     help='The dataset split to evaluate faithfulness on')
+parser.add_argument('--dist-repeats',
+                    default=1,
+                    type=int,
+                    help='The number of repeats used to estimate the distribution')
 
 
 if __name__ == '__main__':
@@ -208,16 +212,15 @@ if __name__ == '__main__':
     # Train distributional representation using  validation dataset
     # Note, this dataset needs to be masked the same way as the training dataset during training.
     odd_fit_time_start = timer()
-    # TODO: figure out what is the appropiate number of repeats
     dataset_valid_masked = dataset_valid \
-        .repeat(1) \
+        .repeat(args.dist_repeats) \
         .apply(batcher(args.batch_size,
                         padding_values=(tokenizer.padding_values, None),
                         num_parallel_calls=tf.data.AUTOTUNE)) \
         .map(lambda x, y: (masker_train(x), y), num_parallel_calls=tf.data.AUTOTUNE) \
         .prefetch(tf.data.AUTOTUNE)
 
-    # TODO: Rerunning this for every --explainer argument is quite the waste,
+    # TODO: Rerunning this for every --explainer argument is wasteful,
     #   since the distributed representation will be the same for every --explainer
     ood_detector.fit(dataset_valid_masked)
     durations['ood_fit'] = timer() - odd_fit_time_start
