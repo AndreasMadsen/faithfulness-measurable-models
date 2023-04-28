@@ -87,8 +87,8 @@ parser.add_argument('--masking-strategy',
                     type=str,
                     help='The masking strategy to use for masking during fune-tuning')
 parser.add_argument('--validation-dataset',
-                    default='nomask',
-                    choices=['nomask', 'mask'],
+                    default='both',
+                    choices=['nomask', 'mask', 'both'],
                     type=str,
                     help='The transformation applied to the validation dataset used for early stopping.')
 
@@ -194,7 +194,7 @@ if __name__ == '__main__':
         .apply(batcher(args.batch_size,
                        padding_values=(tokenizer.padding_values, None),
                        num_parallel_calls=tf.data.AUTOTUNE)) \
-        .map(lambda x, y, masker=masker_valid: (masker(x), y), num_parallel_calls=tf.data.AUTOTUNE) \
+        .apply(masker_valid_transform) \
         .cache() \
         .prefetch(tf.data.AUTOTUNE)
 

@@ -78,6 +78,11 @@ parser.add_argument('--masking-strategy',
                     choices=['uni', 'half-det', 'half-ran'],
                     type=str,
                     help='The masking strategy to use for masking during fune-tuning')
+parser.add_argument('--validation-dataset',
+                    default='both',
+                    choices=['nomask', 'mask', 'both'],
+                    type=str,
+                    help='The transformation applied to the validation dataset used for early stopping.')
 parser.add_argument('--explainer',
                     default='grad',
                     choices=explainers.keys(),
@@ -112,6 +117,7 @@ if __name__ == '__main__':
         model=args.model, dataset=args.dataset,
         seed=args.seed, max_epochs=args.max_epochs,
         max_masking_ratio=args.max_masking_ratio, masking_strategy=args.masking_strategy,
+        validation_dataset=args.validation_dataset,
         explainer=args.explainer, ood=args.ood,
         split=args.split
     )
@@ -124,6 +130,7 @@ if __name__ == '__main__':
     print('  Huggingface Repo:', args.huggingface_repo)
     print('  Max masking ratio:', args.max_masking_ratio)
     print('  Masking strategy:', args.masking_strategy)
+    print('  Validation dataset:', args.validation_dataset)
     print('')
     print('  Explainer:', args.explainer)
     print('  OOD:', args.ood)
@@ -152,7 +159,8 @@ if __name__ == '__main__':
         'masking',
         model=args.model, dataset=args.dataset,
         seed=args.seed, max_epochs=args.max_epochs,
-        max_masking_ratio=args.max_masking_ratio, masking_strategy=args.masking_strategy
+        max_masking_ratio=args.max_masking_ratio, masking_strategy=args.masking_strategy,
+        validation_dataset=args.validation_dataset
     ))
     explainer = explainers[args.explainer](tokenizer, model,
                                            seed=args.seed,
@@ -223,6 +231,7 @@ if __name__ == '__main__':
             model=args.model, dataset=args.dataset,
             seed=args.seed, max_epochs=args.max_epochs,
             max_masking_ratio=args.max_masking_ratio, masking_strategy=args.masking_strategy,
+            validation_dataset=args.validation_dataset,
             explainer=args.explainer,
             split=args.split
         )
