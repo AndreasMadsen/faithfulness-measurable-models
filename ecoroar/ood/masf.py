@@ -9,7 +9,7 @@ from ..util import get_compiler
 from ..transform import MapOnGPU
 
 @tf.function(jit_compile=True, reduce_retracing=True)
-def _emerical_cdf_scan_reducer(counts: tf.Tensor, batch: tf.Tensor, samples: tf.Tensor) -> tf.Tensor:
+def _emerical_cdf_scan_reducer(counts, batch, samples):
     return counts + tf.reduce_sum(
         tf.cast(tf.expand_dims(batch, 0) < tf.expand_dims(samples, 1), tf.dtypes.int32),
     axis=1)
@@ -111,9 +111,9 @@ class MaSF():
         maybe_std_compiler = get_compiler(run_eagerly, False)
 
         self._wrap_get_hidden_state_signal = maybe_jit_compiler(self._get_hidden_state_signal)
-        self._wrap_estimate_p_values = maybe_std_compiler(self._estimate_p_values)
         self._wrap_level_1_to_2 = maybe_std_compiler(self._level_1_to_2)
         self._wrap_level_2_to_3 = maybe_std_compiler(self._level_2_to_3)
+        self._wrap_level_3_to_p = maybe_std_compiler(self._level_3_to_p)
 
         self._emerical_cdf = maybe_std_compiler(_emerical_cdf_scan)
         self._reduce_simes = maybe_jit_compiler(_reduce_simes)
@@ -143,6 +143,11 @@ class MaSF():
         level_2_p = self._two_sided_p_value(level_2_prop)
         level_3 = self._reduce_fisher(level_2_p, axis=-1)
         return level_3
+
+    def _level_3_to_p(self, samples: tf.Tensor) -> tf.Tensor:
+        level_3_prop = self._emerical_cdf(self._emperical_distribution_level_3, samples)
+        level_3_p = 1 - level_3_prop
+        return level_3_p
 
     def fit(self, dataset: tf.data.Dataset):
         """Builds the distributional knoweldge to detect OOD.
@@ -223,6 +228,10 @@ class MaSF():
                 )
             )) \
             .rebatch(self._batch_size[2]) \
-            .map(lambda level_3_prob: 1 - level_3_prob,
-                 num_parallel_calls=tf.data.AUTOTUNE,
-                 deterministic=True)
+            .apply(MapOnGPU(
+                self._wrap_level_3_to_p,
+                output_signature=lambda _: tf.TensorSpec(
+                    shape=[None],
+                    dtype=tf.dtypes.float32,
+                )
+            ))
