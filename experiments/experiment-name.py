@@ -41,7 +41,7 @@ parser.add_argument('--masking-strategy',
                     help='The masking strategy to use for masking during fune-tuning')
 parser.add_argument('--validation-dataset',
                     default=None,
-                    choices=['nomask', 'mask'],
+                    choices=['nomask', 'mask', 'both'],
                     type=str,
                     help='The transformation applied to the validation dataset used for early stopping.')
 parser.add_argument('--explainer',
