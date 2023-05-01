@@ -49,5 +49,5 @@ def test_odd_mafs(tokenizer, model, dataset, compile_config):
     # representations are too sparse and discrete to provide a satifiying
     # distribution. So everything, is more or less going to test as
     # in-distribution.
-    for x, _ in dataset:
-        np.testing.assert_allclose(dist(x).numpy(), [1, 1])
+    for ood in dataset.apply(dist).rebatch(2):
+        np.testing.assert_allclose(ood.numpy(), [1, 1])
