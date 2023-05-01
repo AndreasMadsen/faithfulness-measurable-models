@@ -1,5 +1,4 @@
 
-from functools import partial
 from typing import Tuple
 
 import tensorflow as tf
@@ -8,6 +7,12 @@ import numpy as np
 from ..types import TokenizedDict, Tokenizer, Model
 from ..util import get_compiler
 from ..transform import MapOnGPU
+
+@tf.function(jit_compile=True, reduce_retracing=True)
+def _emerical_cdf_scan_reducer(counts: tf.Tensor, batch: tf.Tensor, samples: tf.Tensor) -> tf.Tensor:
+    return counts + tf.reduce_sum(
+        tf.cast(tf.expand_dims(batch, 0) < tf.expand_dims(samples, 1), tf.dtypes.int32),
+    axis=1)
 
 def _emerical_cdf_scan(dist: tf.data.Dataset, samples: tf.Tensor) -> tf.Tensor:
     """Evalute the CDF of samples
@@ -24,12 +29,7 @@ def _emerical_cdf_scan(dist: tf.data.Dataset, samples: tf.Tensor) -> tf.Tensor:
 
     for batch in dist:
         num_of_obs = num_of_obs + tf.shape(batch)[0]
-        counts = counts + tf.vectorized_map(
-            lambda sample: tf.math.reduce_sum(
-                tf.cast(batch < tf.expand_dims(sample, axis=0), dtype=tf.dtypes.int32),
-                axis=0),
-            samples
-        )
+        counts = _emerical_cdf_scan_reducer(counts, batch, samples)
 
     # convert indices to probabilites by dividing
     probs = counts / num_of_obs
@@ -78,7 +78,7 @@ def _two_sided_p_value(cdf_values: tf.Tensor) -> tf.Tensor:
 class MaSF():
     def __init__(self, tokenizer: Tokenizer, model: Model,
                  verbose=True,
-                 batch_size: Tuple[int, int, int] = (128, 1024, 8192),
+                 batch_size: Tuple[int, int, int] = (2**10, 2**13, 2**16),
                  run_eagerly: bool = False,
                  jit_compile: bool = False) -> None:
         """Implementation of MaSF
@@ -120,7 +120,7 @@ class MaSF():
         self._reduce_fisher = maybe_jit_compiler(_reduce_fisher)
         self._two_sided_p_value = maybe_jit_compiler(_two_sided_p_value)
 
-    def _get_hidden_state_signal(self, x):
+    def _get_hidden_state_signal(self, x: TokenizedDict) -> tf.Tensor:
         batch_size, sequence_length = tf.unstack(tf.shape(x['input_ids']), num=2)
 
         hidden_states = self._model(x, output_hidden_states=True).hidden_states  # Tuple[tf.Tensor[B, T, D]]
@@ -132,13 +132,13 @@ class MaSF():
         return hidden_states
 
     # Fit emperical distributions and get p-values, OUTPUT: [N, L, D]
-    def _level_1_to_2(self, samples):
+    def _level_1_to_2(self, samples: tf.Tensor) -> tf.Tensor:
         level_1_prop = self._emerical_cdf(self._emperical_distribution_level_1, samples)
         level_1_p = self._two_sided_p_value(level_1_prop)
         level_2 = self._reduce_simes(level_1_p, axis=-1)
         return level_2
 
-    def _level_2_to_3(self, samples):
+    def _level_2_to_3(self, samples: tf.Tensor) -> tf.Tensor:
         level_2_prop = self._emerical_cdf(self._emperical_distribution_level_2, samples)
         level_2_p = self._two_sided_p_value(level_2_prop)
         level_3 = self._reduce_fisher(level_2_p, axis=-1)
@@ -171,7 +171,7 @@ class MaSF():
             self._wrap_level_1_to_2,
             output_signature=lambda _: tf.TensorSpec(
                 shape=[None, self._model.config.num_hidden_layers + 1],
-                dtype=tf.keras.mixed_precision.global_policy().compute_dtype,
+                dtype=tf.dtypes.float32,
             )
         )) \
             .rebatch(self._batch_size[1]) \
@@ -182,41 +182,47 @@ class MaSF():
             self._wrap_level_2_to_3,
             output_signature=lambda _: tf.TensorSpec(
                 shape=[None],
-                dtype=tf.keras.mixed_precision.global_policy().compute_dtype,
+                dtype=tf.dtypes.float32,
             )
         )) \
             .rebatch(self._batch_size[2]) \
             .cache()
 
-    def _estimate_p_values(self, x: TokenizedDict) -> tf.Tensor:
-        # Use max-aggregated hidden states as the inital test-statistic
-        level_1_test_statistics = self._wrap_get_hidden_state_signal(x)  # [N, L, D]
-
-        # Get p-values
-        level_1_prob = self._emerical_cdf(self._emperical_distribution_level_1, level_1_test_statistics)
-        level_1_p = self._two_sided_p_value(level_1_prob)
-
-        # aggregate D-dimention of p-values using Simes and get p-values
-        level_2_test_statistics = self._reduce_simes(level_1_p, axis=-1)  # [N, L]
-        level_2_prob = self._emerical_cdf(self._emperical_distribution_level_2, level_2_test_statistics)
-        level_2_p = self._two_sided_p_value(level_2_prob)
-
-        # aggregate L-dimention of p-values using Fisher and get p-values
-        level_3_test_statistics = self._reduce_fisher(level_2_p, axis=-1)  # [N]
-        level_3_prob = self._emerical_cdf(self._emperical_distribution_level_3, level_3_test_statistics)
-        # assuming right sided p-values
-        # Note, it is unclear why they use right-sided p-values in the paper.
-        level_3_p = 1 - level_3_prob
-
-        return level_3_p
-
-    def __call__(self, x: TokenizedDict) -> tf.Tensor:
-        """Estimate p-values of observations being in-distribution
+    def __call__(self, dataset: tf.data.Dataset) -> tf.data.Dataset:
+        """Annotates an (x, y) dataset of observations as ood
 
         Args:
-            x (TokenizedDict): test observations
+            x (tf.data.Dataset): (x, y) dataset of observations
 
         Returns:
-            tf.Tensor: Right sided p-values
+            tf.Tensor: (ood, ) dataset of of annotations
         """
-        return self._wrap_estimate_p_values(x)
+
+        return dataset \
+            .apply(MapOnGPU(
+                lambda x, y: self._wrap_get_hidden_state_signal(x),
+                output_signature=lambda _: tf.TensorSpec(
+                    shape=[None, self._model.config.num_hidden_layers + 1, self._model.config.hidden_size],
+                    dtype=tf.keras.mixed_precision.global_policy().compute_dtype,
+                )
+            )) \
+            .rebatch(self._batch_size[0]) \
+            .apply(MapOnGPU(
+                self._wrap_level_1_to_2,
+                output_signature=lambda _: tf.TensorSpec(
+                    shape=[None, self._model.config.num_hidden_layers + 1],
+                    dtype=tf.dtypes.float32,
+                )
+            )) \
+            .rebatch(self._batch_size[1]) \
+            .apply(MapOnGPU(
+                self._wrap_level_2_to_3,
+                output_signature=lambda _: tf.TensorSpec(
+                    shape=[None],
+                    dtype=tf.dtypes.float32,
+                )
+            )) \
+            .rebatch(self._batch_size[2]) \
+            .map(lambda level_3_prob: 1 - level_3_prob,
+                 num_parallel_calls=tf.data.AUTOTUNE,
+                 deterministic=True)

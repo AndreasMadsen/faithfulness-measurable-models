@@ -248,13 +248,12 @@ if __name__ == '__main__':
         measure_time_start = timer()
         # assigns p-values to each observation
         dataset_split_annotated = dataset_split_masked \
-            .apply(MapOnGPU(
-                lambda x, y: (x, y, ood_detector(x)),
-                lambda dataset: (*tf.data.experimental.get_structure(dataset), tf.TensorSpec(shape=[None], dtype=tf.dtypes.float32))
-            )) \
+            .apply(ood_detector) \
+            .rebatch(args.batch_size) \
+            .apply(tf.data.experimental.assert_cardinality(dataset_split_masked.cardinality())) \
             .cache()
 
-        for x, y, ood in tqdm(dataset_split_annotated, desc=f'OOD annotating dataset ({masking_ratio}%)', mininterval=1):
+        for ood in tqdm(dataset_split_annotated, desc=f'OOD annotating dataset ({masking_ratio}%)', mininterval=1):
             pass
         measure_time += timer() - measure_time_start
 
@@ -272,10 +271,10 @@ if __name__ == '__main__':
                 tf.zeros(1, dtype=tf.dtypes.int32),  # count
                 tf.zeros(len(p_value_thresholds), dtype=tf.dtypes.int32)  # hist
             ),
-            lambda state, batch: (  # state = (count, hist), batch = (x, y, ood)
-                state[0] + tf.shape(batch[2])[0],
+            lambda state, batch: (  # state = (count, hist), batch = ood
+                state[0] + tf.shape(batch)[0],
                 state[1] + tf.math.reduce_sum(tf.cast(
-                    tf.expand_dims(batch[2], 0) < tf.expand_dims(p_value_thresholds, 1),
+                    tf.expand_dims(batch, 0) < tf.expand_dims(p_value_thresholds, 1),
                     dtype=tf.dtypes.int32), axis=1)
             )
         )
