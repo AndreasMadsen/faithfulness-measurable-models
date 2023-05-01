@@ -42,38 +42,42 @@ declare -A time=( # ["small bAbI-1"]="0:32"  ["large bAbI-1"]="1:04"   20
 
 for model in 'roberta-sb' 'roberta-sl' # 'roberta-m15' 'roberta-m20' 'roberta-m30' 'roberta-m40' 'roberta-m50'
 do
-    for dataset in 'bAbI-1' 'bAbI-2' 'bAbI-3' 'BoolQ' 'CB' 'CoLA' 'IMDB' 'MIMIC-a' 'MIMIC-d' 'MNLI' 'MRPC' 'QNLI' 'QQP' 'RTE' 'SST2' 'WNLI'
+    for dataset in 'bAbI-1' 'bAbI-2' 'bAbI-3' 'BoolQ' 'CB' 'CoLA' 'MIMIC-a' 'MIMIC-d' 'MRPC' 'RTE' 'SST2'  # 'IMDB' 'MNLI' 'QNLI' 'QQP' 'WNLI'
     do
-        for max_masking_ratio in 0 20 40 60 80 100
+        for masking_strategy in 'uni' 'half-det'
         do
-            for seed in 0 1 2 3 4
+            for validation_dataset in 'nomask' 'mask' 'both'
+            do
+                for seed in 0 1 2 3 4
+                do
+                    submit_seeds "${time[${size[$model]} $dataset]}" "$seed" $(job_script gpu) \
+                        experiments/masking.py \
+                        --model "${model}" \
+                        --dataset "${dataset}" \
+                        --max-masking-ratio 100 \
+                        --masking-strategy "${masking_strategy}" \
+                        --validation-dataset "${validation_dataset}"
+                done
+            done
+        done
+    done
+done
+
+for model in 'roberta-sb' 'roberta-sl' # 'roberta-m15' 'roberta-m20' 'roberta-m30' 'roberta-m40' 'roberta-m50'
+do
+    for dataset in 'bAbI-1' 'bAbI-2' 'bAbI-3' 'BoolQ' 'CB' 'CoLA' 'MIMIC-a' 'MIMIC-d' 'MRPC' 'RTE' 'SST2'  # 'IMDB' 'MNLI' 'QNLI' 'QQP' 'WNLI'
+    do
+        for max_masking_ratio in 0 20 40 60 80
+        do
+           for seed in 0 1 2 3 4
             do
                 submit_seeds "${time[${size[$model]} $dataset]}" "$seed" $(job_script gpu) \
                     experiments/masking.py \
                     --model "${model}" \
                     --dataset "${dataset}" \
                     --max-masking-ratio "${max_masking_ratio}" \
-                    --masking-strategy uni
-            done
-        done
-    done
-done
-
-for model in 'roberta-sb' 'roberta-sl'
-do
-    for dataset in 'bAbI-1' 'bAbI-2' 'bAbI-3' 'BoolQ' 'CB' 'CoLA' 'IMDB' 'MIMIC-a' 'MIMIC-d' 'MNLI' 'MRPC' 'QNLI' 'QQP' 'RTE' 'SST2' 'WNLI'
-    do
-        for validation_dataset in 'nomask' 'mask'
-        do
-            for seed in 0 1 2 3 4
-            do
-                submit_seeds "${time[${size[$model]} $dataset]}" "$seed" $(job_script gpu) \
-                    experiments/masking.py \
-                    --model "${model}" \
-                    --dataset "${dataset}" \
-                    --max-masking-ratio 100 \
-                    --masking-strategy half-det \
-                    --validation-dataset "${validation_dataset}"
+                    --masking-strategy 'half-det' \
+                    --validation-dataset 'both'
             done
         done
     done
