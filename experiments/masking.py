@@ -82,7 +82,7 @@ parser.add_argument('--max-masking-ratio',
                     type=int,
                     help='The maximum masking ratio (percentage integer) to apply on the training dataset')
 parser.add_argument('--masking-strategy',
-                    default='uni',
+                    default='half-det',
                     choices=['uni', 'half-det', 'half-ran'],
                     type=str,
                     help='The masking strategy to use for masking during fune-tuning')
@@ -174,11 +174,22 @@ if __name__ == '__main__':
             ], seed=args.seed, stochastic=True)
 
     # Setup masking routine for validation data, which is used to measure early stopping
-    match args.validation_dataset:
-        case 'nomask':
-            masker_valid = lambda x: x
-        case 'mask':
-            masker_valid = masker_train
+    masker_valid = RandomMaxMasking(args.max_masking_ratio / 100, tokenizer, seed=args.seed)
+    # NOTE: a `match` statement would be nice here, but TensorFlow has a bug for this specific case.
+    if args.validation_dataset == 'nomask':
+        # dataset_valid = [0% masked]
+        def masker_valid_transform(ds):
+            return ds
+    elif args.validation_dataset == 'mask':
+        # dataset_valid = [0%-100% masked]
+        def masker_valid_transform(ds):
+            return ds.map(lambda x, y: (masker_valid(x), y), num_parallel_calls=tf.data.AUTOTUNE)
+    elif args.validation_dataset == 'both':
+        # dataset_valid = [0% masked, 0%-100% masked]
+        def masker_valid_transform(ds):
+            return ds.concatenate(
+                ds.map(lambda x, y: (masker_valid(x), y), num_parallel_calls=tf.data.AUTOTUNE)
+        )
 
     # Mask training dataset and batch it
     dataset_train_batched = dataset_train \

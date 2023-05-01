@@ -111,6 +111,7 @@ if __name__ == '__main__':
         model=args.model, dataset=args.dataset,
         seed=args.seed, max_epochs=args.max_epochs,
         max_masking_ratio=args.max_masking_ratio, masking_strategy=args.masking_strategy,
+        validation_dataset=args.validation_dataset,
         explainer=args.explainer,
         split=args.split
     )
