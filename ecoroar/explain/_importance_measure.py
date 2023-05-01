@@ -12,6 +12,7 @@ class ImportanceMeasure(ABC):
 
     def __init__(self, tokenizer: Tokenizer, model: Model,
                  seed: int = None,
+                 inference_batch_size: int = 16,
                  run_eagerly: bool = False,
                  jit_compile: bool = False) -> None:
         """Computes explanation where each input token is given an attribution score.
@@ -20,6 +21,8 @@ class ImportanceMeasure(ABC):
             tokenizer (Tokenizer): The tokenizer used, this is for defining padding.
             model (Model): The model used, explanations are produced by probing the model.
             seed (int): Seed uses for some explanation methods, for example random explanation. Defaults to None.
+            inference_batch_size (int, optional). The internal batch size to use at inference time.
+                This may be higher than the input batch size for improved performance, in some cases.
             run_eagerly (bool, optional): If True, tf.function is not used. Defaults to False.
             jit_compile (bool, optional): If True, XLA compiling is enabled. Defaults to False.
 
@@ -29,6 +32,7 @@ class ImportanceMeasure(ABC):
         super().__init__()
         self._tokenizer = tokenizer
         self._model = model
+        self._inference_batch_size = tf.convert_to_tensor(inference_batch_size, dtype=tf.dtypes.int32)
 
         if seed is None:
             self._rng = tf.random.Generator.from_non_deterministic_state()
@@ -74,7 +78,7 @@ class ImportanceMeasure(ABC):
                 Note, that by default the tokenizer.padding_values were used to infer the sequence_length.
         """
         batch_size = tf.shape(y)[0]
-        dtype = x['input_ids'].dtype
+        dtype = tf.keras.mixed_precision.global_policy().compute_dtype
 
         # Convert input to RaggedTensor structure
         ragged = tf.nest.map_structure(
@@ -93,7 +97,7 @@ class ImportanceMeasure(ABC):
             # Explain observation and check that the results has the correct size before saving the data
             obs_explain = self._explain_observation(obs_x, obs_y)
             tf.debugging.assert_equal(
-                sequence_lengths[obs_i], tf.shape(obs_explain)[0],
+                sequence_lengths[obs_i], tf.shape(obs_explain, out_type=tf.dtypes.int64)[0],
                 message='explanation has correct length'
             )
             explain_all = explain_all.write(obs_i, obs_explain)

@@ -11,7 +11,8 @@ from ecoroar.explain import \
     RandomExplainer, \
     GradientL2Explainer, GradientL1Explainer, \
     InputTimesGradientSignExplainer, InputTimesGradientAbsExplainer, \
-    IntegratedGradientSignExplainer, IntegratedGradientAbsExplainer
+    IntegratedGradientSignExplainer, IntegratedGradientAbsExplainer, \
+    LeaveOneOutAbs, LeaveOneOutSign
 
 
 @pytest.fixture
@@ -121,4 +122,24 @@ def test_explainer_integrated_gradient_abs_2_samples(tokenizer, model, x, config
     np.testing.assert_allclose(im, [
         [0, 1.5625, 1.5625, 0],
         [1.5625, 0, 1.5625, -1]
+    ])
+
+@pytest.mark.parametrize("config", compile_configs, ids=lambda config: config.name)
+def test_explainer_leave_on_out_abs(tokenizer, model, x, config):
+    explainer = LeaveOneOutAbs(tokenizer, model, **config.args)
+
+    im = explainer(x, tf.constant([0, 1])).to_tensor(default_value=-1).numpy()
+    np.testing.assert_allclose(im, [
+        [0, 1, 1, 0],
+        [0, 1, 0, -1]
+    ])
+
+@pytest.mark.parametrize("config", compile_configs, ids=lambda config: config.name)
+def test_explainer_leave_on_out_sign(tokenizer, model, x, config):
+    explainer = LeaveOneOutSign(tokenizer, model, **config.args)
+
+    im = explainer(x, tf.constant([0, 1])).to_tensor(default_value=-1).numpy()
+    np.testing.assert_allclose(im, [
+        [0, -1, -1, 0],
+        [0, 1, 0, -1]
     ])
