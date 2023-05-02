@@ -19,7 +19,8 @@ class SimpleTestTokenizer(Tokenizer):
 
         self.kept_tokens = tf.stack([
             self.bos_token_id,
-            self.eos_token_id
+            self.eos_token_id,
+            self.pad_token_id
         ])
 
         self.vocab_size = tf.constant(5, tf.dtypes.int32)
