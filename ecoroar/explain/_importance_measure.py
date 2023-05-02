@@ -6,9 +6,9 @@ import tensorflow as tf
 from ..types import TokenizedDict, Tokenizer, Model
 from ..util import get_compiler
 
+
 class ImportanceMeasure(ABC):
     _name: str
-    _implements_explain_batch: bool = False
 
     def __init__(self, tokenizer: Tokenizer, model: Model,
                  seed: int = None,
@@ -40,12 +40,14 @@ class ImportanceMeasure(ABC):
             self._rng = tf.random.Generator.from_seed(seed)
 
         # setup explainer function
-        compiler = get_compiler(run_eagerly, jit_compile)
-        if self._implements_explain_batch:
-            self._wrap_explain = compiler(self._wrap_explain_batch)
-        else:
-            self._wrap_explain = compiler(self._wrap_explain_observation)
+        std_compiler = get_compiler(run_eagerly, False)
+        jit_compiler = get_compiler(run_eagerly, jit_compile)
 
+        if hasattr(self, '_explain_observation'):
+            self._wrap_explain_observation = jit_compiler(self._explain_observation)
+        if hasattr(self, '_explain_batch'):
+            self._wrap_explain_batch = jit_compiler(self._explain_batch)
+        self._wrap_explain = std_compiler(self._explain)
 
     @property
     def name(self) -> str:
@@ -53,6 +55,22 @@ class ImportanceMeasure(ABC):
         """
         return self._name
 
+    def __call__(self, x: TokenizedDict, y: tf.Tensor) -> tf.RaggedTensor:
+        """Explains the model given the input-output pair
+
+        Args:
+            x (TokenizedDict): The input to the model, each part has shape [batch_size, sequence_length]
+            y (tf.Tensor): The output label to explain, has shape [batch_size]
+
+        Returns:
+            tf.RaggedTensor: Returns explanations for each observation, as rows in a RaggedTensor.
+                Note, that by default the tokenizer.padding_values were used to infer the sequence_length.
+        """
+
+        return self._wrap_explain(x, y)
+
+
+class ImportanceMeasureObservation(ImportanceMeasure):
     def _explain_observation(self, x: TokenizedDict, y: tf.Tensor) -> tf.Tensor:
         """Explains a single observation.
 
@@ -66,7 +84,7 @@ class ImportanceMeasure(ABC):
         raise NotImplementedError('_explain_observation is not implemented.'
                                   ' Either _explain_observation or _explain_batch should be implemented.')
 
-    def _wrap_explain_observation(self, x: TokenizedDict, y: tf.Tensor) -> tf.RaggedTensor:
+    def _explain(self, x: TokenizedDict, y: tf.Tensor) -> tf.RaggedTensor:
         """Calls _explain_observation for each observation in the batch
 
         Args:
@@ -95,7 +113,7 @@ class ImportanceMeasure(ABC):
             obs_y = y[obs_i]
 
             # Explain observation and check that the results has the correct size before saving the data
-            obs_explain = self._explain_observation(obs_x, obs_y)
+            obs_explain = self._wrap_explain_observation(obs_x, obs_y)
             tf.debugging.assert_equal(
                 sequence_lengths[obs_i], tf.shape(obs_explain, out_type=tf.dtypes.int64)[0],
                 message='explanation has correct length'
@@ -108,6 +126,8 @@ class ImportanceMeasure(ABC):
             row_lengths=sequence_lengths
         )
 
+
+class ImportanceMeasureBatch(ImportanceMeasure):
     def _explain_batch(x: TokenizedDict, y: tf.Tensor) -> tf.Tensor:
         """Explains the entire batch.
 
@@ -122,7 +142,7 @@ class ImportanceMeasure(ABC):
         raise NotImplementedError('_explain_batch is not implemented.'
                             ' Either _explain_observation or _explain_batch should be implemented.')
 
-    def _wrap_explain_batch(self, x: TokenizedDict, y: tf.Tensor) -> tf.RaggedTensor:
+    def _explain(self, x: TokenizedDict, y: tf.Tensor) -> tf.RaggedTensor:
         """Converts the tensor output of _explain_batch to a RaggedTensor.
 
         This uses the inputs (x) as the template for infering the sequence_length.
@@ -135,23 +155,9 @@ class ImportanceMeasure(ABC):
             tf.RaggedTensor: Returns explanations for each observation, as rows in a RaggedTensor.
                 Note, that by default the tokenizer.padding_values were used to infer the sequence_length.
         """
-        explain = self._explain_batch(x, y)
+        explain = self._wrap_explain_batch(x, y)
         sequence_length = tf.math.reduce_sum(
             tf.cast(x['input_ids'] != self._tokenizer.padding_values['input_ids'], dtype=tf.dtypes.int32),
             axis=1
         )
         return tf.RaggedTensor.from_tensor(explain, lengths=sequence_length)
-
-    def __call__(self, x: TokenizedDict, y: tf.Tensor) -> tf.RaggedTensor:
-        """Explains the model given the input-output pair
-
-        Args:
-            x (TokenizedDict): The input to the model, each part has shape [batch_size, sequence_length]
-            y (tf.Tensor): The output label to explain, has shape [batch_size]
-
-        Returns:
-            tf.RaggedTensor: Returns explanations for each observation, as rows in a RaggedTensor.
-                Note, that by default the tokenizer.padding_values were used to infer the sequence_length.
-        """
-
-        return self._wrap_explain(x, y)

@@ -1,12 +1,11 @@
 
 import tensorflow as tf
 
-from ._importance_measure import ImportanceMeasure
+from ._importance_measure import ImportanceMeasureBatch
 
 
-class IntegratedGradientSignExplainer(ImportanceMeasure):
+class IntegratedGradientSignExplainer(ImportanceMeasureBatch):
     _name = 'int-grad-sign'
-    _implements_explain_batch = True
 
     def __init__(self, *args, riemann_samples=20, **kwargs) -> None:
         super().__init__(*args, **kwargs)

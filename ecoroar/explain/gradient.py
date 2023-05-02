@@ -1,12 +1,10 @@
 
 import tensorflow as tf
 
-from ._importance_measure import ImportanceMeasure
+from ._importance_measure import ImportanceMeasureBatch
 
 
-class _GradientGeneralizedExplaner(ImportanceMeasure):
-    _implements_explain_batch = True
-
+class _GradientGeneralizedExplaner(ImportanceMeasureBatch):
     def _compute_gradient(self, x, y):
         x = self._model.inputs_embeds(x)
         with tf.GradientTape(watch_accessed_variables=False) as g:

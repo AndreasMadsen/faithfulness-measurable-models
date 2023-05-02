@@ -1,12 +1,11 @@
 
 import tensorflow as tf
 
-from ._importance_measure import ImportanceMeasure
+from ._importance_measure import ImportanceMeasureBatch
 
 
-class InputTimesGradientSignExplainer(ImportanceMeasure):
+class InputTimesGradientSignExplainer(ImportanceMeasureBatch):
     _name = 'inp-grad-sign'
-    _implements_explain_batch = True
 
     def _explain_batch(self, x, y):
         # Prepear a compact embedding matrix for doing sum(x * dy/dz @ W.T) efficently.
