@@ -105,6 +105,8 @@ class ImportanceMeasureObservation(ImportanceMeasure):
         )
         sequence_lengths = ragged['input_ids'].row_lengths()
 
+        # NOTE: Consider dropping this loop, it may be possible to do inference-only even for 512 token
+        #   long inputs. Could be tested with MIMIC-d.
         # For each observation, call self._explain_observation() and store the results in a TensorArray
         explain_all = tf.TensorArray(dtype, size=batch_size, infer_shape=False, element_shape=(None, ))
         for obs_i in tf.range(batch_size):
