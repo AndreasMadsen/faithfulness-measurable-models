@@ -4,14 +4,27 @@
 noop:
 	echo "preventing default action"
 
-plot:
-	python export/epoch_by_mmr_plot.py
-	python export/epoch_by_ms_plot.py
-	python export/faithfulness_plot.py
-	python export/masked_performance_by_mmr_plot.py
-	python export/masked_performance_by_ms_plot.py
-	python export/unmasked_performance_by_mmr_plot.py
-	python export/unmasked_performance_by_ms_plot.py
+plot-faithfulness:
+	python export/faithfulness_plot.py --model-category size --masking-strategy half-det --split train
+	python export/faithfulness_plot.py --model-category size --masking-strategy half-det --split test
+	python export/faithfulness_plot.py --model-category size --masking-strategy uni --split test
+	python export/faithfulness_plot.py --model-category size --masking-strategy uni --split train
+
+plot-ood:
+	python export/ood_plot.py --model-category size --masking-strategy half-det --split train
+	python export/ood_plot.py --model-category size --masking-strategy half-det --split test
+	python export/ood_plot.py --model-category size --masking-strategy uni --split test
+	python export/ood_plot.py --model-category size --masking-strategy uni --split train
+
+plot-train:
+	python export/epoch_by_mmr_plot.py --model-category size --masking-strategy uni
+	python export/epoch_by_ms_plot.py --model-category size --max-masking-ratio 100
+	python export/masked_performance_by_mmr_plot.py --model-category size --masking-strategy uni
+	python export/masked_performance_by_ms_plot.py --model-category size --max-masking-ratio 100
+	python export/unmasked_performance_by_mmr_plot.py --model-category size --masking-strategy uni
+	python export/unmasked_performance_by_ms_plot.py --model-category size --max-masking-ratio 100
+
+plot: plot-train plot-faithfulness plot-ood
 
 download-intermediate-cedar:
 	rsync --info=progress2 -urltv --delete \

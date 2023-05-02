@@ -37,7 +37,7 @@ def generate_experiment_id(name: str,
         experiment_id += f"_e-{max_epochs}"
     if isinstance(max_masking_ratio, int):
         experiment_id += f"_r-{max_masking_ratio}"
-    if isinstance(max_masking_ratio, int):
+    if isinstance(masking_strategy, str):
         experiment_id += f"_y-{masking_strategy}"
     if isinstance(explainer, str):
         experiment_id += f"_x-{explainer.lower()}"

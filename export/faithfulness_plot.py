@@ -34,6 +34,19 @@ parser.add_argument('--stage',
                     type=str,
                     choices=['preprocess', 'plot', 'both'],
                     help='Which export stage should be performed. Mostly just useful for debugging.')
+parser.add_argument('--format',
+                    action='store',
+                    default='wide',
+                    type=str,
+                    choices=['half', 'wide'],
+                    help='The dimentions and format of the plot.')
+parser.add_argument('--datasets',
+                    action='store',
+                    nargs='+',
+                    default=list(datasets.keys()),
+                    choices=datasets.keys(),
+                    type=str,
+                    help='The datasets to plot')
 parser.add_argument('--performance-metric',
                     action='store',
                     default='primary',
@@ -101,7 +114,8 @@ if __name__ == "__main__":
                 if data['args']['max_masking_ratio'] == args.max_masking_ratio and \
                    data['args']['masking_strategy'] == args.masking_strategy and \
                    data['args']['split'] == args.split and \
-                   data['args']['model'] in model_categories[args.model_category]:
+                   data['args']['model'] in model_categories[args.model_category] and \
+                   data['args']['dataset'] in args.datasets:
                     results.append(data)
 
         df_faithfulness = pd.json_normalize(results).explode('results', ignore_index=True)
@@ -114,7 +128,7 @@ if __name__ == "__main__":
               .transform(select_target_metric))
 
     if args.stage in ['preprocess']:
-        os.makedirs(f'{args.persistent_dir}/pandas', exist_ok=True)
+        os.makedirs(args.persistent_dir / 'pandas', exist_ok=True)
         df.to_parquet((args.persistent_dir / 'pandas' / experiment_id).with_suffix('.parquet'))
     elif args.stage in ['plot']:
         df = pd.read_parquet((args.persistent_dir / 'pandas' / experiment_id).with_suffix('.parquet'))
@@ -148,10 +162,17 @@ if __name__ == "__main__":
                 aesthetics = ["colour", "fill"],
                 name='importance measure (IM)'
             )
-            + p9.scale_shape_discrete(guide=False)
-            + p9.ggtitle(experiment_id))
+            + p9.scale_shape_discrete(guide=False))
 
-        # Save plot, the width is the \linewidth of a collumn in the LaTeX document
+        if args.format == 'half':
+            # The width is the \linewidth of a collumn in the LaTeX document
+            size = (3.03209, 4.5)
+            p += p9.guides(color=p9.guide_legend(ncol=1))
+            p += p9.theme(text=p9.element_text(size=11), subplots_adjust={'bottom': 0.38}, legend_position=(.5, .05))
+        else:
+            size = (20, 7)
+            p += p9.ggtitle(experiment_id)
+
         os.makedirs(f'{args.persistent_dir}/plots', exist_ok=True)
-        p.save(f'{args.persistent_dir}/plots/{experiment_id}.pdf', width=3*6.30045 + 0.2, height=7, units='in')
-        p.save(f'{args.persistent_dir}/plots/{experiment_id}.png', width=3*6.30045 + 0.2, height=7, units='in')
+        p.save(f'{args.persistent_dir}/plots/{experiment_id}.pdf', width=size[0], height=size[1], units='in')
+        p.save(f'{args.persistent_dir}/plots/{experiment_id}.png', width=size[0], height=size[1], units='in')
