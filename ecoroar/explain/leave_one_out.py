@@ -1,23 +1,30 @@
 
 import tensorflow as tf
 
-from ._importance_measure import ImportanceMeasureObservation
+from ecoroar.types import Tokenizer
 
+from ._importance_measure import ImportanceMeasureObservation
+from ..transform.sequence_identifier import SequenceIndentifier
 
 class LeaveOneOutSign(ImportanceMeasureObservation):
     _name = 'loo-sign'
+    def __init__(self, tokenizer: Tokenizer, *args, **kwargs) -> None:
+        super().__init__(tokenizer, *args, **kwargs)
+        self._sequence_identifier = SequenceIndentifier(tokenizer)
 
     def _explain_observation(self, x, y):
-        sequence_length = tf.shape(x['input_ids'])[0]
+        input_ids = x['input_ids']
+        sequence_length = tf.shape(input_ids)[0]
 
-        # NOTE: for masked inputs, [MASK] would be replaced with [MASK].
-        #       This enforces zero attribution score. Therefore this be optimized by
-        #       skipping the model evaluation.
-        unmaskable_tokens_ids = tf.concat((self._tokenizer.kept_tokens, [self._tokenizer.mask_token_id]), axis=0)
-        maskable_tokens = tf.math.reduce_all(
-            tf.expand_dims(x['input_ids'], 0) != tf.expand_dims(unmaskable_tokens_ids, 1),
-            axis=0
-        )
+        # Since only explanation w.r.t. the first sequence are considred, only attempt
+        # LOO measures on the first sequence.
+        maskable_tokens = tf.squeeze(self._sequence_identifier(tf.expand_dims(input_ids, 0)), 0) == 1
+        # For masked inputs, [MASK] would be replaced with [MASK].
+        # This enforces zero attribution score. Therefore this be optimized by
+        #   skipping the model evaluation.
+        maskable_tokens = tf.logical_and(maskable_tokens, input_ids != self._tokenizer.mask_token_id)
+
+        # Identify which tokens should be probed
         token_idx_to_mask = tf.squeeze(tf.where(maskable_tokens), axis=1)
         n_samples = tf.size(token_idx_to_mask)
 

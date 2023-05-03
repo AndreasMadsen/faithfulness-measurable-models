@@ -41,7 +41,7 @@ compile_configs = [
 def test_sequence_identifier(tokenizer, x, config):
     compiler = get_compiler(**config.args)
     identifier = compiler(SequenceIndentifier(tokenizer))
-    sequence_idx = identifier(x).numpy()
+    sequence_idx = identifier(x['input_ids']).numpy()
 
     np.testing.assert_array_equal(sequence_idx, [
         [0, 1, 1, 0, 0, 2, 2, 0],

@@ -159,7 +159,7 @@ class ImportanceMeasureBatch(ImportanceMeasure):
         """
         explain = self._wrap_explain_batch(x, y)
         sequence_length = tf.math.reduce_sum(
-            tf.cast(x['input_ids'] != self._tokenizer.padding_values['input_ids'], dtype=tf.dtypes.int32),
+            tf.cast(x['input_ids'] != self._tokenizer.pad_token_id, dtype=tf.dtypes.int32),
             axis=1
         )
         return tf.RaggedTensor.from_tensor(explain, lengths=sequence_length)

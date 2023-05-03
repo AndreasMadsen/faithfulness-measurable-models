@@ -25,9 +25,8 @@ class ExplainerMasking(InputTransform):
         self._sequence_identifier = SequenceIndentifier(tokenizer)
 
     @tf.function(reduce_retracing=True)
-    def _mask_inputs_ids_with_im(self, x: TokenizedDict, im: tf.RaggedTensor, masking_ratio: tf.Tensor):
-        first_sequence_mask = self._sequence_identifier(x) == 1
-        input_ids = x['input_ids']
+    def _mask_inputs_ids_with_im(self, input_ids: tf.Tensor, im: tf.RaggedTensor, masking_ratio: tf.Tensor):
+        first_sequence_mask = self._sequence_identifier(input_ids) == 1
 
         # ensure that already masked values will continue to be masked,
         # by assigning them infinite importance.
@@ -61,7 +60,7 @@ class ExplainerMasking(InputTransform):
         im = self._explainer(x, y)
 
         return {
-            'input_ids': self._mask_inputs_ids_with_im(x, im, masking_ratio),
+            'input_ids': self._mask_inputs_ids_with_im(x['input_ids'], im, masking_ratio),
             'attention_mask': x['attention_mask']
         }
 

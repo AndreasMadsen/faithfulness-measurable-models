@@ -18,17 +18,16 @@ class SequenceIndentifier(InputTransform):
 
         self._tokenizer = tokenizer
 
-    def __call__(self, x: TokenizedDict) -> tf.Tensor:
+    def __call__(self, input_ids: tf.Tensor) -> tf.Tensor:
         """Annotates which sequence each input token is assigned to
 
         Args:
-            x (TokenizedDict): Tokenized input
+            input_ids (tf.Tensor): Tokenized input
 
         Returns:
-            tf.Tensor(dtype=tf.int8): same shape as x['inputs_ids']
+            tf.Tensor(dtype=tf.int8): same shape as input_ids
         """
-
-        input_ids = tf.ensure_shape(x['input_ids'], [None, None])
+        input_ids = tf.ensure_shape(input_ids, [None, None])
         batch_size, _ = tf.unstack(tf.shape(input_ids), num=2)
 
         # is_sequence_token         = [0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0]
