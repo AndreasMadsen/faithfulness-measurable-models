@@ -32,12 +32,13 @@ class ExplainerMasking(InputTransform):
         )
         im_dense = tf.where(kept_tokens, -np.inf, im_dense)
 
+        # TODO: Avoid masking the second (or first) sequence in paried-sequence task.
+
         # Rank importance measure
         ranking = tf.argsort(im_dense, axis=1, direction='DESCENDING', stable=True)
 
-        # Create an indice tensor [[batch_idx, token_idx], ... ] tensor with the
-        # top `masking_ratio` elements selected. Make sure that kept_tokens are not
-        # selected, by removing them from the sequence_length.
+        # Create an indice tensor mask_ranking[batch_idx] = [token_idx, ...] tensor with the
+        # top `masking_ratio` elements selected. Make sure that kept_tokens are not selected.
         maskable_num_of_tokens = tf.math.reduce_sum(
             tf.cast(tf.math.logical_not(kept_tokens), tf.dtypes.int32),
             axis=1)
