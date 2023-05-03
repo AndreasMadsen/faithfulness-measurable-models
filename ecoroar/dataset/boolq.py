@@ -20,5 +20,5 @@ class BoolQDataset(AbstractDataset):
         return tfds.builder("super_glue/boolq", data_dir=data_dir)
 
     def _as_supervised(self, item):
-        x = (item['question'], item['passage'])
+        x = (item['passage'], item['question'])
         return x, item['label']
