@@ -6,6 +6,10 @@ import tensorflow as tf
 
 from ..types import TokenizedDict, InputTransform, Tokenizer
 from .map_on_gpu import MapOnGPU
+from .sequence_identifier import SequenceIndentifier
+
+def _float_int_multiple(float_tensor, int_tensor):
+    return tf.cast(float_tensor * tf.cast(int_tensor, dtype=float_tensor.dtype), dtype=int_tensor.dtype)
 
 class ExplainerMasking(InputTransform):
     def __init__(self, explainer, tokenizer: Tokenizer):
@@ -18,33 +22,27 @@ class ExplainerMasking(InputTransform):
 
         self._explainer = explainer
         self._tokenizer = tokenizer
+        self._sequence_identifier = SequenceIndentifier(tokenizer)
 
     @tf.function(reduce_retracing=True)
-    def _mask_inputs_ids_with_im(self, input_ids: tf.Tensor, im: tf.RaggedTensor, masking_ratio: tf.Tensor):
+    def _mask_inputs_ids_with_im(self, x: TokenizedDict, im: tf.RaggedTensor, masking_ratio: tf.Tensor):
+        first_sequence_mask = self._sequence_identifier(x) == 1
+        input_ids = x['input_ids']
+
         # ensure that already masked values will continue to be masked,
         # by assigning them infinite importance.
         im_dense = im.to_tensor(default_value=-np.inf, shape=tf.shape(input_ids))
         im_dense = tf.where(input_ids == self._tokenizer.mask_token_id, np.inf, im_dense)
         # ensure that kept tokens, such as [BOS] and [EOS] will remain
-        kept_tokens = tf.math.reduce_any(
-            tf.expand_dims(input_ids, 0) == tf.reshape(self._tokenizer.kept_tokens, [-1, 1, 1]),
-            axis=0
-        )
-        im_dense = tf.where(kept_tokens, -np.inf, im_dense)
-
-        # TODO: Avoid masking the second (or first) sequence in paried-sequence task.
+        im_dense = tf.where(first_sequence_mask, im_dense, -np.inf)
 
         # Rank importance measure
         ranking = tf.argsort(im_dense, axis=1, direction='DESCENDING', stable=True)
 
         # Create an indice tensor mask_ranking[batch_idx] = [token_idx, ...] tensor with the
         # top `masking_ratio` elements selected. Make sure that kept_tokens are not selected.
-        maskable_num_of_tokens = tf.math.reduce_sum(
-            tf.cast(tf.math.logical_not(kept_tokens), tf.dtypes.int32),
-            axis=1)
-        mask_lengths = tf.cast(
-            tf.cast(maskable_num_of_tokens, masking_ratio.dtype) * masking_ratio,
-            dtype=tf.dtypes.int32)
+        maskable_num_of_tokens = tf.math.reduce_sum(tf.cast(first_sequence_mask, tf.dtypes.int32), axis=1)
+        mask_lengths = _float_int_multiple(masking_ratio, maskable_num_of_tokens)
         mask_ranking = tf.RaggedTensor.from_tensor(ranking, lengths=mask_lengths)
 
         # Set masked elements to have the [MASK] token in the input
@@ -63,7 +61,7 @@ class ExplainerMasking(InputTransform):
         im = self._explainer(x, y)
 
         return {
-            'input_ids': self._mask_inputs_ids_with_im(x['input_ids'], im, masking_ratio),
+            'input_ids': self._mask_inputs_ids_with_im(x, im, masking_ratio),
             'attention_mask': x['attention_mask']
         }
 
