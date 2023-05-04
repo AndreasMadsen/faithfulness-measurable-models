@@ -75,6 +75,11 @@ parser.add_argument('--masking-strategy',
                     choices=['uni', 'half-det', 'half-ran'],
                     type=str,
                     help='The masking strategy to use for masking during fune-tuning')
+parser.add_argument('--validation-dataset',
+                    default='both',
+                    choices=['nomask', 'mask', 'both'],
+                    type=str,
+                    help='The transformation applied to the validation dataset used for early stopping.')
 
 if __name__ == "__main__":
     #pd.set_option('display.max_rows', None)
@@ -91,12 +96,12 @@ if __name__ == "__main__":
     experiment_id = generate_experiment_id('epoch_by_valid',
                                             model=args.model,
                                             max_masking_ratio=args.max_masking_ratio,
-                                            masking_strategy=args.masking_strategy)
+                                            validation_dataset=args.validation_dataset)
 
     if args.stage in ['both', 'preprocess']:
         # Read JSON files into dataframe
         results = []
-        files = sorted((args.persistent_dir / 'results' / 'masking').glob('masking_*_v-*.json'))
+        files = sorted((args.persistent_dir / 'results' / 'masking').glob('*.json'))
         for file in tqdm(files, desc='Loading masking .json files'):
             with open(file, 'r') as fp:
                 try:
@@ -104,10 +109,10 @@ if __name__ == "__main__":
                 except json.decoder.JSONDecodeError:
                     print(f'{file} has a format error')
 
-                if data['args']['masking_strategy'] == args.masking_strategy and \
-                   data['args']['max_masking_ratio'] == args.max_masking_ratio and \
+                if data['args']['max_masking_ratio'] == args.max_masking_ratio and \
                    data['args']['model'] == args.model and \
-                   data['args']['dataset'] in args.datasets:
+                   data['args']['dataset'] in args.datasets and \
+                   data['args']['validation_dataset'] in args.validation_dataset:
                     results.append(data)
 
         df = pd.json_normalize(results).explode('history', ignore_index=True)
@@ -155,7 +160,7 @@ if __name__ == "__main__":
 
     if args.stage in ['both', 'plot']:
         df_epochs = (df
-            .groupby(['args.dataset', 'args.validation_dataset', 'epoch', 'metric.dataset'], group_keys=True)
+            .groupby(['args.dataset', 'args.masking_strategy', 'epoch', 'metric.dataset'], group_keys=True)
             .apply(bootstrap_confint(['metric.value']))
             .reset_index())
 
@@ -163,7 +168,7 @@ if __name__ == "__main__":
         p = (p9.ggplot(df_epochs, p9.aes(x='epoch'))
             + p9.geom_ribbon(p9.aes(ymin='metric.value_lower', ymax='metric.value_upper', fill='metric.dataset'), alpha=0.35)
             + p9.geom_line(p9.aes(y='metric.value_mean', color='metric.dataset'))
-            + p9.facet_grid("args.validation_dataset ~ args.dataset", scales="free_x")
+            + p9.facet_grid("args.masking_strategy ~ args.dataset", scales="free_x")
             + p9.scale_x_continuous(name='Epoch')
             + p9.scale_y_continuous(
                 labels=lambda ticks: [f'{tick:.0%}' for tick in ticks],

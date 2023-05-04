@@ -40,7 +40,6 @@ class MaskingStrategy(_AnnotationMapping):
     mapping = {
         'goal': '0% masking',
         'uni': 'U[0%, 100%] masking',
-        'half-ran': 'Sample 50/50',
         'half-det': 'Use 50/50'
     }
 

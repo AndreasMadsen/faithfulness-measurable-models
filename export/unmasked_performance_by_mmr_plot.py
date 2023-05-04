@@ -60,10 +60,16 @@ parser.add_argument('--model-category',
                     choices=['size', 'masking-ratio'],
                     help='Which model category to use.')
 parser.add_argument('--masking-strategy',
-                    default='uni',
+                    default='half-det',
                     choices=['uni', 'half-det', 'half-ran'],
                     type=str,
                     help='The masking strategy to use for masking during fune-tuning')
+parser.add_argument('--validation-dataset',
+                    default='both',
+                    choices=['nomask', 'mask', 'both'],
+                    type=str,
+                    help='The transformation applied to the validation dataset used for early stopping.')
+
 
 if __name__ == "__main__":
     pd.set_option('display.max_rows', None)
@@ -83,7 +89,8 @@ if __name__ == "__main__":
 
     experiment_id = generate_experiment_id('unmasked_performance_by_mmr',
                                             model=args.model_category,
-                                            masking_strategy=args.masking_strategy)
+                                            masking_strategy=args.masking_strategy,
+                                            validation_dataset=args.validation_dataset)
 
     if args.stage in ['both', 'preprocess']:
         # Read JSON files into dataframe
@@ -98,7 +105,8 @@ if __name__ == "__main__":
 
                 if data['args']['masking_strategy'] == args.masking_strategy and \
                    data['args']['model'] in model_categories[args.model_category] and \
-                   data['args']['dataset'] in args.datasets:
+                   data['args']['dataset'] in args.datasets and \
+                   data['args']['validation_dataset'] == args.validation_dataset:
                     results.append(data)
 
         df = pd.json_normalize(results).explode('results', ignore_index=True)

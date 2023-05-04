@@ -63,6 +63,11 @@ parser.add_argument('--max-masking-ratio',
                     default=100,
                     type=int,
                     help='The maximum masking ratio (percentage integer) to apply on the training dataset')
+parser.add_argument('--validation-dataset',
+                    default='both',
+                    choices=['nomask', 'mask', 'both'],
+                    type=str,
+                    help='The transformation applied to the validation dataset used for early stopping.')
 
 if __name__ == "__main__":
     pd.set_option('display.max_rows', None)
@@ -86,7 +91,8 @@ if __name__ == "__main__":
 
     experiment_id = generate_experiment_id('masked_performance_by_ms',
                                             model=args.model_category,
-                                            max_masking_ratio=args.max_masking_ratio)
+                                            max_masking_ratio=args.max_masking_ratio,
+                                            validation_dataset=args.validation_dataset)
 
     if args.stage in ['both', 'preprocess']:
         # Read JSON files into dataframe
@@ -101,7 +107,8 @@ if __name__ == "__main__":
 
                 if data['args']['max_masking_ratio'] in [0, args.max_masking_ratio] and \
                    data['args']['model'] in model_categories[args.model_category] and \
-                   data['args']['dataset'] in args.datasets:
+                   data['args']['dataset'] in args.datasets and \
+                   data['args']['validation_dataset'] == args.validation_dataset:
                     results.append(data)
 
         df = pd.json_normalize(results).explode('results', ignore_index=True)
@@ -122,8 +129,7 @@ if __name__ == "__main__":
     if args.stage in ['both', 'plot']:
         df_main = df.query('`args.max_masking_ratio` == 100')
         df_goal = (df
-                .query('`args.max_masking_ratio` == 0 & \
-                        `args.masking_strategy` == "uni"')
+                .query('`args.max_masking_ratio` == 0')
                 .assign(**{'args.masking_strategy': 'goal'}))
         df_data = pd.concat([df_main, df_goal])
 
