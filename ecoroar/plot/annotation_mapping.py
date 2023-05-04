@@ -43,6 +43,13 @@ class MaskingStrategy(_AnnotationMapping):
         'half-det': 'Use 50/50'
     }
 
+class ValidationDataset(_AnnotationMapping):
+    mapping = {
+        'nomask': 'No masking',
+        'mask': 'U[0%, 100%] masking',
+        'both': 'Use both'
+    }
+
 class Explainer(_AnnotationMapping):
     mapping = {
         'rand': 'Random',
@@ -76,5 +83,6 @@ class AllAnnotations(_Singleton):
         self.masking_strategy = MaskingStrategy()
         self.explainer = Explainer()
         self.validation = Validation()
+        self.validation_dataset = ValidationDataset()
 
 annotation = AllAnnotations()
