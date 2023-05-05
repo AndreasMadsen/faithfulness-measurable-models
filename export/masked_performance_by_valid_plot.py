@@ -63,11 +63,11 @@ parser.add_argument('--max-masking-ratio',
                     default=100,
                     type=int,
                     help='The maximum masking ratio (percentage integer) to apply on the training dataset')
-parser.add_argument('--validation-dataset',
-                    default='both',
-                    choices=['nomask', 'mask', 'both'],
+parser.add_argument('--masking-strategy',
+                    default='half-det',
+                    choices=['uni', 'half-det', 'half-ran'],
                     type=str,
-                    help='The transformation applied to the validation dataset used for early stopping.')
+                    help='The masking strategy to use for masking during fune-tuning')
 
 if __name__ == "__main__":
     pd.set_option('display.max_rows', None)
@@ -89,10 +89,10 @@ if __name__ == "__main__":
         'size': ['roberta-sb', 'roberta-sl']
     }
 
-    experiment_id = generate_experiment_id('masked_performance_by_ms',
+    experiment_id = generate_experiment_id('masked_performance_by_valid',
                                             model=args.model_category,
                                             max_masking_ratio=args.max_masking_ratio,
-                                            validation_dataset=args.validation_dataset)
+                                            masking_strategy=args.masking_strategy)
 
     if args.stage in ['both', 'preprocess']:
         # Read JSON files into dataframe
@@ -105,10 +105,10 @@ if __name__ == "__main__":
                 except json.decoder.JSONDecodeError:
                     print(f'{file} has a format error')
 
-                if data['args']['max_masking_ratio'] in [0, args.max_masking_ratio] and \
+                if data['args']['max_masking_ratio'] == args.max_masking_ratio and \
                    data['args']['model'] in model_categories[args.model_category] and \
                    data['args']['dataset'] in args.datasets and \
-                   data['args']['validation_dataset'] == args.validation_dataset:
+                   data['args']['masking_strategy'] == args.masking_strategy:
                     results.append(data)
 
         df = pd.json_normalize(results).explode('results', ignore_index=True)
@@ -127,14 +127,8 @@ if __name__ == "__main__":
         df = pd.read_parquet((args.persistent_dir / 'pandas' / experiment_id).with_suffix('.parquet'))
 
     if args.stage in ['both', 'plot']:
-        df_main = df.query('`args.max_masking_ratio` == 100')
-        df_goal = (df
-                .query('`args.max_masking_ratio` == 0')
-                .assign(**{'args.masking_strategy': 'goal'}))
-        df_data = pd.concat([df_main, df_goal])
-
-        df_plot = (df_data
-                .groupby(['args.model', 'args.dataset', 'args.masking_strategy',
+        df_plot = (df
+                .groupby(['args.model', 'args.dataset', 'args.validation_dataset',
                           'results.masking_ratio'], group_keys=True)
                 .apply(bootstrap_confint(['metric']))
                 .reset_index())
@@ -147,11 +141,11 @@ if __name__ == "__main__":
 
         # Generate plot
         p = (p9.ggplot(df_plot, p9.aes(x='results.masking_ratio'))
-            + p9.geom_jitter(p9.aes(y='metric', group='args.seed', color='args.masking_strategy'),
-                            shape='+', alpha=0.5, width=0.01, data=df_data)
-            + p9.geom_ribbon(p9.aes(ymin='metric_lower', ymax='metric_upper', fill='args.masking_strategy'), alpha=0.35)
-            + p9.geom_line(p9.aes(y='metric_mean', color='args.masking_strategy', shape='args.model'))
-            + p9.geom_point(p9.aes(y='metric_mean', color='args.masking_strategy', shape='args.model'))
+            + p9.geom_jitter(p9.aes(y='metric', group='args.seed', color='args.validation_dataset'),
+                            shape='+', alpha=0.5, width=0.01, data=df)
+            + p9.geom_ribbon(p9.aes(ymin='metric_lower', ymax='metric_upper', fill='args.validation_dataset'), alpha=0.35)
+            + p9.geom_line(p9.aes(y='metric_mean', color='args.validation_dataset', shape='args.model'))
+            + p9.geom_point(p9.aes(y='metric_mean', color='args.validation_dataset', shape='args.model'))
             + p9.geom_line(p9.aes(y='baseline_mean'), color='black', data=df_baseline)
             + p9.facet_grid("args.model ~ args.dataset", scales="free_y", labeller=annotation.model.labeller)
             + p9.scale_y_continuous(
@@ -163,10 +157,10 @@ if __name__ == "__main__":
                 name='Test masking ratio'
             )
             + p9.scale_color_discrete(
-                breaks = annotation.masking_strategy.breaks,
-                labels = annotation.masking_strategy.labels,
+                breaks = annotation.validation_dataset.breaks,
+                labels = annotation.validation_dataset.labels,
                 aesthetics = ["colour", "fill"],
-                name='fine-tuning strategy'
+                name='Validation dataset'
             )
             + p9.scale_shape_discrete(guide=False))
 

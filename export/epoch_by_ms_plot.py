@@ -3,6 +3,7 @@ import json
 import argparse
 import os
 import pathlib
+from functools import partial
 
 from tqdm import tqdm
 import numpy as np
@@ -14,10 +15,14 @@ from ecoroar.plot import bootstrap_confint, annotation
 from ecoroar.util import generate_experiment_id
 
 def select_target_metric(df):
-    idx, cols = pd.factorize('history.val_' + df.loc[:, 'target_metric'])
+    idx, cols = pd.factorize('history.val_0_' + df.loc[:, 'target_metric'])
     return df.assign(
         metric = df.reindex(cols, axis=1).to_numpy()[np.arange(len(df)), idx]
     )
+
+def delete_columns(df, prefix):
+    remove_columns = df.columns[df.columns.str.startswith(prefix)].to_numpy().tolist()
+    return df.drop(columns=remove_columns)
 
 parser = argparse.ArgumentParser(
     description = 'Plots the 0% masking test performance given different training masking ratios'
@@ -63,6 +68,11 @@ parser.add_argument('--max-masking-ratio',
                     default=100,
                     type=int,
                     help='The maximum masking ratio (percentage integer) to apply on the training dataset')
+parser.add_argument('--validation-dataset',
+                    default='both',
+                    choices=['nomask', 'mask', 'both'],
+                    type=str,
+                    help='The transformation applied to the validation dataset used for early stopping.')
 
 if __name__ == "__main__":
     pd.set_option('display.max_rows', None)
@@ -82,12 +92,13 @@ if __name__ == "__main__":
 
     experiment_id = generate_experiment_id('epoch_by_ms',
                                             model=args.model_category,
-                                            max_masking_ratio=args.max_masking_ratio)
+                                            max_masking_ratio=args.max_masking_ratio,
+                                            validation_dataset=args.validation_dataset)
 
     if args.stage in ['both', 'preprocess']:
         # Read JSON files into dataframe
         results = []
-        files = sorted((args.persistent_dir / 'results').glob('masking_*.json'))
+        files = sorted((args.persistent_dir / 'results' / 'masking').glob('*.json'))
         for file in tqdm(files, desc='Loading masking .json files'):
             with open(file, 'r') as fp:
                 try:
@@ -97,7 +108,8 @@ if __name__ == "__main__":
 
                 if data['args']['max_masking_ratio'] in [0, args.max_masking_ratio] and \
                    data['args']['model'] in model_categories[args.model_category] and \
-                   data['args']['dataset'] in args.datasets:
+                   data['args']['dataset'] in args.datasets and \
+                   data['args']['validation_dataset'] in args.validation_dataset:
                     results.append(data)
 
         df = pd.json_normalize(results).explode('history', ignore_index=True)
@@ -108,7 +120,10 @@ if __name__ == "__main__":
         df = (df
               .merge(dataset_mapping, on='args.dataset')
               .transform(select_target_metric)
-              .assign(**{'history.epoch': lambda df: df['history.epoch'] + 1}))
+              .drop(columns=['results', 'target_metric'])
+              .assign(**{'epoch': lambda df: df['history.epoch'] + 1})
+              .transform(partial(delete_columns, prefix='history.'))
+              .transform(partial(delete_columns, prefix='durations.')))
 
     if args.stage in ['preprocess']:
         os.makedirs(args.persistent_dir / 'pandas', exist_ok=True)
@@ -119,20 +134,20 @@ if __name__ == "__main__":
     if args.stage in ['both', 'plot']:
         df_main = df.query('`args.max_masking_ratio` == @args.max_masking_ratio')
         df_goal = (df
-            .query('`args.max_masking_ratio` == 0 & \
-                    `args.masking_strategy` == "uni"')
+            .query('`args.max_masking_ratio` == 0')
             .assign(**{
                 'args.masking_strategy': 'goal'
             }))
+
         df_data = pd.concat([df_main, df_goal])
 
         df_epochs = (df_data
-            .groupby(['args.model', 'args.dataset', 'history.epoch', 'args.masking_strategy'], group_keys=True)
+            .groupby(['args.model', 'args.dataset', 'epoch', 'args.masking_strategy'], group_keys=True)
             .apply(bootstrap_confint(['metric']))
             .reset_index())
 
         # Generate plot
-        p = (p9.ggplot(df_epochs, p9.aes(x='history.epoch'))
+        p = (p9.ggplot(df_epochs, p9.aes(x='epoch'))
             + p9.geom_jitter(p9.aes(y='metric', group='args.seed', color='args.masking_strategy'),
                              shape='+', alpha=0.5, width=0.25, data=df_data)
             + p9.geom_ribbon(p9.aes(ymin='metric_lower', ymax='metric_upper', fill='args.masking_strategy'), alpha=0.35)

@@ -15,6 +15,7 @@ from ecoroar.model import huggingface_model_from_repo
 from ecoroar.transform import RandomFixedMasking, RandomMaxMasking, BucketedPaddedBatch, TransformSampler
 from ecoroar.optimizer import AdamW
 from ecoroar.scheduler import LinearSchedule
+from ecoroar.callback import ExtraValidationDataset
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--persistent-dir',
@@ -81,10 +82,16 @@ parser.add_argument('--max-masking-ratio',
                     type=int,
                     help='The maximum masking ratio (percentage integer) to apply on the training dataset')
 parser.add_argument('--masking-strategy',
-                    default='uni',
+                    default='half-det',
                     choices=['uni', 'half-det', 'half-ran'],
                     type=str,
                     help='The masking strategy to use for masking during fune-tuning')
+parser.add_argument('--validation-dataset',
+                    default='both',
+                    choices=['nomask', 'mask', 'both'],
+                    type=str,
+                    help='The transformation applied to the validation dataset used for early stopping.')
+
 
 if __name__ == '__main__':
     durations = {}
@@ -102,7 +109,8 @@ if __name__ == '__main__':
         'masking',
         model=args.model, dataset=args.dataset,
         seed=args.seed, max_epochs=args.max_epochs,
-        max_masking_ratio=args.max_masking_ratio, masking_strategy=args.masking_strategy
+        max_masking_ratio=args.max_masking_ratio, masking_strategy=args.masking_strategy,
+        validation_dataset=args.validation_dataset
     )
 
     # Print configuration
@@ -113,6 +121,7 @@ if __name__ == '__main__':
     print('  Huggingface Repo:', args.huggingface_repo)
     print('  Max masking ratio:', args.max_masking_ratio)
     print('  Masking strategy:', args.masking_strategy)
+    print('  Validation dataset:', args.validation_dataset)
     print('')
     print('  Weight Decay:', args.weight_decay)
     print('  Learning rate:', args.lr)
@@ -164,21 +173,57 @@ if __name__ == '__main__':
                 RandomMaxMasking(args.max_masking_ratio / 100, tokenizer, seed=args.seed)
             ], seed=args.seed, stochastic=True)
 
+    # Setup masking routine for validation data, which is used to measure early stopping
+    masker_valid = RandomMaxMasking(args.max_masking_ratio / 100, tokenizer, seed=args.seed)
+    # NOTE: a `match` statement would be nice here, but TensorFlow has a bug for this specific case.
+    if args.validation_dataset == 'nomask':
+        # dataset_valid = [0% masked]
+        def masker_valid_transform(ds):
+            return ds
+    elif args.validation_dataset == 'mask':
+        # dataset_valid = [0%-100% masked]
+        def masker_valid_transform(ds):
+            return ds.map(lambda x, y: (masker_valid(x), y), num_parallel_calls=tf.data.AUTOTUNE)
+    elif args.validation_dataset == 'both':
+        # dataset_valid = [0% masked, 0%-100% masked]
+        def masker_valid_transform(ds):
+            return ds.concatenate(
+                ds.map(lambda x, y: (masker_valid(x), y), num_parallel_calls=tf.data.AUTOTUNE)
+        )
+
     # Mask training dataset and batch it
     dataset_train_batched = dataset_train \
         .shuffle(dataset.train_num_examples, seed=args.seed) \
         .apply(batcher(args.batch_size,
                        padding_values=(tokenizer.padding_values, None),
                        num_parallel_calls=tf.data.AUTOTUNE)) \
-        .map(lambda x, y: (masker_train(x), y), num_parallel_calls=tf.data.AUTOTUNE) \
+        .map(lambda x, y, masker=masker_train: (masker(x), y), num_parallel_calls=tf.data.AUTOTUNE) \
         .prefetch(tf.data.AUTOTUNE)
 
-    # Batch validation dataset
+    # Batch validation dataset, we use .cache() as we don't want random  noise from masker
     dataset_valid_batched = dataset_valid \
         .apply(batcher(args.batch_size,
                        padding_values=(tokenizer.padding_values, None),
                        num_parallel_calls=tf.data.AUTOTUNE)) \
+        .apply(masker_valid_transform) \
+        .cache() \
         .prefetch(tf.data.AUTOTUNE)
+
+    validation_at_masking_ratio = []
+    for valid_masking_ratio in [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]:
+        masker_valid_fixed = RandomFixedMasking(valid_masking_ratio / 100, tokenizer, seed=args.seed)
+        validation_at_masking_ratio.append(ExtraValidationDataset(
+            dataset_valid \
+                .apply(batcher(args.batch_size,
+                               padding_values=(tokenizer.padding_values, None),
+                               num_parallel_calls=tf.data.AUTOTUNE)) \
+                .map(lambda x, y, masker=masker_valid_fixed: (masker(x), y),
+                     num_parallel_calls=tf.data.AUTOTUNE) \
+                .cache() \
+                .prefetch(tf.data.AUTOTUNE),
+            name=f'val_{valid_masking_ratio}',
+            verbose=0
+        ))
 
     # Configure model
     model.compile(
@@ -211,7 +256,8 @@ if __name__ == '__main__':
         tf.keras.callbacks.TensorBoard(
             log_dir=tensorboard_dir,
             write_graph=False
-        )
+        ),
+        *validation_at_masking_ratio
     ])
     durations['train'] = timer() - train_time_start
     test_time_start = timer()
@@ -227,7 +273,7 @@ if __name__ == '__main__':
             .apply(batcher(args.batch_size,
                            padding_values=(tokenizer.padding_values, None),
                            num_parallel_calls=tf.data.AUTOTUNE)) \
-            .map(lambda x, y: (masker_test(x), y), num_parallel_calls=tf.data.AUTOTUNE) \
+            .map(lambda x, y, masker=masker_test: (masker(x), y), num_parallel_calls=tf.data.AUTOTUNE) \
             .prefetch(tf.data.AUTOTUNE)
 
         results_test.append({
@@ -245,8 +291,8 @@ if __name__ == '__main__':
     shutil.rmtree(args.persistent_dir / 'tensorboard' / experiment_id, ignore_errors=True)
     shutil.move(tensorboard_dir, args.persistent_dir / 'tensorboard' / experiment_id)
 
-    os.makedirs(args.persistent_dir / 'results', exist_ok=True)
-    with open(args.persistent_dir / 'results' / f'{experiment_id}.json', "w") as f:
+    os.makedirs(args.persistent_dir / 'results' / 'masking', exist_ok=True)
+    with open(args.persistent_dir / 'results' / 'masking' / f'{experiment_id}.json', "w") as f:
         del args.persistent_dir
         json.dump({
             'args': vars(args),

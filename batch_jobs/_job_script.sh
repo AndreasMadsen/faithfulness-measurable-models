@@ -30,7 +30,7 @@ submit_seeds () {
     local filename
     for seed in $(echo "$seeds")
     do
-        if [ ! -f "${PROJECT_RESULT_DIR}/results/${experiment_name/9999/$seed}.json" ]; then
+        if [ ! -f "${PROJECT_RESULT_DIR}/results/${experiment_name%%_*}/${experiment_name/9999/$seed}.json" ]; then
             run_seeds+=($seed)
             echo "scheduling ${experiment_name/9999/$seed}" 1>&2
         fi

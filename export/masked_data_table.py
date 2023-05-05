@@ -112,7 +112,7 @@ if __name__ == "__main__":
         max_masking_ratio=args.max_masking_ratio, masking_strategy=args.masking_strategy,
         explainer='*'
     )
-    files = sorted((args.persistent_dir / 'intermediate' / 'masked_dataset').glob(f'{experiment_id_glob}.*.tfds'))
+    files = sorted((args.persistent_dir / 'intermediate' / 'faithfulness').glob(f'{experiment_id_glob}.*.tfds'))
     for file in tqdm(files, desc='Loading .tfds files'):
         experiment_id_full, masking_ratio = file.stem.split('.')
         masking_ratio = int(masking_ratio)

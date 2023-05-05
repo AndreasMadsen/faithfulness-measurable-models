@@ -103,7 +103,7 @@ if __name__ == "__main__":
     if args.stage in ['both', 'preprocess']:
         # Read JSON files into dataframe
         results = []
-        files = sorted((args.persistent_dir / 'results').glob('faithfulness_*.json'))
+        files = sorted((args.persistent_dir / 'results' / 'faithfulness').glob('faithfulness_*.json'))
         for file in tqdm(files, desc='Loading faithfulness .json files'):
             with open(file, 'r') as fp:
                 try:

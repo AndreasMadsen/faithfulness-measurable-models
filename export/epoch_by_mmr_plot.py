@@ -14,7 +14,7 @@ from ecoroar.plot import bootstrap_confint, annotation
 from ecoroar.util import generate_experiment_id
 
 def select_target_metric(df):
-    idx, cols = pd.factorize('history.val_' + df.loc[:, 'target_metric'])
+    idx, cols = pd.factorize('history.val_0_' + df.loc[:, 'target_metric'])
     return df.assign(
         metric = df.reindex(cols, axis=1).to_numpy()[np.arange(len(df)), idx]
     )
@@ -60,10 +60,15 @@ parser.add_argument('--model-category',
                     choices=['size', 'masking-ratio'],
                     help='Which model category to use.')
 parser.add_argument('--masking-strategy',
-                    default='uni',
+                    default='half-det',
                     choices=['uni', 'half-det', 'half-ran'],
                     type=str,
                     help='The masking strategy to use for masking during fune-tuning')
+parser.add_argument('--validation-dataset',
+                    default='both',
+                    choices=['nomask', 'mask', 'both'],
+                    type=str,
+                    help='The transformation applied to the validation dataset used for early stopping.')
 
 if __name__ == "__main__":
     pd.set_option('display.max_rows', None)
@@ -83,12 +88,13 @@ if __name__ == "__main__":
 
     experiment_id = generate_experiment_id('epoch_by_mms',
                                             model=args.model_category,
-                                            masking_strategy=args.masking_strategy)
+                                            masking_strategy=args.masking_strategy,
+                                            validation_dataset=args.validation_dataset)
 
     if args.stage in ['both', 'preprocess']:
         # Read JSON files into dataframe
         results = []
-        files = sorted((args.persistent_dir / 'results').glob('masking_*.json'))
+        files = sorted((args.persistent_dir / 'results' / 'masking').glob('*.json'))
         for file in tqdm(files, desc='Loading masking .json files'):
             with open(file, 'r') as fp:
                 try:
@@ -98,7 +104,8 @@ if __name__ == "__main__":
 
                 if data['args']['masking_strategy'] == args.masking_strategy and \
                    data['args']['model'] in model_categories[args.model_category] and \
-                   data['args']['dataset'] in args.datasets:
+                   data['args']['dataset'] in args.datasets and \
+                   data['args']['validation_dataset'] in args.validation_dataset:
                     results.append(data)
 
         df = pd.json_normalize(results).explode('history', ignore_index=True)

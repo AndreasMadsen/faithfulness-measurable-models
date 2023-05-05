@@ -148,26 +148,21 @@ declare -A time=( # ["small test rand bAbI-1"]="0:02"  ["large test rand bAbI-1"
 
 for model in 'roberta-sb' 'roberta-sl' # 'roberta-m15' 'roberta-m20' 'roberta-m30' 'roberta-m40' 'roberta-m50'
 do
-    for dataset in 'bAbI-1' 'bAbI-2' 'bAbI-3' 'BoolQ' 'CB' 'CoLA' 'MIMIC-a' 'MIMIC-d' 'MRPC' 'RTE' 'SST2' 'WNLI'
+    for dataset in 'bAbI-1' 'bAbI-2' 'bAbI-3' 'BoolQ' 'CB' 'CoLA' 'MIMIC-a' 'MIMIC-d' 'MRPC' 'RTE' 'SST2'  # 'IMDB' 'MNLI' 'QNLI' 'QQP' 'WNLI'
     do
         for explainer in 'rand' 'grad-l1' 'grad-l2' 'inp-grad-abs' 'inp-grad-sign' 'int-grad-abs' 'int-grad-sign'
         do
-            for masking_strategy in 'half-det' 'uni'
-            do
-                for split in 'test' 'train'
-                do
-                    submit_seeds "${time[${size[$model]} $split ${algo[$explainer]} $dataset]}" "$seeds" $(job_script gpu) \
-                        experiments/faithfulness.py \
-                        --model "${model}" \
-                        --dataset "${dataset}" \
-                        --max-masking-ratio 100 \
-                        --masking-strategy "${masking_strategy}" \
-                        --explainer "${explainer}" \
-                        --split "${split}" \
-                        --jit-compile \
-                        --save-masked-datasets
-                done
-            done
+            submit_seeds "${time[${size[$model]} $split ${algo[$explainer]} $dataset]}" "$seeds" $(job_script gpu) \
+                experiments/faithfulness.py \
+                --model "${model}" \
+                --dataset "${dataset}" \
+                --max-masking-ratio 100 \
+                --masking-strategy 'half-det' \
+                --validation-dataset 'both' \
+                --explainer "${explainer}" \
+                --split 'test' \
+                --jit-compile \
+                --save-masked-datasets
         done
     done
 done

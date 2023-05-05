@@ -92,7 +92,7 @@ if __name__ == "__main__":
     if args.stage in ['both', 'preprocess']:
         # Read JSON files into dataframe
         results = []
-        files = sorted((args.persistent_dir / 'results').glob('ood_*.json'))
+        files = sorted((args.persistent_dir / 'results' / 'ood').glob('ood_*.json'))
         for file in tqdm(files, desc='Loading ood .json files'):
             with open(file, 'r') as fp:
                 try:

@@ -40,8 +40,14 @@ class MaskingStrategy(_AnnotationMapping):
     mapping = {
         'goal': '0% masking',
         'uni': 'U[0%, 100%] masking',
-        'half-ran': 'Sample 50/50',
         'half-det': 'Use 50/50'
+    }
+
+class ValidationDataset(_AnnotationMapping):
+    mapping = {
+        'nomask': 'No masking',
+        'mask': 'U[0%, 100%] masking',
+        'both': 'Use both'
     }
 
 class Explainer(_AnnotationMapping):
@@ -55,10 +61,28 @@ class Explainer(_AnnotationMapping):
         'int-grad-abs': 'Integrated gradient (absolute)',
     }
 
+class Validation(_AnnotationMapping):
+    mapping = {
+        'metric.val': 'Earily stopping',
+        'metric.val_0': '0% masking',
+        'metric.val_10': '10% masking',
+        'metric.val_20': '20% masking',
+        'metric.val_30': '30% masking',
+        'metric.val_40': '40% masking',
+        'metric.val_50': '50% masking',
+        'metric.val_60': '60% masking',
+        'metric.val_70': '70% masking',
+        'metric.val_80': '80% masking',
+        'metric.val_90': '90% masking',
+        'metric.val_100': '100% masking',
+    }
+
 class AllAnnotations(_Singleton):
     def __init__(self) -> None:
         self.model = Model()
         self.masking_strategy = MaskingStrategy()
         self.explainer = Explainer()
+        self.validation = Validation()
+        self.validation_dataset = ValidationDataset()
 
 annotation = AllAnnotations()

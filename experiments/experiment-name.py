@@ -39,6 +39,11 @@ parser.add_argument('--masking-strategy',
                     choices=['uni', 'half-det', 'half-ran'],
                     type=str,
                     help='The masking strategy to use for masking during fune-tuning')
+parser.add_argument('--validation-dataset',
+                    default=None,
+                    choices=['nomask', 'mask'],
+                    type=str,
+                    help='The transformation applied to the validation dataset used for early stopping.')
 parser.add_argument('--explainer',
                     default=None,
                     type=str,
@@ -64,6 +69,7 @@ if __name__ == '__main__':
         model=args.model, dataset=args.dataset,
         seed=args.seed, max_epochs=args.max_epochs,
         max_masking_ratio=args.max_masking_ratio, masking_strategy=args.masking_strategy,
+        validation_dataset=args.validation_dataset,
         explainer=args.explainer, ood=args.ood,
         split=args.split
     )

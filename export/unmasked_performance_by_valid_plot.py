@@ -20,8 +20,7 @@ def select_target_metric(df):
     )
 
 parser = argparse.ArgumentParser(
-    description = 'Plots the 0% masking test performance given different training masking ratios'
-)
+    description = 'Plots the 0% masking test performance given different training masking ratios')
 parser.add_argument('--persistent-dir',
                     action='store',
                     default=pathlib.Path(__file__).absolute().parent.parent,
@@ -63,11 +62,11 @@ parser.add_argument('--max-masking-ratio',
                     default=100,
                     type=int,
                     help='The maximum masking ratio (percentage integer) to apply on the training dataset')
-parser.add_argument('--validation-dataset',
-                    default='both',
-                    choices=['nomask', 'mask', 'both'],
+parser.add_argument('--masking-strategy',
+                    default='half-det',
+                    choices=['uni', 'half-det', 'half-ran'],
                     type=str,
-                    help='The transformation applied to the validation dataset used for early stopping.')
+                    help='The masking strategy to use for masking during fune-tuning')
 
 if __name__ == "__main__":
     pd.set_option('display.max_rows', None)
@@ -75,24 +74,20 @@ if __name__ == "__main__":
 
     dataset_mapping = pd.DataFrame([
         {
-            'args.dataset': dataset._name,
-            'target_metric': dataset._early_stopping_metric if args.performance_metric == 'primary' else args.performance_metric,
-            'baseline': dataset.majority_classifier_test_performance()[
-                dataset._early_stopping_metric if args.performance_metric == 'primary' else args.performance_metric
-            ]
+            'args.dataset': dataset_name,
+            'target_metric': datasets[dataset_name]._early_stopping_metric if args.performance_metric == 'primary' else args.performance_metric
         }
-        for dataset in datasets.values()
+        for dataset_name in args.datasets
     ])
-
     model_categories = {
         'masking-ratio': ['roberta-m15', 'roberta-m20', 'roberta-m30', 'roberta-m40', 'roberta-m50'],
         'size': ['roberta-sb', 'roberta-sl']
     }
 
-    experiment_id = generate_experiment_id('masked_performance_by_ms',
+    experiment_id = generate_experiment_id('unmasked_performance_by_valid',
                                             model=args.model_category,
                                             max_masking_ratio=args.max_masking_ratio,
-                                            validation_dataset=args.validation_dataset)
+                                            masking_strategy=args.masking_strategy)
 
     if args.stage in ['both', 'preprocess']:
         # Read JSON files into dataframe
@@ -105,10 +100,10 @@ if __name__ == "__main__":
                 except json.decoder.JSONDecodeError:
                     print(f'{file} has a format error')
 
-                if data['args']['max_masking_ratio'] in [0, args.max_masking_ratio] and \
+                if data['args']['max_masking_ratio'] == args.max_masking_ratio and \
                    data['args']['model'] in model_categories[args.model_category] and \
                    data['args']['dataset'] in args.datasets and \
-                   data['args']['validation_dataset'] == args.validation_dataset:
+                   data['args']['masking_strategy'] == args.masking_strategy:
                     results.append(data)
 
         df = pd.json_normalize(results).explode('results', ignore_index=True)
@@ -118,7 +113,8 @@ if __name__ == "__main__":
         # Select test metric
         df = (df
               .merge(dataset_mapping, on='args.dataset')
-              .transform(select_target_metric))
+              .transform(select_target_metric)
+              .query('`results.masking_ratio` == 0'))
 
     if args.stage in ['preprocess']:
         os.makedirs(args.persistent_dir / 'pandas', exist_ok=True)
@@ -127,54 +123,46 @@ if __name__ == "__main__":
         df = pd.read_parquet((args.persistent_dir / 'pandas' / experiment_id).with_suffix('.parquet'))
 
     if args.stage in ['both', 'plot']:
-        df_main = df.query('`args.max_masking_ratio` == 100')
-        df_goal = (df
-                .query('`args.max_masking_ratio` == 0')
-                .assign(**{'args.masking_strategy': 'goal'}))
-        df_data = pd.concat([df_main, df_goal])
-
-        df_plot = (df_data
-                .groupby(['args.model', 'args.dataset', 'args.masking_strategy',
-                          'results.masking_ratio'], group_keys=True)
+        df_plot = (df
+                .groupby(['args.model', 'args.dataset', 'args.max_epochs', 'args.validation_dataset'], group_keys=True)
                 .apply(bootstrap_confint(['metric']))
                 .reset_index())
 
-        df_baseline = (df
-            .groupby(['args.model', 'args.dataset',
-                      'results.masking_ratio'], group_keys=True)
-            .apply(bootstrap_confint(['baseline']))
-            .reset_index())
-
         # Generate plot
-        p = (p9.ggplot(df_plot, p9.aes(x='results.masking_ratio'))
-            + p9.geom_jitter(p9.aes(y='metric', group='args.seed', color='args.masking_strategy'),
-                            shape='+', alpha=0.5, width=0.01, data=df_data)
-            + p9.geom_ribbon(p9.aes(ymin='metric_lower', ymax='metric_upper', fill='args.masking_strategy'), alpha=0.35)
-            + p9.geom_line(p9.aes(y='metric_mean', color='args.masking_strategy', shape='args.model'))
-            + p9.geom_point(p9.aes(y='metric_mean', color='args.masking_strategy', shape='args.model'))
-            + p9.geom_line(p9.aes(y='baseline_mean'), color='black', data=df_baseline)
-            + p9.facet_grid("args.model ~ args.dataset", scales="free_y", labeller=annotation.model.labeller)
+        p = (p9.ggplot(df_plot, p9.aes(x='args.model'))
+            + p9.geom_errorbar(p9.aes(ymin='metric_lower', ymax='metric_upper', color='args.validation_dataset'), position=p9.position_dodge(0.5), width=0.5)
+            + p9.geom_point(p9.aes(y='metric_mean', color='args.validation_dataset'), fill='black', shape='o', position=p9.position_dodge(0.5), alpha=1)
+            + p9.geom_jitter(p9.aes(y='metric', color='args.validation_dataset'),
+                                shape='+', alpha=0.8, position=p9.position_jitterdodge(0.25), data=df)
+            + p9.facet_wrap("args.dataset", scales="free_y", ncol=2)
             + p9.scale_y_continuous(
                 labels=lambda ticks: [f'{tick:.0%}' for tick in ticks],
-                name='Masked performance'
+                name='Unmasked performance'
             )
-            + p9.scale_x_continuous(
-                labels=lambda ticks: [f'{tick:.0%}' for tick in ticks],
-                name='Test masking ratio'
+            + p9.scale_x_discrete(
+                breaks = annotation.model.breaks,
+                labels = annotation.model.labels,
+                name=''
             )
             + p9.scale_color_discrete(
-                breaks = annotation.masking_strategy.breaks,
-                labels = annotation.masking_strategy.labels,
+                breaks = annotation.validation_dataset.breaks,
+                labels = annotation.validation_dataset.labels,
                 aesthetics = ["colour", "fill"],
                 name='fine-tuning strategy'
             )
-            + p9.scale_shape_discrete(guide=False))
+            + p9.scale_shape_discrete(guide=False)
+            + p9.theme(subplots_adjust={'wspace': 0.25}))
 
         if args.format == 'half':
             # The width is the \linewidth of a collumn in the LaTeX document
-            size = (3.03209, 6)
+            size = (3.03209, 4.5)
             p += p9.guides(color=p9.guide_legend(ncol=2))
-            p += p9.theme(text=p9.element_text(size=11), subplots_adjust={'bottom': 0.25}, legend_position=(.5, .05))
+            p += p9.theme(
+                text=p9.element_text(size=11),
+                subplots_adjust={'bottom': 0.37, 'wspace': 0.5},
+                legend_position=(.5, .05),
+                axis_text_x = p9.element_text(angle = 45, hjust=1)
+            )
         else:
             size = (20, 7)
             p += p9.ggtitle(experiment_id)
