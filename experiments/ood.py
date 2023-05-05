@@ -122,8 +122,8 @@ if __name__ == '__main__':
         seed=args.seed, max_epochs=args.max_epochs,
         max_masking_ratio=args.max_masking_ratio, masking_strategy=args.masking_strategy,
         validation_dataset=args.validation_dataset,
-        explainer=args.explainer, ood=args.ood,
-        split=args.split
+        explainer=args.explainer, split=args.split,
+        ood=args.ood, dist_repeats=args.dist_repeats
     )
 
     # Print configuration
