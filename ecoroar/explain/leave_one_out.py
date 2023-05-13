@@ -20,7 +20,7 @@ class LeaveOneOutSign(ImportanceMeasureObservation):
         # LOO measures on the first sequence.
         maskable_tokens = tf.squeeze(self._sequence_identifier(tf.expand_dims(input_ids, 0)), 0) == 1
         # For masked inputs, [MASK] would be replaced with [MASK].
-        # This enforces zero attribution score. Therefore this be optimized by
+        # This enforces zero attribution score. Therefore this can  be optimized by
         #   skipping the model evaluation.
         maskable_tokens = tf.logical_and(maskable_tokens, input_ids != self._tokenizer.mask_token_id)
 
