@@ -41,7 +41,7 @@ class SimpleTestTokenizer(Tokenizer):
         input_ids = []
         attention_mask = []
         for text in texts:
-            tokens = text.numpy().decode('utf-8').split(' ')
+            tokens = text.numpy().decode('utf-8').split()
             input_ids += [self._token_to_id[token] for token in tokens]
             attention_mask += [int(token != self.pad_token) for token in tokens]
 
