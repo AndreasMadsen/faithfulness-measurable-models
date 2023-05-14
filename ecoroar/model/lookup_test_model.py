@@ -1,6 +1,6 @@
 
 from dataclasses import dataclass
-from typing import Union, Optional, Dict
+from typing import Union, Optional, Dict, Iterable
 
 import tensorflow as tf
 
@@ -45,22 +45,28 @@ class LookupTestModel(Model):
         self.config = LookupTestConfig(vocab_size=vocab_size)
 
         self._base = tf.convert_to_tensor(self.config.vocab_size + 1, dtype=tf.dtypes.int32)
+        self._logits = values
         self._lookup = tf.lookup.StaticHashTable(
-            tf.lookup.KeyValueTensorInitializer(self._convert_input_ids_to_int32(keys), values),
+            tf.lookup.KeyValueTensorInitializer(self._convert_input_ids_to_int32(keys), tf.range(tf.shape(values)[0])),
             default_value=-1)
 
     @classmethod
-    def from_string(cls, tokenizer: Tokenizer, mapping: Dict[str, float], **kwargs):
+    def from_string(cls, tokenizer: Tokenizer, mapping: Dict[str, Iterable[float]], **kwargs):
         """Constructs a LookupTestModel from a dictionary of strings to floats
 
         Args:
             tokenizer (Tokenizer): The tokenizer used to encode the strings
-            mapping (Dict[str, float]): A dictionary that maps from strings to floats
+            mapping (Dict[str, Iterable[float]]): A dictionary that maps from strings to floats
 
         Returns:
             LookupTestModel: An LookupTestModel instance
         """
-        keys, values = tf.data.experimental.from_list(list(mapping.items())) \
+        mapping_tf = [
+            (key, tf.convert_to_tensor(value, dtype=tf.dtypes.float32))
+            for key, value in mapping.items()
+        ]
+
+        keys, values = tf.data.experimental.from_list(mapping_tf) \
             .map(lambda doc, logit: (tokenizer((doc, )), logit)) \
             .padded_batch(len(mapping), padding_values=(tokenizer.padding_values, None)) \
             .get_single_element()
@@ -89,10 +95,14 @@ class LookupTestModel(Model):
         integer = tf.math.reduce_sum(parts, axis=1)
         return integer
 
+    def _safe_lookup(self, integer: tf.Tensor):
+        idx = self._lookup.lookup(integer)
+        tf.debugging.assert_greater_equal(idx, 0)
+        return idx
+
     def call(self, inputs: Union[TokenizedDict, EmbeddingDict], training=False, output_hidden_states=False) -> SimpleOutput:
         z1 = self._convert_input_ids_to_int32(inputs)
-        z2 = self._lookup.lookup(z1)
-        tf.debugging.assert_greater_equal(z2, 0.0)
+        z2 = tf.gather(self._logits, self._safe_lookup(z1))
 
         return SimpleOutput(
             logits=z2,
