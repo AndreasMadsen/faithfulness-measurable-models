@@ -14,7 +14,7 @@ class SimpleOutput():
 class LookupTestConfig():
     model_type = 'lookup test'
 
-    def __init__(self, vocab_size=4) -> None:
+    def __init__(self, vocab_size) -> None:
         self.vocab_size = vocab_size
 
     @property
@@ -30,7 +30,7 @@ class LookupTestConfig():
         raise NotImplementedError('hidden_size does not exist for LookupTestConfig')
 
 class LookupTestModel(Model):
-    def __init__(self, keys: TokenizedDict, values: tf.Tensor, vocab_size=4) -> None:
+    def __init__(self, keys: TokenizedDict, values: tf.Tensor, vocab_size=5) -> None:
         """Maps tokenized inputs (keys) to logits (values).
 
         This model uses a hash lookup and is therefore not differentiable.
