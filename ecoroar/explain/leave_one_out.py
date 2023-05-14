@@ -55,7 +55,7 @@ class LeaveOneOutSign(ImportanceMeasureObservation):
         predicts_all = predict_all_array.concat()
 
         # Compute predictive impact relative to baseline
-        importance = predicts_all[:n_samples] - predicts_all[n_samples]
+        importance = predicts_all[n_samples] - predicts_all[:n_samples]
 
         # Reshape importance to the sequence_length, fill blanks with 0.
         return tf.tensor_scatter_nd_update(
