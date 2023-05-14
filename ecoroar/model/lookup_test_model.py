@@ -46,9 +46,7 @@ class LookupTestModel(Model):
 
         self._base = tf.convert_to_tensor(self.config.vocab_size + 1, dtype=tf.dtypes.int32)
         self._logits = values
-        self._lookup = tf.lookup.StaticHashTable(
-            tf.lookup.KeyValueTensorInitializer(self._convert_input_ids_to_int32(keys), tf.range(tf.shape(values)[0])),
-            default_value=-1)
+        self._keymap = self._convert_input_ids_to_int32(keys)
 
     @classmethod
     def from_string(cls, tokenizer: Tokenizer, mapping: Dict[str, Iterable[float]], **kwargs):
@@ -95,14 +93,14 @@ class LookupTestModel(Model):
         integer = tf.math.reduce_sum(parts, axis=1)
         return integer
 
-    def _safe_lookup(self, integer: tf.Tensor):
-        idx = self._lookup.lookup(integer)
-        tf.debugging.assert_greater_equal(idx, 0)
-        return idx
+    def _lookup(self, integer: tf.Tensor) -> tf.Tensor:
+        match = tf.expand_dims(integer, 1) == tf.expand_dims(self._keymap, 0)
+        tf.debugging.assert_equal(tf.math.reduce_any(match, axis=1), True)
+        return tf.argmax(match, axis=1, output_type=tf.dtypes.int32)
 
     def call(self, inputs: Union[TokenizedDict, EmbeddingDict], training=False, output_hidden_states=False) -> SimpleOutput:
         z1 = self._convert_input_ids_to_int32(inputs)
-        z2 = tf.gather(self._logits, self._safe_lookup(z1))
+        z2 = tf.gather(self._logits, self._lookup(z1))
 
         return SimpleOutput(
             logits=z2,
