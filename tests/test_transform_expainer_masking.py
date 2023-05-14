@@ -1,4 +1,6 @@
 
+from dataclasses import dataclass
+
 import pytest
 import tensorflow as tf
 import numpy as np
@@ -54,10 +56,25 @@ def masked_dataset_paired(tokenizer):
     ]).map(lambda doc, y: (tokenizer((doc, )), y)) \
       .batch(2)
 
+class ExplainerMaskingForcedIMCompute(ExplainerMasking):
+    @tf.function(reduce_retracing=True)
+    def _mask_input_100p(self, x, y):
+        return self._mask_input(x, y, tf.constant(1.0, dtype=tf.dtypes.float32))
 
-def test_explainer_masking_from_plain(tokenizer, model, dataset):
+@dataclass
+class ExplainerMaskingConfig:
+    name: str
+    ExplainerMasking: int
+
+explainer_masking_configs = [
+    ExplainerMaskingConfig('standard', ExplainerMasking),
+    ExplainerMaskingConfig('mocked', ExplainerMaskingForcedIMCompute)
+]
+
+@pytest.mark.parametrize("config", explainer_masking_configs, ids=lambda config: config.name)
+def test_explainer_masking_from_plain(tokenizer, model, dataset, config):
     explainer = GradientL2Explainer(tokenizer, model)
-    masker = ExplainerMasking(explainer, tokenizer)
+    masker = config.ExplainerMasking(explainer, tokenizer)
 
     x_masked_50, _ = dataset.apply(masker(0.5)).get_single_element()
     np.testing.assert_array_equal(x_masked_50['input_ids'], [
@@ -70,9 +87,10 @@ def test_explainer_masking_from_plain(tokenizer, model, dataset):
     ])
 
 
-def test_explainer_masking_from_masked(tokenizer, model, masked_dataset):
+@pytest.mark.parametrize("config", explainer_masking_configs, ids=lambda config: config.name)
+def test_explainer_masking_from_masked(tokenizer, model, masked_dataset, config):
     explainer = GradientL2Explainer(tokenizer, model)
-    masker = ExplainerMasking(explainer, tokenizer)
+    masker = config.ExplainerMasking(explainer, tokenizer)
 
     x_masked_50, _ = masked_dataset.apply(masker(0.5)).get_single_element()
     np.testing.assert_array_equal(x_masked_50['input_ids'], [
@@ -85,9 +103,10 @@ def test_explainer_masking_from_masked(tokenizer, model, masked_dataset):
     ])
 
 
-def test_explainer_masking_kept_tokens(tokenizer, model, dataset):
+@pytest.mark.parametrize("config", explainer_masking_configs, ids=lambda config: config.name)
+def test_explainer_masking_kept_tokens(tokenizer, model, dataset, config):
     explainer = GradientL2Explainer(tokenizer, model)
-    masker = ExplainerMasking(explainer, tokenizer)
+    masker = config.ExplainerMasking(explainer, tokenizer)
 
     x_masked_100, _ = dataset.apply(masker(1)).get_single_element()
     np.testing.assert_array_equal(x_masked_100['input_ids'], [
@@ -100,9 +119,10 @@ def test_explainer_masking_kept_tokens(tokenizer, model, dataset):
     ])
 
 
-def test_explainer_masking_from_paired(tokenizer, model, dataset_paired):
+@pytest.mark.parametrize("config", explainer_masking_configs, ids=lambda config: config.name)
+def test_explainer_masking_from_paired(tokenizer, model, dataset_paired, config):
     explainer = GradientL2Explainer(tokenizer, model)
-    masker = ExplainerMasking(explainer, tokenizer)
+    masker = config.ExplainerMasking(explainer, tokenizer)
 
     x_masked_50, _ = dataset_paired.apply(masker(0.5)).get_single_element()
     np.testing.assert_array_equal(x_masked_50['input_ids'], [
@@ -125,9 +145,10 @@ def test_explainer_masking_from_paired(tokenizer, model, dataset_paired):
     ])
 
 
-def test_explainer_masking_from_masked_paired(tokenizer, model, masked_dataset_paired):
+@pytest.mark.parametrize("config", explainer_masking_configs, ids=lambda config: config.name)
+def test_explainer_masking_from_masked_paired(tokenizer, model, masked_dataset_paired, config):
     explainer = GradientL2Explainer(tokenizer, model)
-    masker = ExplainerMasking(explainer, tokenizer)
+    masker = config.ExplainerMasking(explainer, tokenizer)
 
     x_masked_50, _ = masked_dataset_paired.apply(masker(0.5)).get_single_element()
     np.testing.assert_array_equal(x_masked_50['input_ids'], [

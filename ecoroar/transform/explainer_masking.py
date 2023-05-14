@@ -64,6 +64,17 @@ class ExplainerMasking(InputTransform):
             'attention_mask': x['attention_mask']
         }
 
+    @tf.function(reduce_retracing=True)
+    def _mask_input_100p(self, x: TokenizedDict, y: tf.Tensor) -> TokenizedDict:
+        # Mask 100%
+        input_ids = x['input_ids']
+        first_sequence_mask = self._sequence_identifier(input_ids) == 1
+
+        return {
+            'input_ids': tf.where(first_sequence_mask, self._tokenizer.mask_token_id, input_ids),
+            'attention_mask': x['attention_mask']
+        }
+
     def __call__(self, masking_ratio: float) -> Callable[[tf.data.Dataset], tf.data.Dataset]:
         """Mask tokens according to the explainer.
 
@@ -77,13 +88,18 @@ class ExplainerMasking(InputTransform):
         if not (0 <= float(masking_ratio) <= 1):
             raise TypeError(f'masking_ratio must be between 0 and 1, was "{masking_ratio}"')
 
-        masking_ratio = tf.convert_to_tensor(masking_ratio, dtype=tf.dtypes.float32)
+        masking_ratio_tf = tf.convert_to_tensor(masking_ratio, dtype=tf.dtypes.float32)
 
         if masking_ratio == 0.0:
             return (lambda dataset: dataset)
 
-        def _mapper(x, y):
-            return (self._mask_input(x, y, masking_ratio), y)
+        elif masking_ratio == 1.0:
+            # Avoid computing importance measure at 100% masking
+            def _mapper(x, y):
+                return (self._mask_input_100p(x, y), y)
+        else:
+            def _mapper(x, y):
+                return (self._mask_input(x, y, masking_ratio_tf), y)
 
         def _output_signature(dataset):
             return tf.data.experimental.get_structure(dataset)
