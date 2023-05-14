@@ -13,6 +13,7 @@ from ecoroar.explain import \
     InputTimesGradientSignExplainer, InputTimesGradientAbsExplainer, \
     IntegratedGradientSignExplainer, IntegratedGradientAbsExplainer, \
     LeaveOneOutAbs, LeaveOneOutSign
+from ecoroar.test import compile_configs
 
 
 @pytest.fixture
@@ -33,17 +34,6 @@ def x(tokenizer):
     ]).map(lambda doc: tokenizer((doc, ))) \
       .batch(2) \
       .get_single_element()
-
-@dataclass
-class CompileConfig:
-    name: str
-    args: int
-
-compile_configs = [
-    CompileConfig('no_compile', { 'run_eagerly': True, 'jit_compile': False }),
-    CompileConfig('default_compile', { 'run_eagerly': False, 'jit_compile': False }),
-    CompileConfig('jit_compile', { 'run_eagerly': False, 'jit_compile': True })
-]
 
 def test_explainer_random(tokenizer, model, x):
     explainer = RandomExplainer(tokenizer, model, seed=0)
