@@ -38,9 +38,9 @@ def x(tokenizer):
       .get_single_element()
 
 
-#@pytest.mark.parametrize("config", compile_configs, ids=lambda config: config.name)
-def test_explainer_leave_on_out_abs(tokenizer, model, x):
-    explainer = LeaveOneOutAbs(tokenizer, model)
+@pytest.mark.parametrize("config", compile_configs, ids=lambda config: config.name)
+def test_explainer_leave_on_out_abs(tokenizer, model, x, config):
+    explainer = LeaveOneOutAbs(tokenizer, model, **config.args)
 
     im = explainer(x, tf.constant([0, 1])).to_tensor(default_value=-1).numpy()
     np.testing.assert_allclose(im, [
@@ -48,9 +48,9 @@ def test_explainer_leave_on_out_abs(tokenizer, model, x):
         [0, 1, 0, -1]
     ])
 
-#@pytest.mark.parametrize("config", compile_configs, ids=lambda config: config.name)
-def test_explainer_leave_on_out_sign(tokenizer, model, x):
-    explainer = LeaveOneOutSign(tokenizer, model)
+@pytest.mark.parametrize("config", compile_configs, ids=lambda config: config.name)
+def test_explainer_leave_on_out_sign(tokenizer, model, x, config):
+    explainer = LeaveOneOutSign(tokenizer, model, **config.args)
 
     im = explainer(x, tf.constant([0, 1])).to_tensor(default_value=-1).numpy()
     np.testing.assert_allclose(im, [
