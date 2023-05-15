@@ -3,11 +3,10 @@ from typing import Tuple
 
 import tensorflow as tf
 
-from ecoroar.types import Tokenizer
-
-from ..types import TokenizedDict
-from ._importance_measure import ImportanceMeasureObservation
+from ..types import Tokenizer, TokenizedDict
 from ..transform.sequence_identifier import SequenceIndentifier
+from ..util import get_compiler
+from ._importance_measure import ImportanceMeasureObservation
 
 BeamType = Tuple[tf.Tensor, tf.Tensor, tf.Tensor]
 
@@ -32,18 +31,23 @@ def _candiates_added(existing_candidates: tf.Tensor,
 
 def _candiates_expand(sequence_length: tf.Tensor, beam: BeamType) -> BeamType:
     root_candidates, removal_order, score = beam
+    root_candidates_n = tf.shape(root_candidates)[0]
 
     # Encode root candiates as sparse tensors. This is used as a set data structure.
     # The T-dimentional indice will encode the mask vector.
     total_candidates = tf.zeros((0, sequence_length), dtype=tf.dtypes.bool)
-    total_removal_order = tf.zeros((0, tf.shape(removal_order)[1] + 1), dtype=removal_order.dtype)
-    total_score = tf.zeros((0, ), dtype=score.dtype)
+    total_removal_order_ta = tf.TensorArray(removal_order.dtype, size=root_candidates_n, element_shape=(None, None))
+    total_score_ta = tf.TensorArray(score.dtype, size=root_candidates_n, element_shape=(None, ))
 
     # For each candidate
     for root_candidate_i in tf.range(tf.shape(root_candidates)[0]):
+        tf.autograph.experimental.set_loop_options(
+            shape_invariants=[(total_candidates, tf.TensorShape([None, None]))]
+        )
+
         # Identify which tokens to mask
         root_candidate = root_candidates[root_candidate_i, :]
-        token_idx_to_mask = tf.squeeze(tf.cast(tf.where(root_candidate), dtype=total_removal_order.dtype), axis=1)
+        token_idx_to_mask = tf.squeeze(tf.cast(tf.where(root_candidate), dtype=removal_order.dtype), axis=1)
 
         # Expand the root_candidate with masking options
         maybe_candidates_n = tf.size(token_idx_to_mask)
@@ -73,19 +77,30 @@ def _candiates_expand(sequence_length: tf.Tensor, beam: BeamType) -> BeamType:
 
         # collect candidates
         total_candidates = tf.concat((total_candidates, added_candidates), axis=0)
-        total_removal_order = tf.concat((total_removal_order, added_removal_order), axis=0)
-        total_score = tf.concat((total_score, added_score), axis=0)
+        total_removal_order_ta = total_removal_order_ta.write(root_candidate_i, added_removal_order)
+        total_score_ta = total_score_ta.write(root_candidate_i, added_score)
 
     # Return new beam, with old scores.
-    return (total_candidates, total_removal_order, total_score)
+    return (total_candidates, total_removal_order_ta.concat(), total_score_ta.concat())
 
 class BeamSearch(ImportanceMeasureObservation):
     _name = 'loo-sign'
-    def __init__(self, tokenizer: Tokenizer, *args, beam_size: int=50, debugging=False, **kwargs) -> None:
+    _defer_jit = True
+
+    def __init__(self, tokenizer: Tokenizer, *args, beam_size: int=50, debugging=False,
+                 run_eagerly: bool = False, jit_compile: bool = False,
+                 **kwargs) -> None:
         super().__init__(tokenizer, *args, **kwargs)
         self._sequence_identifier = SequenceIndentifier(tokenizer)
         self._beam_size = tf.convert_to_tensor(beam_size, dtype=tf.dtypes.int32)
         self._debugging = debugging
+
+        # Note, it is not possible to jit the beam loop. Because the beam changes size
+        #   in each iteration (loop invariants). Instead, just jit _evaluate function,
+        #   which is the primary cost. The rest will stil be compiled using the default compiler.
+        #   It is also not possible to jit _candiates_expand, again due to loop invariants.
+        jit_compiler = get_compiler(run_eagerly, jit_compile)
+        self._wrap_evaluate = jit_compiler(self._evaluate)
 
     def _debug(self, interation_i, beam, x_beam, new_score):
         if self._debugging:
@@ -112,13 +127,13 @@ class BeamSearch(ImportanceMeasureObservation):
 
         return x_repeat
 
-    def _evaluate(self, x: TokenizedDict, y):
+    def _evaluate(self, x: TokenizedDict, y: tf.Tensor):
         """Evaluates the model using the input x, and extracts the logits for class y
 
         This uses an internal mini batch system.
 
         Args:
-            x (tf.Tensor): Structure of batched tensors
+            x (TokenizedDict): Structure of batched tensors
             y (tf.Tensor): scalar, the column index to extract
 
         Returns:
@@ -126,7 +141,7 @@ class BeamSearch(ImportanceMeasureObservation):
         """
         # batch evaluate the masked examples in x_masked
         output_dtype = tf.keras.mixed_precision.global_policy().compute_dtype
-        num_of_samples = tf.shape(x)[0]
+        num_of_samples = tf.shape(x['input_ids'])[0]
 
         num_of_batches = tf.cast(tf.math.ceil(num_of_samples / self._inference_batch_size), dtype=tf.dtypes.int32)
         predict_all_array = tf.TensorArray(output_dtype, size=num_of_batches, infer_shape=False, element_shape=(None, ))
@@ -198,6 +213,7 @@ class BeamSearch(ImportanceMeasureObservation):
     # maskable       : order, AUC score
     # [0, 0, 0, 0, 0]: ([2, 1, 3], 0.8)
 
+    @tf.function(reduce_retracing=True)
     def _explain_observation(self, x, y):
         input_ids = x['input_ids']
         sequence_length = tf.shape(input_ids)[0]
@@ -217,35 +233,40 @@ class BeamSearch(ImportanceMeasureObservation):
         )[y]
 
         # 0. Intialize beam.
-        # Assumed to be sorted highest score to lowest score
-        beam: BeamType = (
-            tf.expand_dims(maskable_tokens, 0), # candidates
-            tf.zeros((1, 0), dtype=tf.dtypes.int32), # removal order
-            tf.zeros((1, ), dtype=tf.dtypes.float32) # score
-        )
+        # Assumed to be sorted highest score to lowest score.
+        # Note, the beam is not a tuble here, because tuples do not interact
+        #   with set_loop_options(shape_invariants=[])
+        beam_candidates = tf.expand_dims(maskable_tokens, 0)
+        beam_removal_order = tf.zeros((1, 0), dtype=tf.dtypes.int32)
+        beam_score = tf.zeros((1, ), dtype=tf.dtypes.float32)
 
         for iteration_i in tf.range(tf.math.reduce_sum(tf.cast(maskable_tokens, tf.dtypes.int32))):
+            tf.autograph.experimental.set_loop_options(
+                shape_invariants=[(beam_candidates, tf.TensorShape([None, None])),
+                                  (beam_removal_order, tf.TensorShape([None, None])),
+                                  (beam_score, tf.TensorShape([None, ]))]
+            )
+            beam = (beam_candidates, beam_removal_order, beam_score)
+
             # a. & b. expand beam
-            beam: BeamType = _candiates_expand(sequence_length, beam)
+            beam = _candiates_expand(sequence_length, beam)
 
             # c. evaluate
             x_beam = self._create_masked_inputs(x, beam, maskable_tokens)
-            y_pred = self._model(x_beam).logits[:, y]
+            y_pred = self._wrap_evaluate(x_beam, y)
             score_inc = y_baseline - y_pred
             new_score = beam[2] + score_inc
             self._debug(iteration_i, beam, x_beam, new_score)
 
             # d. crop beam
-            beam_selector = tf.argsort(new_score, stable=True, direction='DESCENDING')[:self._beam_size]
-            beam: BeamType = (
-                tf.gather(beam[0], beam_selector),
-                tf.gather(beam[1], beam_selector),
-                tf.gather(new_score, beam_selector)
-            )
+            crop_selector = tf.argsort(new_score, stable=True, direction='DESCENDING')[:self._beam_size]
+            beam_candidates = tf.gather(beam[0], crop_selector)
+            beam_removal_order = tf.gather(beam[1], crop_selector)
+            beam_score = tf.gather(new_score, crop_selector)
 
         # Convert optimal_removal_order to importance measure
         # i.e. [4, 2, 3, 1, 0] -> [1, 2, 4, 3, 5]
-        optimal_removal_order = tf.squeeze(beam[1], axis=0)
+        optimal_removal_order = tf.squeeze(beam_removal_order, axis=0)
 
         return tf.tensor_scatter_nd_update(
             tf.zeros((sequence_length, ), dtype=tf.dtypes.float32),

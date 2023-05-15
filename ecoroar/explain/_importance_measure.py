@@ -9,6 +9,7 @@ from ..util import get_compiler
 
 class ImportanceMeasure(ABC):
     _name: str
+    _defer_jit: bool = False
 
     def __init__(self, tokenizer: Tokenizer, model: Model,
                  seed: int = None,
@@ -41,7 +42,7 @@ class ImportanceMeasure(ABC):
 
         # setup explainer function
         std_compiler = get_compiler(run_eagerly, False)
-        jit_compiler = get_compiler(run_eagerly, jit_compile)
+        jit_compiler = get_compiler(run_eagerly, jit_compile and not self._defer_jit)
 
         if hasattr(self, '_explain_observation'):
             self._wrap_explain_observation = jit_compiler(self._explain_observation)
