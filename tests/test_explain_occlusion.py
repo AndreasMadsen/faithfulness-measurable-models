@@ -26,33 +26,35 @@ def model(tokenizer):
 
         # B-1: 3      1      4      2
         # B-2: 4      3      2      1
+        # B-3: 1      3      2      4
+        # B-4: 1      3      2      4
         '[BOS] token  token  token  token  [EOS]': (5.0, 0.0),
         '[BOS] [MASK] [MASK] [MASK] [MASK] [EOS]': (2.0, 0.0),
 
         #      [MASK]
         '[BOS] [MASK] token  token  token  [EOS]': (2.0, 0.0), # 1:3
         #      [MASK] [MASK]
-        '[BOS] [MASK] [MASK] token  token  [EOS]': (3.0, 0.0), # 12:5
+        '[BOS] [MASK] [MASK] token  token  [EOS]': (3.0, 0.0), # 12:5*, 21:-2
         '[BOS] [MASK] [MASK] [MASK] token  [EOS]': (3.0, 0.0), # 123:7, 312:5
-        '[BOS] [MASK] [MASK] token  [MASK] [EOS]': (5.0, 0.0), # 124:5
+        '[BOS] [MASK] [MASK] token  [MASK] [EOS]': (5.0, 0.0), # 124:5, 421:3
         #      [MASK]        [MASK]
-        '[BOS] [MASK] token  [MASK] token  [EOS]': (6.0, 0.0), # 31:3, 13:2
+        '[BOS] [MASK] token  [MASK] token  [EOS]': (6.0, 0.0), # 31:3*, 13:2*
         '[BOS] [MASK] token  [MASK] [MASK] [EOS]': (2.0, 0.0), # 314:6
         #      [MASK]               [MASK]
-        '[BOS] [MASK] token  token  [MASK] [EOS]': (7.0, 0.0), # 14:1
+        '[BOS] [MASK] token  token  [MASK] [EOS]': (7.0, 0.0), # 14:1, 41:-2
 
         #             [MASK]
         '[BOS] token  [MASK] token  token  [EOS]': (9.0, 0.0), # 2:-4
         #             [MASK] [MASK]
-        '[BOS] token  [MASK] [MASK] token  [EOS]': (8.0, 0.0), # 3:4, 32:1
-        '[BOS] token  [MASK] [MASK] [MASK] [EOS]': (0.0, 0.0), # lowest
+        '[BOS] token  [MASK] [MASK] token  [EOS]': (8.0, 0.0), # 32:1, 23:-7
+        '[BOS] token  [MASK] [MASK] [MASK] [EOS]': (0.0, 0.0), # 423:8
         #             [MASK]        [MASK]
-        '[BOS] token  [MASK] token  [MASK] [EOS]': (2.0, 0.0),
+        '[BOS] token  [MASK] token  [MASK] [EOS]': (2.0, 0.0), # 42:3*, 24:-1
 
         #                    [MASK]
         '[BOS] token  token  [MASK] token  [EOS]': (1.0, 0.0), # 3:4
         #                    [MASK] [MASK]
-        '[BOS] token  token  [MASK] [MASK] [EOS]': (8.0, 0.0), # 34:1
+        '[BOS] token  token  [MASK] [MASK] [EOS]': (8.0, 0.0), # 34:1, 42:-3
 
         #                           [MASK]
         '[BOS] token  token  token  [MASK] [EOS]': (5.0, 0.0), # 4:0
@@ -112,4 +114,14 @@ def test_explainer_beam_search_size_2(tokenizer, model, x_4, config):
     im = explainer(x_4, tf.constant([0])).to_tensor(default_value=-1).numpy()
     np.testing.assert_allclose(im, [
         [0, 4, 3, 2, 1, 0],
+    ])
+
+@pytest.mark.parametrize("config", compile_configs, ids=lambda config: config.name)
+@pytest.mark.parametrize("beam_size", list(range(3, 10)))
+def test_explainer_beam_search_size_above_2(tokenizer, model, x_4, config, beam_size):
+    explainer = BeamSearch(tokenizer, model, beam_size=beam_size, **config.args)
+
+    im = explainer(x_4, tf.constant([0])).to_tensor(default_value=-1).numpy()
+    np.testing.assert_allclose(im, [
+        [0, 1, 3, 2, 4, 0],
     ])
