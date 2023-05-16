@@ -38,15 +38,15 @@ class Model(_AnnotationMapping):
 
 class MaskingStrategy(_AnnotationMapping):
     mapping = {
-        'goal': '0% masking',
-        'uni': 'U[0%, 100%] masking',
+        'goal': 'No masking',
+        'uni': 'Maksing',
         'half-det': 'Use 50/50'
     }
 
 class ValidationDataset(_AnnotationMapping):
     mapping = {
         'nomask': 'No masking',
-        'mask': 'U[0%, 100%] masking',
+        'mask': 'Maksing',
         'both': 'Use both'
     }
 

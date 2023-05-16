@@ -38,7 +38,7 @@ parser.add_argument('--format',
                     action='store',
                     default='wide',
                     type=str,
-                    choices=['half', 'wide'],
+                    choices=['half', 'wide', 'paper', 'appendix'],
                     help='The dimentions and format of the plot.')
 parser.add_argument('--datasets',
                     action='store',
@@ -150,8 +150,10 @@ if __name__ == "__main__":
             + p9.geom_point(p9.aes(y='metric_mean', color='args.explainer'))
             + p9.geom_line(p9.aes(y='metric_mean', color='args.explainer'))
             + p9.geom_line(p9.aes(y='baseline_mean'), color='black', data=df_baseline)
-            + p9.facet_grid("args.model ~ args.dataset", scales="free_x", labeller=annotation.model.labeller)
-            + p9.scale_x_continuous(name='Masking ratio')
+            + p9.facet_grid("args.dataset ~ args.model", scales="free_y", labeller=annotation.model.labeller)
+            + p9.scale_x_continuous(
+                labels=lambda ticks: [f'{tick:.0%}' for tick in ticks],
+                name='Masking ratio')
             + p9.scale_y_continuous(
                 labels=lambda ticks: [f'{tick:.0%}' for tick in ticks],
                 name='IM masked performance'
@@ -169,6 +171,38 @@ if __name__ == "__main__":
             size = (3.03209, 4.5)
             p += p9.guides(color=p9.guide_legend(ncol=1))
             p += p9.theme(text=p9.element_text(size=11), subplots_adjust={'bottom': 0.38}, legend_position=(.5, .05))
+        elif args.format == 'paper':
+            # The width is the \linewidth of a collumn in the LaTeX document
+            size = (3.03209, 4.5)
+            p += p9.guides(color=p9.guide_legend(ncol=3))
+            p += p9.scale_y_continuous(
+                labels=lambda ticks: [f'{tick:.0%}' for tick in ticks],
+                name=f'                   IM masked performance'
+            )
+            p += p9.theme(
+                text=p9.element_text(size=11, fontname='Times New Roman'),
+                subplots_adjust={'bottom': 0.31},
+                panel_spacing=.05,
+                legend_box_margin=0,
+                legend_position=(.5, .05),
+                legend_background=p9.element_rect(fill='#F2F2F2'),
+                strip_background_x=p9.element_rect(height=0.2),
+                strip_background_y=p9.element_rect(width=0.2),
+                strip_text_x=p9.element_text(margin={'b': 5}),
+                axis_text_x=p9.element_text(angle = 60, hjust=1)
+            )
+        elif args.format == 'appendix':
+            size = (6.30045, 9)
+            p += p9.guides(color=p9.guide_legend(ncol=4))
+            p += p9.theme(
+                text=p9.element_text(size=11, fontname='Times New Roman'),
+                subplots_adjust={'bottom': 0.18},
+                panel_spacing=.05,
+                legend_box_margin=0,
+                legend_position=(.5, .05),
+                legend_background=p9.element_rect(fill='#F2F2F2'),
+                axis_text_x=p9.element_text(angle = 15, hjust=1)
+            )
         else:
             size = (20, 7)
             p += p9.ggtitle(experiment_id)

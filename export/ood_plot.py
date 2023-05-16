@@ -38,7 +38,7 @@ parser.add_argument('--format',
                     action='store',
                     default='wide',
                     type=str,
-                    choices=['half', 'wide'],
+                    choices=['half', 'wide', 'paper', 'appendix'],
                     help='The dimentions and format of the plot.')
 parser.add_argument('--datasets',
                     action='store',
@@ -63,11 +63,25 @@ parser.add_argument('--masking-strategy',
                     choices=['uni', 'half-det', 'half-ran'],
                     type=str,
                     help='The masking strategy to use for masking during fune-tuning')
+parser.add_argument('--validation-dataset',
+                    default='both',
+                    choices=['nomask', 'mask', 'both'],
+                    type=str,
+                    help='The transformation applied to the validation dataset used for early stopping.')
 parser.add_argument('--split',
                     default='test',
                     choices=['train', 'valid', 'test'],
                     type=str,
                     help='The dataset split to evaluate faithfulness on')
+parser.add_argument('--ood',
+                    default='MaSF',
+                    choices=['MaSF'],
+                    type=str,
+                    help='The OOD detection method')
+parser.add_argument('--dist-repeats',
+                    default=2,
+                    type=int,
+                    help='The number of repeats used to estimate the distribution')
 parser.add_argument('--threshold',
                     default=0.05,
                     choices=[0.001, 0.005, 0.01, 0.05, 0.1],
@@ -83,11 +97,16 @@ if __name__ == "__main__":
         'size': ['roberta-sb', 'roberta-sl']
     }
 
-    experiment_id = generate_experiment_id('ood',
-                                            model=args.model_category,
-                                            max_masking_ratio=args.max_masking_ratio,
-                                            masking_strategy=args.masking_strategy,
-                                            split=args.split)
+    experiment_id = generate_experiment_id(
+        'ood',
+        model=args.model_category,
+        max_masking_ratio=args.max_masking_ratio,
+        masking_strategy=args.masking_strategy,
+        validation_dataset=args.validation_dataset,
+        split=args.split,
+        ood=args.ood,
+        dist_repeats=args.dist_repeats
+    )
 
     if args.stage in ['both', 'preprocess']:
         # Read JSON files into dataframe
@@ -102,7 +121,10 @@ if __name__ == "__main__":
 
                 if data['args']['max_masking_ratio'] == args.max_masking_ratio and \
                    data['args']['masking_strategy'] == args.masking_strategy and \
+                   data['args']['validation_dataset'] == args.validation_dataset and \
                    data['args']['split'] == args.split and \
+                   data['args']['ood'] == args.ood and \
+                   data['args']['dist_repeats'] == args.dist_repeats and \
                    data['args']['model'] in model_categories[args.model_category] and \
                    data['args']['dataset'] in args.datasets:
                     results.append(data)
@@ -136,11 +158,14 @@ if __name__ == "__main__":
             + p9.geom_point(p9.aes(y='results.proportion_mean', color='args.explainer'))
             + p9.geom_line(p9.aes(y='results.proportion_mean', color='args.explainer'))
             + p9.geom_line(p9.aes(y='threshold'), color='black', data=df_baseline)
-            + p9.facet_grid("args.model ~ args.dataset", scales="free_x", labeller=annotation.model.labeller)
-            + p9.scale_x_continuous(name='Masking ratio')
+            + p9.facet_grid("args.dataset ~ args.model", scales="free_y", labeller=annotation.model.labeller)
+            + p9.scale_x_continuous(
+                labels=lambda ticks: [f'{tick:.0%}' for tick in ticks],
+                name='Masking ratio')
             + p9.scale_y_continuous(
                 labels=lambda ticks: [f'{tick:.0%}' for tick in ticks],
-                name=f'p < {args.threshold:.1%}'
+                limits=[0, None],
+                name=f'p-value < {args.threshold:.0%}'
             )
             + p9.scale_color_discrete(
                 breaks = annotation.explainer.breaks,
@@ -155,6 +180,39 @@ if __name__ == "__main__":
             size = (3.03209, 4.5)
             p += p9.guides(color=p9.guide_legend(ncol=1))
             p += p9.theme(text=p9.element_text(size=11), subplots_adjust={'bottom': 0.38}, legend_position=(.5, .05))
+        elif args.format == 'paper':
+            # The width is the \linewidth of a collumn in the LaTeX document
+            size = (3.03209, 4.5)
+            p += p9.guides(color=p9.guide_legend(ncol=3))
+            p += p9.scale_y_continuous(
+                labels=lambda ticks: [f'{tick:.0%}' for tick in ticks],
+                limits=[0, None],
+                name=f'              p-value < {args.threshold:.0%}'
+            )
+            p += p9.theme(
+                text=p9.element_text(size=11, fontname='Times New Roman'),
+                subplots_adjust={'bottom': 0.31},
+                panel_spacing=.05,
+                legend_box_margin=0,
+                legend_position=(.5, .05),
+                legend_background=p9.element_rect(fill='#F2F2F2'),
+                strip_background_x=p9.element_rect(height=0.2),
+                strip_background_y=p9.element_rect(width=0.2),
+                strip_text_x=p9.element_text(margin={'b': 5}),
+                axis_text_x=p9.element_text(angle = 60, hjust=1)
+            )
+        elif args.format == 'appendix':
+            size = (6.30045, 9)
+            p += p9.guides(color=p9.guide_legend(ncol=4))
+            p += p9.theme(
+                text=p9.element_text(size=11, fontname='Times New Roman'),
+                subplots_adjust={'bottom': 0.18},
+                panel_spacing=.05,
+                legend_box_margin=0,
+                legend_position=(.5, .05),
+                legend_background=p9.element_rect(fill='#F2F2F2'),
+                axis_text_x=p9.element_text(angle = 15, hjust=1)
+            )
         else:
             size = (20, 7)
             p += p9.ggtitle(experiment_id)
