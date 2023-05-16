@@ -26,6 +26,18 @@ plot-train:
 
 plot: plot-train plot-faithfulness plot-ood
 
+appendix-train:
+	python export/unmasked_performance_by_valid_ms_plot.py --model-category size --max-masking-ratio 100 --format appendix
+	python export/masked_100p_performance_by_valid_ms_plot.py --model-category size --max-masking-ratio 100 --format appendix
+
+appendix: appendix-train
+
+paper-train:
+	python export/unmasked_performance_by_valid_ms_plot.py --dataset BoolQ SST2 --model-category size --max-masking-ratio 100 --format paper
+	python export/masked_100p_performance_by_valid_ms_plot.py --dataset BoolQ SST2 --model-category size --max-masking-ratio 100 --format paper
+
+paper: paper-train
+
 download-intermediate-cedar:
 	rsync --info=progress2 -urltv --delete \
 		-e ssh cc-cedar:~/scratch/ecoroar/intermediate/ ./intermediate
