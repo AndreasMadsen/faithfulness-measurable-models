@@ -21,6 +21,18 @@ function join_by {
     echo "$*";
 }
 
+function multiply_time {
+    local walltime=$1
+    local multiplier=$2
+
+    python3 -c \
+        "from datetime import timedelta; \
+        in_h, in_m = '$walltime'.split(':'); \
+        t = timedelta(hours=int(in_h), minutes=int(in_m)) * ${multiplier}; \
+        out_h, out_m = divmod(int(t.total_seconds()) // 60, 60); \
+        print(f'{out_h:d}:{out_m:d}')"
+}
+
 submit_seeds () {
     local walltime=$1
     local seeds=$2
@@ -38,13 +50,7 @@ submit_seeds () {
 
     if [ ! "${#run_seeds[@]}" -eq 0 ]; then
         local walltime_times_nb_seeds;
-        if ! walltime_times_nb_seeds=$(python3 -c \
-            "from datetime import timedelta; \
-            in_h, in_m = '$walltime'.split(':'); \
-            t = timedelta(hours=int(in_h), minutes=int(in_m)) * ${#run_seeds[@]}; \
-            out_h, out_m = divmod(int(t.total_seconds()) // 60, 60); \
-            print(f'{out_h:d}:{out_m:d}:0')
-        "); then
+        if ! walltime_times_nb_seeds=$(multiply_time $walltime ${#run_seeds[@]}); then
             echo -e "\e[31mCould not parse time '${walltime}', error ^^^${walltime_times_nb_seeds}\e[0m" >&2
         fi
 
@@ -52,7 +58,7 @@ submit_seeds () {
         local jobname="${experiment_name/9999/$concat_seeds}"
         local jobid;
         if jobid=$(
-            sbatch --time="$walltime_times_nb_seeds" \
+            sbatch --time="$walltime_times_nb_seeds:0" \
                --parsable \
                --export=ALL,RUN_SEEDS="$(join_by ' ' "${run_seeds[@]}")" \
                -J "$jobname" \
