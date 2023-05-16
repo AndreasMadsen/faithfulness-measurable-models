@@ -30,13 +30,25 @@ appendix-train:
 	python export/unmasked_performance_by_valid_ms_plot.py --model-category size --max-masking-ratio 100 --format appendix
 	python export/masked_100p_performance_by_valid_ms_plot.py --model-category size --max-masking-ratio 100 --format appendix
 
-appendix: appendix-train
+appendix-ood:
+	python export/ood_plot.py --model-category size --max-masking-ratio 100 --masking-strategy half-det --validation-dataset both --format appendix
+
+appendix-faithfulness:
+	python export/faithfulness_plot.py --model-category size --max-masking-ratio 100 --masking-strategy half-det --validation-dataset both --format appendix
+
+appendix: appendix-train appendix-ood appendix-faithfulness
 
 paper-train:
 	python export/unmasked_performance_by_valid_ms_plot.py --dataset BoolQ SST2 --model-category size --max-masking-ratio 100 --format paper
 	python export/masked_100p_performance_by_valid_ms_plot.py --dataset BoolQ SST2 --model-category size --max-masking-ratio 100 --format paper
 
-paper: paper-train
+paper-ood:
+	python export/ood_plot.py --dataset BoolQ SST2 --model-category size --max-masking-ratio 100 --masking-strategy half-det --validation-dataset both --format paper
+
+paper-faithfulness:
+	python export/faithfulness_plot.py --dataset BoolQ SST2 --model-category size --max-masking-ratio 100 --masking-strategy half-det --validation-dataset both --format paper
+
+paper: paper-train paper-ood paper-faithfulness
 
 download-intermediate-cedar:
 	rsync --info=progress2 -urltv --delete \
