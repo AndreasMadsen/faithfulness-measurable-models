@@ -6,6 +6,7 @@ from timeit import default_timer as timer
 
 from tqdm import tqdm
 import tensorflow as tf
+from scipy.stats import chi2
 
 from ecoroar.util import generate_experiment_id, model_name_to_huggingface_repo, default_jit_compile, default_max_epochs
 from ecoroar.dataset import datasets
@@ -265,28 +266,55 @@ if __name__ == '__main__':
 
         # aggregate p-value statistics as a basic histogram
         summary_time_start = timer()
-        p_value_thresholds = [0.001, 0.005, 0.01, 0.05, 0.1]
-        p_values_histogram = dataset_split_annotated.reduce(
+        histogram_p_value_thresholds = [0.001, 0.005, 0.01, 0.05, 0.1]
+        histogram_count = dataset_split_annotated.reduce(
             (
                 tf.zeros(1, dtype=tf.dtypes.int32),  # count
-                tf.zeros(len(p_value_thresholds), dtype=tf.dtypes.int32)  # hist
+                tf.zeros(len(histogram_p_value_thresholds), dtype=tf.dtypes.int32)  # hist
             ),
             lambda state, batch: (  # state = (count, hist), batch = ood
                 state[0] + tf.shape(batch)[0],
                 state[1] + tf.math.reduce_sum(tf.cast(
-                    tf.expand_dims(batch, 0) < tf.expand_dims(p_value_thresholds, 1),
+                    tf.expand_dims(batch, 0) < tf.expand_dims(histogram_p_value_thresholds, 1),
                     dtype=tf.dtypes.int32), axis=1)
             )
         )
-        p_values_histogram_prop = p_values_histogram[1] / p_values_histogram[0]
+        proportion_p_values = histogram_count[1] / histogram_count[0]
+
+        # aggregate p-values using simes and fisher
+        p_values_vector = dataset_split_annotated \
+            .rebatch(tf.cast(histogram_count[0], dtype=tf.dtypes.int64)) \
+            .get_single_element()
+
+        simes_p_value = tf.math.reduce_min(
+            tf.cast(tf.size(p_values_vector) / tf.range(1, tf.size(p_values_vector) + 1), dtype=p_values_vector.dtype) * \
+            tf.sort(p_values_vector, direction='ASCENDING')
+        ).numpy()
+
+        fisher_statistic = (-2 * tf.math.reduce_sum(tf.math.log(p_values_vector + 1e-8))).numpy()
+        fisher_p_value = chi2.cdf(fisher_statistic, 2 * tf.size(p_values_vector).numpy())
 
         # save summarized results
-        for threshold, proportion in zip(p_value_thresholds, p_values_histogram_prop.numpy()):
+        for threshold, proportion in zip(histogram_p_value_thresholds, proportion_p_values.numpy()):
             results.append({
+                'method': 'proportion',
                 'masking_ratio': masking_ratio / 100,
-                'proportion': proportion.item(),
+                'value': proportion.item(),
                 'threshold': threshold
             })
+
+        results.append({
+            'method': 'simes',
+            'masking_ratio': masking_ratio / 100,
+            'value': simes_p_value.tolist()
+        })
+
+        results.append({
+            'method': 'fisher',
+            'masking_ratio': masking_ratio / 100,
+            'value': fisher_p_value.tolist()
+        })
+
         summary_time = timer() - summary_time_start
 
     durations['measure'] = measure_time
