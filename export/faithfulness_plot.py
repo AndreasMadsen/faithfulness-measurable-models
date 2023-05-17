@@ -139,17 +139,11 @@ if __name__ == "__main__":
             .apply(bootstrap_confint(['metric']))
             .reset_index())
 
-        df_baseline = (df
-            .groupby(['args.model', 'args.dataset', 'results.masking_ratio'], group_keys=True)
-            .apply(bootstrap_confint(['baseline']))
-            .reset_index())
-
         # Generate plot
         p = (p9.ggplot(df_plot, p9.aes(x='results.masking_ratio'))
             + p9.geom_ribbon(p9.aes(ymin='metric_lower', ymax='metric_upper', fill='args.explainer'), alpha=0.35)
             + p9.geom_point(p9.aes(y='metric_mean', color='args.explainer'))
             + p9.geom_line(p9.aes(y='metric_mean', color='args.explainer'))
-            + p9.geom_line(p9.aes(y='baseline_mean'), color='black', data=df_baseline)
             + p9.facet_grid("args.dataset ~ args.model", scales="free_y", labeller=annotation.model.labeller)
             + p9.scale_x_continuous(
                 labels=lambda ticks: [f'{tick:.0%}' for tick in ticks],
