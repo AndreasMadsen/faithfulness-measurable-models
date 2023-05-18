@@ -6,7 +6,7 @@ import numpy as np
 
 from ecoroar.model import SimpleTestModel
 from ecoroar.tokenizer import SimpleTestTokenizer
-from ecoroar.ood import MaSF
+from ecoroar.ood import ood_detectors
 from ecoroar.test import compile_configs
 
 @pytest.fixture
@@ -31,8 +31,9 @@ def dataset(tokenizer):
       .batch(2)
 
 @pytest.mark.parametrize("compile_config", compile_configs, ids=lambda config: config.name)
-def test_odd_mafs(tokenizer, model, dataset, compile_config):
-    dist = MaSF(tokenizer, model, verbose=False, **compile_config.args)
+@pytest.mark.parametrize("ood_detector", ood_detectors.values(), ids=lambda ood_detector: ood_detector._name)
+def test_odd_mafs(tokenizer, model, dataset, ood_detector, compile_config):
+    dist = ood_detector(tokenizer, model, verbose=False, **compile_config.args)
     dist.fit(dataset)
 
     # Note that due to the simplicity of the SimpleTestModel, the intermediate

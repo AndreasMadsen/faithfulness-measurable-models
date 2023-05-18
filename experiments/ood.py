@@ -14,7 +14,7 @@ from ecoroar.tokenizer import HuggingfaceTokenizer
 from ecoroar.model import huggingface_model_from_local
 from ecoroar.transform import BucketedPaddedBatch, RandomMaxMasking, TransformSampler, ExplainerMasking, MapOnGPU
 from ecoroar.explain import explainers
-from ecoroar.ood import MaSF
+from ecoroar.ood import ood_detectors
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--persistent-dir',
@@ -171,8 +171,8 @@ if __name__ == '__main__':
                                            seed=args.seed,
                                            run_eagerly=False, jit_compile=args.jit_compile)
     masker = ExplainerMasking(explainer, tokenizer)
-    ood_detector = MaSF(tokenizer, model,
-                        run_eagerly=False, jit_compile=args.jit_compile)
+    ood_detector = ood_detectors[args.ood](tokenizer, model,
+                                           run_eagerly=False, jit_compile=args.jit_compile)
 
     # Load datasets
     dataset_valid = dataset.valid(tokenizer)

@@ -76,6 +76,8 @@ def _two_sided_p_value(cdf_values: tf.Tensor) -> tf.Tensor:
     return tf.math.minimum(cdf_values, 1 - cdf_values)
 
 class MaSF():
+    _name: str = 'masf'
+
     def __init__(self, tokenizer: Tokenizer, model: Model,
                  verbose=True,
                  batch_size: Tuple[int, int, int] = (2**10, 2**13, 2**16),
