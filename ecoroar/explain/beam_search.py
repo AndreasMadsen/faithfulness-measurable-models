@@ -84,7 +84,7 @@ def _candiates_expand(sequence_length: tf.Tensor, beam: BeamType) -> BeamType:
     return (total_candidates, total_removal_order_ta.concat(), total_score_ta.concat())
 
 class BeamSearch(ImportanceMeasureObservation):
-    _name = 'loo-sign'
+    _name = 'beam-sign'
     _defer_jit = True
 
     def __init__(self, tokenizer: Tokenizer, *args, beam_size: int=50, debugging=False,

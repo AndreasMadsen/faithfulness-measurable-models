@@ -1,7 +1,7 @@
 #!/bin/bash
 # jobs: 11
 source "batch_jobs/_job_script.sh"
-seeds="0 1 2 3 4"
+seeds="0"
 
 declare -A size=( ["roberta-sb"]="small" ["roberta-sl"]="large"
                   ["roberta-m15"]="large" ["roberta-m20"]="large" ["roberta-m30"]="large" ["roberta-m40"]="large" ["roberta-m50"]="large" )
@@ -10,7 +10,9 @@ declare -A size=( ["roberta-sb"]="small" ["roberta-sl"]="large"
 declare -A algo=( ["rand"]="rand"
                   ["grad-l1"]="grad" ["grad-l2"]="grad"
                   ["inp-grad-sign"]="inp-grad" ["inp-grad-abs"]="inp-grad"
-                  ["int-grad-sign"]="int-grad" ["int-grad-abs"]="int-grad" )
+                  ["int-grad-sign"]="int-grad" ["int-grad-abs"]="int-grad"
+                  ["loo-sign"]="loo" ["loo-abs"]="loo"
+                  ["beam-sign"]="beam" ["beam-abs"]="beam" )
 
 #                   V100                                 V100                                 V100                                   V100
 declare -A time=( # ["small test rand bAbI-1"]="0:02"  ["large test rand bAbI-1"]="0:03"  ["small train rand bAbI-1"]="0:05"  ["large train rand bAbI-1"]="0:08"
@@ -143,28 +145,96 @@ declare -A time=( # ["small test rand bAbI-1"]="0:02"  ["large test rand bAbI-1"
                   # ["small test int-grad SST2"]="0:08"    ["large test int-grad SST2"]="0:14"    ["small train int-grad SST2"]="1:50"    ["large train int-grad SST2"]="4:40"
                     ["small test int-grad SST2"]="0:20"    ["large test int-grad SST2"]="0:30"    ["small train int-grad SST2"]="2:30"    ["large train int-grad SST2"]="5:30"
                   # ["small test int-grad WNLI"]="0:07"    ["large test int-grad WNLI"]="0:09"    ["small train int-grad WNLI"]="0:08"    ["large train int-grad WNLI"]="0:18"
-                    ["small test int-grad WNLI"]="0:20"    ["large test int-grad WNLI"]="0:20"    ["small train int-grad WNLI"]="0:20"    ["large train int-grad WNLI"]="0:30" )
+                    ["small test int-grad WNLI"]="0:20"    ["large test int-grad WNLI"]="0:20"    ["small train int-grad WNLI"]="0:20"    ["large train int-grad WNLI"]="0:30"
 
+                  # ["small test loo bAbI-1"]="0:07"  ["large test loo bAbI-1"]="0:14"
+                    ["small test loo bAbI-1"]="1:20"  ["large test loo bAbI-1"]="1:25"
+                  # ["small test loo bAbI-2"]="0:14"  ["large test loo bAbI-2"]="0:31"
+                    ["small test loo bAbI-2"]="1:30"  ["large test loo bAbI-2"]="1:50"
+                  # ["small test loo bAbI-3"]="0:21"  ["large test loo bAbI-3"]="0:57"
+                    ["small test loo bAbI-3"]="1:40"  ["large test loo bAbI-3"]="2:10"
+                  # ["small test loo BoolQ"]="0:48"   ["large test loo BoolQ"]="1:56"
+                    ["small test loo BoolQ"]="2:00"   ["large test loo BoolQ"]="3:30"
+                  # ["small test loo CB"]="0:06"      ["large test loo CB"]="0:09"
+                    ["small test loo CB"]="1:15"      ["large test loo CB"]="1:20"
+                  # ["small test loo CoLA"]="0:09"    ["large test loo CoLA"]="0:14"
+                    ["small test loo CoLA"]="1:20"    ["large test loo CoLA"]="1:30"
+                  # ["small test loo IMDB"]="7:39"    ["large test loo IMDB"]="22:07"
+                    ["small test loo IMDB"]="9:30"    ["large test loo IMDB"]="23:30"
+                  # ["small test loo MIMIC-a"]="0:26" ["large test loo MIMIC-a"]="1:11"
+                    ["small test loo MIMIC-a"]="1:40" ["large test loo MIMIC-a"]="2:30"
+                  # ["small test loo MIMIC-d"]="0:34" ["large test loo MIMIC-d"]="1:37"
+                    ["small test loo MIMIC-d"]="2:00" ["large test loo MIMIC-d"]="3:00"
+                  # ["small test loo MNLI"]="0:43"    ["large test loo MNLI"]="1:47"
+                    ["small test loo MNLI"]="2:00"    ["large test loo MNLI"]="3:30"
+                  # ["small test loo MRPC"]="0:08"    ["large test loo MRPC"]="0:14"
+                    ["small test loo MRPC"]="1:20"    ["large test loo MRPC"]="1:30"
+                  # ["small test loo QNLI"]="0:29"    ["large test loo QNLI"]="1:14"
+                    ["small test loo QNLI"]="1:50"    ["large test loo QNLI"]="2:40"
+                  # ["small test loo QQP"]="2:10"     ["large test loo QQP"]="5:40"
+                    ["small test loo QQP"]="4:30"     ["large test loo QQP"]="7:40"
+                  # ["small test loo RTE"]="0:09"     ["large test loo RTE"]="0:15"
+                    ["small test loo RTE"]="1:20"     ["large test loo RTE"]="2:30"
+                  # ["small test loo SST2"]="0:08"    ["large test loo SST2"]="0:14"
+                    ["small test loo SST2"]="1:20"    ["large test loo SST2"]="1:30"
+                  # ["small test loo WNLI"]="0:07"    ["large test loo WNLI"]="0:09"
+                    ["small test loo WNLI"]="1:20"    ["large test loo WNLI"]="1:20"
+
+                  # ["small test beam bAbI-1"]="0:07"  ["large test beam bAbI-1"]="0:14"
+                    ["small test beam bAbI-1"]="1:20"  ["large test beam bAbI-1"]="1:25"
+                  # ["small test beam bAbI-2"]="0:14"  ["large test beam bAbI-2"]="0:31"
+                    ["small test beam bAbI-2"]="1:30"  ["large test beam bAbI-2"]="1:50"
+                  # ["small test beam bAbI-3"]="0:21"  ["large test beam bAbI-3"]="0:57"
+                    ["small test beam bAbI-3"]="1:40"  ["large test beam bAbI-3"]="2:10"
+                  # ["small test beam BoolQ"]="0:48"   ["large test beam BoolQ"]="1:56"
+                    ["small test beam BoolQ"]="2:00"   ["large test beam BoolQ"]="3:30"
+                  # ["small test beam CB"]="0:06"      ["large test beam CB"]="0:09"
+                    ["small test beam CB"]="1:15"      ["large test beam CB"]="1:20"
+                  # ["small test beam CoLA"]="0:09"    ["large test beam CoLA"]="0:14"
+                    ["small test beam CoLA"]="1:20"    ["large test beam CoLA"]="1:30"
+                  # ["small test beam IMDB"]="7:39"    ["large test beam IMDB"]="22:07"
+                    ["small test beam IMDB"]="9:30"    ["large test beam IMDB"]="23:30"
+                  # ["small test beam MIMIC-a"]="0:26" ["large test beam MIMIC-a"]="1:11"
+                    ["small test beam MIMIC-a"]="1:40" ["large test beam MIMIC-a"]="2:30"
+                  # ["small test beam MIMIC-d"]="0:34" ["large test beam MIMIC-d"]="1:37"
+                    ["small test beam MIMIC-d"]="2:00" ["large test beam MIMIC-d"]="3:00"
+                  # ["small test beam MNLI"]="0:43"    ["large test beam MNLI"]="1:47"
+                    ["small test beam MNLI"]="2:00"    ["large test beam MNLI"]="3:30"
+                  # ["small test beam MRPC"]="0:08"    ["large test beam MRPC"]="0:14"
+                    ["small test beam MRPC"]="1:20"    ["large test beam MRPC"]="1:30"
+                  # ["small test beam QNLI"]="0:29"    ["large test beam QNLI"]="1:14"
+                    ["small test beam QNLI"]="1:50"    ["large test beam QNLI"]="2:40"
+                  # ["small test beam QQP"]="2:10"     ["large test beam QQP"]="5:40"
+                    ["small test beam QQP"]="4:30"     ["large test beam QQP"]="7:40"
+                  # ["small test beam RTE"]="0:09"     ["large test beam RTE"]="0:15"
+                    ["small test beam RTE"]="1:20"     ["large test beam RTE"]="2:30"
+                  # ["small test beam SST2"]="0:08"    ["large test beam SST2"]="0:14"
+                    ["small test beam SST2"]="1:20"    ["large test beam SST2"]="1:30"
+                  # ["small test beam WNLI"]="0:07"    ["large test beam WNLI"]="0:09"
+                    ["small test beam WNLI"]="1:20"    ["large test beam WNLI"]="1:20" )
 
 for model in 'roberta-sb' 'roberta-sl' # 'roberta-m15' 'roberta-m20' 'roberta-m30' 'roberta-m40' 'roberta-m50'
 do
     for dataset in 'bAbI-1' 'bAbI-2' 'bAbI-3' 'BoolQ' 'CB' 'CoLA' 'MIMIC-a' 'MIMIC-d' 'MRPC' 'RTE' 'SST2'  # 'IMDB' 'MNLI' 'QNLI' 'QQP' 'WNLI'
     do
-        for explainer in 'rand' 'grad-l1' 'grad-l2' 'inp-grad-abs' 'inp-grad-sign' 'int-grad-abs' 'int-grad-sign'
+        for explainer in 'rand' 'grad-l1' 'grad-l2' 'inp-grad-abs' 'inp-grad-sign' 'int-grad-abs' 'int-grad-sign' 'loo-aba' 'loo-sign' 'beam-sign'
         do
             for split in 'test'
             do
-                submit_seeds "${time[${size[$model]} $split ${algo[$explainer]} $dataset]}" "$seeds" $(job_script gpu) \
-                    experiments/faithfulness.py \
-                    --model "${model}" \
-                    --dataset "${dataset}" \
-                    --max-masking-ratio 100 \
-                    --masking-strategy 'half-det' \
-                    --validation-dataset 'both' \
-                    --explainer "${explainer}" \
-                    --split "${split}" \
-                    --jit-compile \
-                    --save-masked-datasets
+                for max_masking_ratio in 0 100
+                do
+                    submit_seeds "${time[${size[$model]} $split ${algo[$explainer]} $dataset]}" "$seeds" $(job_script gpu) \
+                        experiments/faithfulness.py \
+                        --model "${model}" \
+                        --dataset "${dataset}" \
+                        --max-masking-ratio "${max_masking_ratio}" \
+                        --masking-strategy 'half-det' \
+                        --validation-dataset 'both' \
+                        --explainer "${explainer}" \
+                        --split "${split}" \
+                        --jit-compile \
+                        --save-masked-datasets
+                    done
               done
         done
     done
