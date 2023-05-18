@@ -27,7 +27,7 @@ function multiply_time {
 
     python3 -c \
         "from datetime import timedelta; \
-        in_h, in_m = '$walltime'.split(':'); \
+        in_h, in_m = '${walltime}'.split(':'); \
         t = timedelta(hours=int(in_h), minutes=int(in_m)) * ${multiplier}; \
         out_h, out_m = divmod(int(t.total_seconds()) // 60, 60); \
         print(f'{out_h:d}:{out_m:d}')"
@@ -36,7 +36,12 @@ function multiply_time {
 submit_seeds () {
     local walltime=$1
     local seeds=$2
-    local experiment_name=$(python experiments/experiment-name.py "${@:4}" --seed 9999)
+    local experiment_name;
+
+    if ! experiment_name=$(python experiments/experiment-name.py "${@:4}" --seed 9999); then
+        echo -e "\e[31mCould not get experiment name, error ^^^${experiment_name}\e[0m" >&2
+        return 1
+    fi
 
     local run_seeds=()
     local filename
@@ -50,8 +55,9 @@ submit_seeds () {
 
     if [ ! "${#run_seeds[@]}" -eq 0 ]; then
         local walltime_times_nb_seeds;
-        if ! walltime_times_nb_seeds=$(multiply_time $walltime ${#run_seeds[@]}); then
+        if ! walltime_times_nb_seeds=$(multiply_time "${walltime}" "${#run_seeds[@]}"); then
             echo -e "\e[31mCould not parse time '${walltime}', error ^^^${walltime_times_nb_seeds}\e[0m" >&2
+            return 1
         fi
 
         local concat_seeds=$(join_by '' "${run_seeds[@]}")
@@ -68,6 +74,7 @@ submit_seeds () {
             echo -e "\e[32msubmitted job as ${jobid}\e[0m" >&2
         else
             echo -e "\e[31mCould not submit ${jobname}, error ^^^${jobid}\e[0m" >&2
+            return 1
         fi
     else
         echo -e "\e[34mskipping ${experiment_name/9999/x}\e[0m" >&2
