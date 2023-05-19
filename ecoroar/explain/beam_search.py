@@ -7,6 +7,7 @@ from ..types import Tokenizer, TokenizedDict
 from ..transform import SequenceIndentifier
 from ..util import get_compiler
 from ._importance_measure import ImportanceMeasureObservation
+from ._util_evaluate import BatchEvaluator
 
 BeamType = Tuple[tf.Tensor, tf.Tensor, tf.Tensor]
 
@@ -87,20 +88,15 @@ class BeamSearch(ImportanceMeasureObservation):
     _name = 'beam-sign'
     _defer_jit = True
 
-    def __init__(self, tokenizer: Tokenizer, *args, beam_size: int=50, debugging=False,
+    def __init__(self, *args, beam_size: int=50, debugging=False,
                  run_eagerly: bool = False, jit_compile: bool = False,
                  **kwargs) -> None:
-        super().__init__(tokenizer, *args, run_eagerly=run_eagerly, jit_compile=jit_compile, **kwargs)
-        self._sequence_identifier = SequenceIndentifier(tokenizer)
+        super().__init__(*args, run_eagerly=run_eagerly, jit_compile=jit_compile, **kwargs)
+        self._sequence_identifier = SequenceIndentifier(self._tokenizer)
+        self._evaluate = BatchEvaluator(self._model, batch_size=self._inference_batch_size, run_eagerly=run_eagerly, jit_compile=jit_compile)
+
         self._beam_size = tf.convert_to_tensor(beam_size, dtype=tf.dtypes.int32)
         self._debugging = debugging
-
-        # Note, it is not possible to jit the beam loop. Because the beam changes size
-        #   in each iteration (loop invariants). Instead, just jit _evaluate function,
-        #   which is the primary cost. The rest will stil be compiled using the default compiler.
-        #   It is also not possible to jit _candiates_expand, again due to loop invariants.
-        jit_compiler = get_compiler(run_eagerly, jit_compile)
-        self._wrap_logits = jit_compiler(self._logits)
 
     def _debug(self, interation_i, beam, x_beam, new_score):
         if self._debugging:
@@ -126,38 +122,6 @@ class BeamSearch(ImportanceMeasureObservation):
             x_repeat['input_ids'])
 
         return x_repeat
-
-    def _logits(self, x_batch: TokenizedDict, y: tf.Tensor) -> tf.Tensor:
-        return self._model(x_batch).logits[:, y]
-
-    def _evaluate(self, x: TokenizedDict, y: tf.Tensor) -> tf.Tensor:
-        """Evaluates the model using the input x, and extracts the logits for class y
-
-        This uses an internal mini batch system.
-
-        Args:
-            x (TokenizedDict): Structure of batched tensors
-            y (tf.Tensor): scalar, the column index to extract
-
-        Returns:
-            tf.Tensor: vector of the output,
-        """
-        # batch evaluate the masked examples in x_masked
-        output_dtype = tf.keras.mixed_precision.global_policy().compute_dtype
-        num_of_samples = tf.shape(x['input_ids'])[0]
-
-        num_of_batches = tf.cast(tf.math.ceil(num_of_samples / self._inference_batch_size), dtype=tf.dtypes.int32)
-        predict_all_array = tf.TensorArray(output_dtype, size=num_of_batches, infer_shape=False, element_shape=(None, ))
-        for batch_i in tf.range(num_of_batches):
-            # NOTE: The tf.minimum should not be required, but there is a bug in XLA.
-            # See: https://github.com/tensorflow/tensorflow/issues/60472
-            x_batch = tf.nest.map_structure(
-                lambda item: item[batch_i*self._inference_batch_size:tf.minimum(tf.shape(item)[0], (batch_i + 1)*self._inference_batch_size), ...],
-                x)
-
-            y_batch = self._wrap_logits(x_batch, y)
-            predict_all_array = predict_all_array.write(batch_i, y_batch)
-        return predict_all_array.concat()
 
     # STEP: 0 - intialize
     # maskable       : order, AUC score
