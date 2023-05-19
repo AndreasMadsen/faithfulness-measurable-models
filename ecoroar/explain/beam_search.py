@@ -87,11 +87,18 @@ def _candiates_expand(sequence_length: tf.Tensor, beam: BeamType) -> BeamType:
 class BeamSearch(ImportanceMeasureObservation):
     _name = 'beam-sign'
     _defer_jit = True
+    _default_beam_size = None
 
-    def __init__(self, *args, beam_size: int=50, debugging=False,
+    def __init__(self, *args, beam_size: int=None, debugging=False,
                  run_eagerly: bool = False, jit_compile: bool = False,
                  **kwargs) -> None:
         super().__init__(*args, run_eagerly=run_eagerly, jit_compile=jit_compile, **kwargs)
+
+        if beam_size is None:
+            beam_size = self._default_beam_size
+        if beam_size is None:
+            raise ValueError('beam_size should be set')
+
         self._sequence_identifier = SequenceIndentifier(self._tokenizer)
         self._evaluate = BatchEvaluator(self._model, batch_size=self._inference_batch_size, run_eagerly=run_eagerly, jit_compile=jit_compile)
 
@@ -240,3 +247,18 @@ class BeamSearch(ImportanceMeasureObservation):
             tf.expand_dims(optimal_removal_order, axis=1),
             tf.range(tf.size(optimal_removal_order), 0, -1, dtype=tf.dtypes.float32)
         )
+
+# TODO: I will admit. This is kinda a hack to control this hyperparameter. This should
+#  go in the experiment_id generator, but then I would have to integrate that parameter everywhere.
+
+class BeamSearch10(BeamSearch):
+    _name = 'beam-sign-10'
+    _default_beam_size = 10
+
+class BeamSearch20(BeamSearch):
+    _name = 'beam-sign-20'
+    _default_beam_size = 20
+
+class BeamSearch50(BeamSearch):
+    _name = 'beam-sign-50'
+    _default_beam_size = 50
