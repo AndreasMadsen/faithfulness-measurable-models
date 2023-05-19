@@ -39,20 +39,15 @@ compile_configs = [
     CompileConfig('default_compile', { 'run_eagerly': False, 'jit_compile': False }),
     CompileConfig('jit_compile', { 'run_eagerly': False, 'jit_compile': True })
 ]
-cdf_configs = [
-    CompileConfig('sort', { 'cdf_algorithm': 'sort' }),
-    CompileConfig('scan', { 'cdf_algorithm': 'scan' })
-]
 
 @pytest.mark.parametrize("compile_config", compile_configs, ids=lambda config: config.name)
-@pytest.mark.parametrize("cdf_configs", cdf_configs, ids=lambda config: config.name)
-def test_odd_mafs(tokenizer, model, dataset, compile_config, cdf_configs):
-    dist = MaSF(tokenizer, model, verbose=False, **compile_config.args, **cdf_configs.args)
+def test_odd_mafs(tokenizer, model, dataset, compile_config):
+    dist = MaSF(tokenizer, model, verbose=False, **compile_config.args)
     dist.fit(dataset)
 
     # Note that due to the simplicity of the SimpleTestModel, the intermediate
     # representations are too sparse and discrete to provide a satifiying
     # distribution. So everything, is more or less going to test as
     # in-distribution.
-    for x, _ in dataset:
-        np.testing.assert_allclose(dist(x).numpy(), [1, 1])
+    for ood in dataset.apply(dist).rebatch(2):
+        np.testing.assert_allclose(ood.numpy(), [1, 1])

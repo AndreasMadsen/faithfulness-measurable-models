@@ -98,6 +98,10 @@ parser.add_argument('--split',
                     choices=['train', 'valid', 'test'],
                     type=str,
                     help='The dataset split to evaluate faithfulness on')
+parser.add_argument('--dist-repeats',
+                    default=1,
+                    type=int,
+                    help='The number of repeats used to estimate the distribution')
 
 
 if __name__ == '__main__':
@@ -118,8 +122,8 @@ if __name__ == '__main__':
         seed=args.seed, max_epochs=args.max_epochs,
         max_masking_ratio=args.max_masking_ratio, masking_strategy=args.masking_strategy,
         validation_dataset=args.validation_dataset,
-        explainer=args.explainer, ood=args.ood,
-        split=args.split
+        explainer=args.explainer, split=args.split,
+        ood=args.ood, dist_repeats=args.dist_repeats
     )
 
     # Print configuration
@@ -208,16 +212,15 @@ if __name__ == '__main__':
     # Train distributional representation using  validation dataset
     # Note, this dataset needs to be masked the same way as the training dataset during training.
     odd_fit_time_start = timer()
-    # TODO: figure out what is the appropiate number of repeats
     dataset_valid_masked = dataset_valid \
-        .repeat(1) \
+        .repeat(args.dist_repeats) \
         .apply(batcher(args.batch_size,
                         padding_values=(tokenizer.padding_values, None),
                         num_parallel_calls=tf.data.AUTOTUNE)) \
         .map(lambda x, y: (masker_train(x), y), num_parallel_calls=tf.data.AUTOTUNE) \
         .prefetch(tf.data.AUTOTUNE)
 
-    # TODO: Rerunning this for every --explainer argument is quite the waste,
+    # TODO: Rerunning this for every --explainer argument is wasteful,
     #   since the distributed representation will be the same for every --explainer
     ood_detector.fit(dataset_valid_masked)
     durations['ood_fit'] = timer() - odd_fit_time_start
@@ -245,13 +248,12 @@ if __name__ == '__main__':
         measure_time_start = timer()
         # assigns p-values to each observation
         dataset_split_annotated = dataset_split_masked \
-            .apply(MapOnGPU(
-                lambda x, y: (x, y, ood_detector(x)),
-                lambda dataset: (*tf.data.experimental.get_structure(dataset), tf.TensorSpec(shape=[None], dtype=tf.dtypes.float32))
-            )) \
+            .apply(ood_detector) \
+            .rebatch(args.batch_size) \
+            .apply(tf.data.experimental.assert_cardinality(dataset_split_masked.cardinality())) \
             .cache()
 
-        for x, y, ood in tqdm(dataset_split_annotated, desc=f'OOD annotating dataset ({masking_ratio}%)', mininterval=1):
+        for ood in tqdm(dataset_split_annotated, desc=f'OOD annotating dataset ({masking_ratio}%)', mininterval=1):
             pass
         measure_time += timer() - measure_time_start
 
@@ -269,10 +271,10 @@ if __name__ == '__main__':
                 tf.zeros(1, dtype=tf.dtypes.int32),  # count
                 tf.zeros(len(p_value_thresholds), dtype=tf.dtypes.int32)  # hist
             ),
-            lambda state, batch: (  # state = (count, hist), batch = (x, y, ood)
-                state[0] + tf.shape(batch[2])[0],
+            lambda state, batch: (  # state = (count, hist), batch = ood
+                state[0] + tf.shape(batch)[0],
                 state[1] + tf.math.reduce_sum(tf.cast(
-                    tf.expand_dims(batch[2], 0) < tf.expand_dims(p_value_thresholds, 1),
+                    tf.expand_dims(batch, 0) < tf.expand_dims(p_value_thresholds, 1),
                     dtype=tf.dtypes.int32), axis=1)
             )
         )

@@ -41,23 +41,27 @@ parser.add_argument('--masking-strategy',
                     help='The masking strategy to use for masking during fune-tuning')
 parser.add_argument('--validation-dataset',
                     default=None,
-                    choices=['nomask', 'mask'],
+                    choices=['nomask', 'mask', 'both'],
                     type=str,
                     help='The transformation applied to the validation dataset used for early stopping.')
 parser.add_argument('--explainer',
                     default=None,
                     type=str,
                     help='The importance measure algorithm to use for explanation')
-parser.add_argument('--ood',
-                    default=None,
-                    choices=['MaSF'],
-                    type=str,
-                    help='The OOD detection method')
 parser.add_argument('--split',
                     default=None,
                     choices=['train', 'valid', 'test'],
                     type=str,
                     help='The dataset split to evaluate faithfulness on')
+parser.add_argument('--ood',
+                    default=None,
+                    choices=['MaSF'],
+                    type=str,
+                    help='The OOD detection method')
+parser.add_argument('--dist-repeats',
+                    default=None,
+                    type=int,
+                    help='The number of repeats used to estimate the distribution')
 
 
 if __name__ == '__main__':
@@ -70,7 +74,7 @@ if __name__ == '__main__':
         seed=args.seed, max_epochs=args.max_epochs,
         max_masking_ratio=args.max_masking_ratio, masking_strategy=args.masking_strategy,
         validation_dataset=args.validation_dataset,
-        explainer=args.explainer, ood=args.ood,
-        split=args.split
+        explainer=args.explainer, split=args.split,
+        ood=args.ood, dist_repeats=args.dist_repeats
     )
     print(experiment_id)

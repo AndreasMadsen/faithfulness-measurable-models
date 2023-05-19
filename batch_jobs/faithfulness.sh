@@ -152,17 +152,20 @@ do
     do
         for explainer in 'rand' 'grad-l1' 'grad-l2' 'inp-grad-abs' 'inp-grad-sign' 'int-grad-abs' 'int-grad-sign'
         do
-            submit_seeds "${time[${size[$model]} $split ${algo[$explainer]} $dataset]}" "$seeds" $(job_script gpu) \
-                experiments/faithfulness.py \
-                --model "${model}" \
-                --dataset "${dataset}" \
-                --max-masking-ratio 100 \
-                --masking-strategy 'half-det' \
-                --validation-dataset 'both' \
-                --explainer "${explainer}" \
-                --split 'test' \
-                --jit-compile \
-                --save-masked-datasets
+            for split in 'test'
+            do
+                submit_seeds "${time[${size[$model]} $split ${algo[$explainer]} $dataset]}" "$seeds" $(job_script gpu) \
+                    experiments/faithfulness.py \
+                    --model "${model}" \
+                    --dataset "${dataset}" \
+                    --max-masking-ratio 100 \
+                    --masking-strategy 'half-det' \
+                    --validation-dataset 'both' \
+                    --explainer "${explainer}" \
+                    --split "${split}" \
+                    --jit-compile \
+                    --save-masked-datasets
+              done
         done
     done
 done
