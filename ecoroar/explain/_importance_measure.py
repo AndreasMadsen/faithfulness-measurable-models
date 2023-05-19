@@ -97,7 +97,6 @@ class ImportanceMeasureObservation(ImportanceMeasure):
                 Note, that by default the tokenizer.padding_values were used to infer the sequence_length.
         """
         batch_size = tf.shape(y)[0]
-        dtype = tf.keras.mixed_precision.global_policy().compute_dtype
 
         # Convert input to RaggedTensor structure
         ragged = tf.nest.map_structure(
@@ -109,7 +108,7 @@ class ImportanceMeasureObservation(ImportanceMeasure):
         # NOTE: Consider dropping this loop, it may be possible to do inference-only even for 512 token
         #   long inputs. Could be tested with MIMIC-d.
         # For each observation, call self._explain_observation() and store the results in a TensorArray
-        explain_all = tf.TensorArray(dtype, size=batch_size, infer_shape=False, element_shape=(None, ))
+        explain_all = tf.TensorArray(tf.dtypes.float32, size=batch_size, infer_shape=False, element_shape=(None, ))
         for obs_i in tf.range(batch_size):
             # Get observation i
             obs_x = tf.nest.map_structure(lambda ragged_tensor: ragged_tensor[obs_i, ...], ragged)
@@ -121,7 +120,7 @@ class ImportanceMeasureObservation(ImportanceMeasure):
                 sequence_lengths[obs_i], tf.shape(obs_explain, out_type=tf.dtypes.int64)[0],
                 message='explanation has correct length'
             )
-            explain_all = explain_all.write(obs_i, obs_explain)
+            explain_all = explain_all.write(obs_i, tf.cast(obs_explain, dtype=tf.dtypes.float32))
 
         # Convert the tensorArray to a RaggedTensor
         return tf.RaggedTensor.from_row_lengths(
@@ -158,7 +157,7 @@ class ImportanceMeasureBatch(ImportanceMeasure):
             tf.RaggedTensor: Returns explanations for each observation, as rows in a RaggedTensor.
                 Note, that by default the tokenizer.padding_values were used to infer the sequence_length.
         """
-        explain = self._wrap_explain_batch(x, y)
+        explain = tf.cast(self._wrap_explain_batch(x, y), dtype=tf.dtypes.float32)
         sequence_length = tf.math.reduce_sum(
             tf.cast(x['input_ids'] != self._tokenizer.pad_token_id, dtype=tf.dtypes.int32),
             axis=1
