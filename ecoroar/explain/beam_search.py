@@ -4,7 +4,7 @@ from typing import Tuple
 import tensorflow as tf
 
 from ..types import Tokenizer, TokenizedDict
-from ..transform.sequence_identifier import SequenceIndentifier
+from ..transform import SequenceIndentifier
 from ..util import get_compiler
 from ._importance_measure import ImportanceMeasureObservation
 
@@ -90,7 +90,7 @@ class BeamSearch(ImportanceMeasureObservation):
     def __init__(self, tokenizer: Tokenizer, *args, beam_size: int=50, debugging=False,
                  run_eagerly: bool = False, jit_compile: bool = False,
                  **kwargs) -> None:
-        super().__init__(tokenizer, *args, **kwargs)
+        super().__init__(tokenizer, *args, run_eagerly=run_eagerly, jit_compile=jit_compile, **kwargs)
         self._sequence_identifier = SequenceIndentifier(tokenizer)
         self._beam_size = tf.convert_to_tensor(beam_size, dtype=tf.dtypes.int32)
         self._debugging = debugging
@@ -100,7 +100,7 @@ class BeamSearch(ImportanceMeasureObservation):
         #   which is the primary cost. The rest will stil be compiled using the default compiler.
         #   It is also not possible to jit _candiates_expand, again due to loop invariants.
         jit_compiler = get_compiler(run_eagerly, jit_compile)
-        self._wrap_evaluate = jit_compiler(self._evaluate)
+        self._wrap_logits = jit_compiler(self._logits)
 
     def _debug(self, interation_i, beam, x_beam, new_score):
         if self._debugging:
@@ -127,7 +127,10 @@ class BeamSearch(ImportanceMeasureObservation):
 
         return x_repeat
 
-    def _evaluate(self, x: TokenizedDict, y: tf.Tensor):
+    def _logits(self, x_batch: TokenizedDict, y: tf.Tensor) -> tf.Tensor:
+        return self._model(x_batch).logits[:, y]
+
+    def _evaluate(self, x: TokenizedDict, y: tf.Tensor) -> tf.Tensor:
         """Evaluates the model using the input x, and extracts the logits for class y
 
         This uses an internal mini batch system.
@@ -152,7 +155,7 @@ class BeamSearch(ImportanceMeasureObservation):
                 lambda item: item[batch_i*self._inference_batch_size:tf.minimum(tf.shape(item)[0], (batch_i + 1)*self._inference_batch_size), ...],
                 x)
 
-            y_batch = self._model(x_batch).logits[:, y]
+            y_batch = self._wrap_logits(x_batch, y)
             predict_all_array = predict_all_array.write(batch_i, y_batch)
         return predict_all_array.concat()
 
@@ -238,7 +241,7 @@ class BeamSearch(ImportanceMeasureObservation):
         #   with set_loop_options(shape_invariants=[])
         beam_candidates = tf.expand_dims(maskable_tokens, 0)
         beam_removal_order = tf.zeros((1, 0), dtype=tf.dtypes.int32)
-        beam_score = tf.zeros((1, ), dtype=tf.dtypes.float32)
+        beam_score = tf.zeros((1, ), dtype=y_baseline.dtype)
 
         for iteration_i in tf.range(tf.math.reduce_sum(tf.cast(maskable_tokens, tf.dtypes.int32))):
             tf.autograph.experimental.set_loop_options(
@@ -253,7 +256,7 @@ class BeamSearch(ImportanceMeasureObservation):
 
             # c. evaluate
             x_beam = self._create_masked_inputs(x, beam, maskable_tokens)
-            y_pred = self._wrap_evaluate(x_beam, y)
+            y_pred = self._evaluate(x_beam, y)
             score_inc = y_baseline - y_pred
             new_score = beam[2] + score_inc
             self._debug(iteration_i, beam, x_beam, new_score)
