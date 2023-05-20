@@ -12,7 +12,9 @@ declare -A algo=( ["rand"]="rand"
                   ["inp-grad-sign"]="inp-grad" ["inp-grad-abs"]="inp-grad"
                   ["int-grad-sign"]="int-grad" ["int-grad-abs"]="int-grad"
                   ["loo-sign"]="loo" ["loo-abs"]="loo"
-                  ["beam-sign"]="beam" ["beam-abs"]="beam" )
+                  ["beam-sign-10"]="beam-10" ["beam-abs"]="beam-10"
+                  ["beam-sign-20"]="beam-20" ["beam-abs"]="beam-20"
+                  ["beam-sign-50"]="beam-50" ["beam-abs"]="beam-50" )
 
 #                   V100                                 V100                                 V100                                   V100
 declare -A time=( # ["small test rand bAbI-1"]="0:02"  ["large test rand bAbI-1"]="0:03"  ["small train rand bAbI-1"]="0:05"  ["large train rand bAbI-1"]="0:08"
@@ -147,37 +149,37 @@ declare -A time=( # ["small test rand bAbI-1"]="0:02"  ["large test rand bAbI-1"
                   # ["small test int-grad WNLI"]="0:07"    ["large test int-grad WNLI"]="0:09"    ["small train int-grad WNLI"]="0:08"    ["large train int-grad WNLI"]="0:18"
                     ["small test int-grad WNLI"]="0:20"    ["large test int-grad WNLI"]="0:20"    ["small train int-grad WNLI"]="0:20"    ["large train int-grad WNLI"]="0:30"
 
-                  # ["small test loo bAbI-1"]="0:07"  ["large test loo bAbI-1"]="0:14"
+                  # ["small test loo bAbI-1"]="0:29"  ["large test loo bAbI-1"]="0:54"
                     ["small test loo bAbI-1"]="1:20"  ["large test loo bAbI-1"]="1:25"
-                  # ["small test loo bAbI-2"]="0:14"  ["large test loo bAbI-2"]="0:31"
+                  # ["small test loo bAbI-2"]="0:44"  ["large test loo bAbI-2"]="1:32"
                     ["small test loo bAbI-2"]="1:30"  ["large test loo bAbI-2"]="1:50"
-                  # ["small test loo bAbI-3"]="0:21"  ["large test loo bAbI-3"]="0:57"
-                    ["small test loo bAbI-3"]="1:40"  ["large test loo bAbI-3"]="2:10"
-                  # ["small test loo BoolQ"]="0:48"   ["large test loo BoolQ"]="1:56"
+                  # ["small test loo bAbI-3"]="1:14"  ["large test loo bAbI-3"]="?:??"
+                    ["small test loo bAbI-3"]="1:40"  ["large test loo bAbI-3"]="7:00"
+                  # ["small test loo BoolQ"]="0:48"   ["large test loo BoolQ"]="0:47"
                     ["small test loo BoolQ"]="2:00"   ["large test loo BoolQ"]="3:30"
-                  # ["small test loo CB"]="0:06"      ["large test loo CB"]="0:09"
+                  # ["small test loo CB"]="0:14"      ["large test loo CB"]="0:52"
                     ["small test loo CB"]="1:15"      ["large test loo CB"]="1:20"
-                  # ["small test loo CoLA"]="0:09"    ["large test loo CoLA"]="0:14"
+                  # ["small test loo CoLA"]="0:15"    ["large test loo CoLA"]="0:24"
                     ["small test loo CoLA"]="1:20"    ["large test loo CoLA"]="1:30"
-                  # ["small test loo IMDB"]="7:39"    ["large test loo IMDB"]="22:07"
+                  # ["small test loo IMDB"]="?:??"    ["large test loo IMDB"]="?:??"
                     ["small test loo IMDB"]="9:30"    ["large test loo IMDB"]="23:30"
-                  # ["small test loo MIMIC-a"]="0:26" ["large test loo MIMIC-a"]="1:11"
-                    ["small test loo MIMIC-a"]="1:40" ["large test loo MIMIC-a"]="2:30"
-                  # ["small test loo MIMIC-d"]="0:34" ["large test loo MIMIC-d"]="1:37"
-                    ["small test loo MIMIC-d"]="2:00" ["large test loo MIMIC-d"]="3:00"
-                  # ["small test loo MNLI"]="0:43"    ["large test loo MNLI"]="1:47"
+                  # ["small test loo MIMIC-a"]="?:??" ["large test loo MIMIC-a"]="?:??"
+                    ["small test loo MIMIC-a"]="5:00" ["large test loo MIMIC-a"]="15:00"
+                  # ["small test loo MIMIC-d"]="?:??" ["large test loo MIMIC-d"]="?:??"
+                    ["small test loo MIMIC-d"]="7:00" ["large test loo MIMIC-d"]="20:00"
+                  # ["small test loo MNLI"]="?:??"    ["large test loo MNLI"]="?:??"
                     ["small test loo MNLI"]="2:00"    ["large test loo MNLI"]="3:30"
-                  # ["small test loo MRPC"]="0:08"    ["large test loo MRPC"]="0:14"
+                  # ["small test loo MRPC"]="0:14"    ["large test loo MRPC"]="0:23"
                     ["small test loo MRPC"]="1:20"    ["large test loo MRPC"]="1:30"
-                  # ["small test loo QNLI"]="0:29"    ["large test loo QNLI"]="1:14"
+                  # ["small test loo QNLI"]="?:??"    ["large test loo QNLI"]="?:??"
                     ["small test loo QNLI"]="1:50"    ["large test loo QNLI"]="2:40"
-                  # ["small test loo QQP"]="2:10"     ["large test loo QQP"]="5:40"
+                  # ["small test loo QQP"]="?:??"     ["large test loo QQP"]="?:??"
                     ["small test loo QQP"]="4:30"     ["large test loo QQP"]="7:40"
-                  # ["small test loo RTE"]="0:09"     ["large test loo RTE"]="0:15"
+                  # ["small test loo RTE"]="0:15"     ["large test loo RTE"]="0:28"
                     ["small test loo RTE"]="1:20"     ["large test loo RTE"]="2:30"
-                  # ["small test loo SST2"]="0:08"    ["large test loo SST2"]="0:14"
+                  # ["small test loo SST2"]="0:15"    ["large test loo SST2"]="0:27"
                     ["small test loo SST2"]="1:20"    ["large test loo SST2"]="1:30"
-                  # ["small test loo WNLI"]="0:07"    ["large test loo WNLI"]="0:09"
+                  # ["small test loo WNLI"]="?:??"    ["large test loo WNLI"]="?:??"
                     ["small test loo WNLI"]="1:20"    ["large test loo WNLI"]="1:20"
 
                   # ["small test beam bAbI-1"]="0:07"  ["large test beam bAbI-1"]="0:14"
@@ -217,7 +219,7 @@ for model in 'roberta-sb' 'roberta-sl' # 'roberta-m15' 'roberta-m20' 'roberta-m3
 do
     for dataset in 'bAbI-1' 'bAbI-2' 'bAbI-3' 'BoolQ' 'CB' 'CoLA' 'MIMIC-a' 'MIMIC-d' 'MRPC' 'RTE' 'SST2'  # 'IMDB' 'MNLI' 'QNLI' 'QQP' 'WNLI'
     do
-        for explainer in 'rand' 'grad-l1' 'grad-l2' 'inp-grad-abs' 'inp-grad-sign' 'int-grad-abs' 'int-grad-sign' 'loo-aba' 'loo-sign' 'beam-sign'
+        for explainer in 'rand' 'grad-l1' 'grad-l2' 'inp-grad-abs' 'inp-grad-sign' 'int-grad-abs' 'int-grad-sign' 'loo-sign' # 'beam-sign-10'
         do
             for split in 'test'
             do
@@ -234,8 +236,8 @@ do
                         --split "${split}" \
                         --jit-compile \
                         --save-masked-datasets
-                    done
-              done
+                done
+            done
         done
     done
 done
