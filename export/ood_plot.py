@@ -92,6 +92,10 @@ parser.add_argument('--threshold',
                     choices=[0.001, 0.005, 0.01, 0.05, 0.1],
                     type=float,
                     help='The p-value threshold, relevant only for the value method')
+parser.add_argument('--model-baseline',
+                    action=argparse.BooleanOptionalAction,
+                    default=False,
+                    help='Should a baseline for the unmasked model be included')
 
 if __name__ == "__main__":
     pd.set_option('display.max_rows', None)
@@ -103,7 +107,7 @@ if __name__ == "__main__":
     }
 
     experiment_id = generate_experiment_id(
-        f'ood-{args.method}-{args.threshold}_',
+        f'ood_a-{args.method}_p-{args.threshold}',
         model=args.model_category,
         max_masking_ratio=args.max_masking_ratio,
         masking_strategy=args.masking_strategy,
@@ -157,6 +161,7 @@ if __name__ == "__main__":
             .apply(bootstrap_confint(['results.value']))
             .reset_index())
 
+        # Create model baseline
         df_baseline_model = (df_data
             .query('`args.max_masking_ratio` == 0 & `args.explainer` == "rand" & `results.masking_ratio` == 0')
             .groupby(['args.model', 'args.dataset'], group_keys=True)
@@ -168,16 +173,27 @@ if __name__ == "__main__":
             })
             for max_masking_ratio in [-1, 2]
         ])
+        # Remove content if model_baseline is disabled
+        if not args.model_baseline:
+            df_baseline_model = df_baseline_model.iloc[:0, :]
+            df_baseline_model_with_x_axis = df_baseline_model_with_x_axis.iloc[:0, :]
 
-        df_baseline_threshold = (df_data
+        # Creat p-value baseline
+        df_baseline_pvalue = (df_data
             .query('`args.max_masking_ratio` == @args.max_masking_ratio & `results.masking_ratio` == 0')
             .groupby(['args.model', 'args.dataset'], group_keys=True)
             .apply(lambda _: pd.Series({ 'threshold': args.threshold }))
             .reset_index())
 
+        # Conditional y-axis name
+        if args.method == 'proportion':
+            y_axis_name = f'p-value < {args.threshold:.0%}'
+        else:
+            y_axis_name = 'p-value'
+
         # Generate plot
         p = (p9.ggplot(df_plot, p9.aes(x='results.masking_ratio'))
-            + p9.geom_hline(p9.aes(yintercept='threshold'), color='black', linetype=(0, (5, 10)), data=df_baseline_threshold)
+            + p9.geom_hline(p9.aes(yintercept='threshold'), color='black', linetype=(0, (5, 10)), data=df_baseline_pvalue)
             + p9.geom_ribbon(p9.aes(ymin='results.value_lower', ymax='results.value_upper'), fill='green', alpha=0.35, data=df_baseline_model_with_x_axis)
             + p9.geom_hline(p9.aes(yintercept='results.value_mean'), color='green', linetype=(0, (5, 10)), data=df_baseline_model)
             + p9.geom_ribbon(p9.aes(ymin='results.value_lower', ymax='results.value_upper', fill='args.explainer'), alpha=0.35)
@@ -191,7 +207,7 @@ if __name__ == "__main__":
             + p9.scale_y_continuous(
                 labels=lambda ticks: [f'{tick:.0%}' for tick in ticks],
                 limits=[0, None],
-                name=f'p-value < {args.threshold:.0%}'
+                name=y_axis_name
             )
             + p9.scale_color_discrete(
                 breaks = annotation.explainer.breaks,
@@ -213,7 +229,7 @@ if __name__ == "__main__":
             p += p9.scale_y_continuous(
                 labels=lambda ticks: [f'{tick:.0%}' for tick in ticks],
                 limits=[0, None],
-                name=f'              p-value < {args.threshold:.0%}'
+                name=f'              {y_axis_name}'
             )
             p += p9.theme(
                 text=p9.element_text(size=11, fontname='Times New Roman'),
