@@ -53,12 +53,14 @@ class ValidationDataset(_AnnotationMapping):
 class Explainer(_AnnotationMapping):
     mapping = {
         'rand': 'Random',
-        'grad-l2': 'Gradient (L2-norm)',
-        'grad-l1': 'Gradient (L1-norm)',
-        'inp-grad-sign': 'Input-times-gradient (signed)',
-        'inp-grad-abs': 'Input-times-gradient (absolute)',
-        'int-grad-sign': 'Integrated gradient (signed)',
-        'int-grad-abs': 'Integrated gradient (absolute)',
+        'grad-l2': 'Grad ($L_2$)',
+        'grad-l1': 'Grad ($L_1$)',
+        'inp-grad-sign': 'x $\odot$ grad (sign)',
+        'inp-grad-abs': 'x $\odot$ grad (abs)',
+        'int-grad-sign': 'IG (sign)',
+        'int-grad-abs': 'IG (abs)',
+        'loo-sign': 'LOO (sign)',
+        'loo-abs': 'LOO (abs)',
     }
 
 class Validation(_AnnotationMapping):
