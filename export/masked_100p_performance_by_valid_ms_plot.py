@@ -194,7 +194,7 @@ if __name__ == "__main__":
                 axis_text_x=p9.element_text(angle = 60, hjust=2)
             )
         elif args.format == 'appendix':
-            size = (6.30045, 9)
+            size = (6.30045, 8.8)
             p += p9.guides(color=p9.guide_legend(ncol=3))
             p += p9.theme(
                 text=p9.element_text(size=11, fontname='Times New Roman'),
@@ -208,8 +208,7 @@ if __name__ == "__main__":
         else:
             size = (7, 20)
             p += p9.ggtitle(experiment_id)
-            p += p9.theme(subplots_adjust={'wspace': 0.25})
 
         os.makedirs(args.persistent_dir / 'plots' / args.format, exist_ok=True)
         p.save(args.persistent_dir / 'plots'/ args.format / f'{experiment_id}.pdf', width=size[0], height=size[1], units='in')
-        p.save(args.persistent_dir / 'plots'/ args.format / f'{experiment_id}.png', width=size[0], height=size[1], units='in')
+        # p.save(args.persistent_dir / 'plots'/ args.format / f'{experiment_id}.png', width=size[0], height=size[1], units='in')
