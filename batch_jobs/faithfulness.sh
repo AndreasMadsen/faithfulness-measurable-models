@@ -1,7 +1,7 @@
 #!/bin/bash
 # jobs: 11
 source "batch_jobs/_job_script.sh"
-seeds="0"
+seeds="0 1 2 3 4"
 
 declare -A size=( ["roberta-sb"]="small" ["roberta-sl"]="large"
                   ["roberta-m15"]="large" ["roberta-m20"]="large" ["roberta-m30"]="large" ["roberta-m40"]="large" ["roberta-m50"]="large" )
@@ -150,35 +150,35 @@ declare -A time=( # ["small test rand bAbI-1"]="0:02"  ["large test rand bAbI-1"
                     ["small test int-grad WNLI"]="0:20"    ["large test int-grad WNLI"]="0:20"    ["small train int-grad WNLI"]="0:20"    ["large train int-grad WNLI"]="0:30"
 
                   # ["small test loo bAbI-1"]="0:29"  ["large test loo bAbI-1"]="0:54"
-                    ["small test loo bAbI-1"]="1:20"  ["large test loo bAbI-1"]="1:25"
+                    ["small test loo bAbI-1"]="0:50"  ["large test loo bAbI-1"]="1:20"
                   # ["small test loo bAbI-2"]="0:44"  ["large test loo bAbI-2"]="1:32"
-                    ["small test loo bAbI-2"]="1:30"  ["large test loo bAbI-2"]="1:50"
-                  # ["small test loo bAbI-3"]="1:14"  ["large test loo bAbI-3"]="?:??"
-                    ["small test loo bAbI-3"]="1:40"  ["large test loo bAbI-3"]="7:00"
+                    ["small test loo bAbI-2"]="1:10"  ["large test loo bAbI-2"]="1:50"
+                  # ["small test loo bAbI-3"]="1:14"  ["large test loo bAbI-3"]="3:30"
+                    ["small test loo bAbI-3"]="1:40"  ["large test loo bAbI-3"]="4:20"
                   # ["small test loo BoolQ"]="0:48"   ["large test loo BoolQ"]="0:47"
-                    ["small test loo BoolQ"]="2:00"   ["large test loo BoolQ"]="3:30"
+                    ["small test loo BoolQ"]="1:10"   ["large test loo BoolQ"]="1:10"
                   # ["small test loo CB"]="0:14"      ["large test loo CB"]="0:52"
-                    ["small test loo CB"]="1:15"      ["large test loo CB"]="1:20"
+                    ["small test loo CB"]="0:30"      ["large test loo CB"]="1:20"
                   # ["small test loo CoLA"]="0:15"    ["large test loo CoLA"]="0:24"
-                    ["small test loo CoLA"]="1:20"    ["large test loo CoLA"]="1:30"
+                    ["small test loo CoLA"]="0:30"    ["large test loo CoLA"]="0:50"
                   # ["small test loo IMDB"]="?:??"    ["large test loo IMDB"]="?:??"
                     ["small test loo IMDB"]="9:30"    ["large test loo IMDB"]="23:30"
-                  # ["small test loo MIMIC-a"]="?:??" ["large test loo MIMIC-a"]="?:??"
-                    ["small test loo MIMIC-a"]="5:00" ["large test loo MIMIC-a"]="15:00"
-                  # ["small test loo MIMIC-d"]="?:??" ["large test loo MIMIC-d"]="?:??"
-                    ["small test loo MIMIC-d"]="7:00" ["large test loo MIMIC-d"]="20:00"
+                  # ["small test loo MIMIC-a"]="2:28" ["large test loo MIMIC-a"]="7:12"
+                    ["small test loo MIMIC-a"]="3:00" ["large test loo MIMIC-a"]="8:20"
+                  # ["small test loo MIMIC-d"]="3:22" ["large test loo MIMIC-d"]="10:00"
+                    ["small test loo MIMIC-d"]="4:00" ["large test loo MIMIC-d"]="11:30"
                   # ["small test loo MNLI"]="?:??"    ["large test loo MNLI"]="?:??"
                     ["small test loo MNLI"]="2:00"    ["large test loo MNLI"]="3:30"
                   # ["small test loo MRPC"]="0:14"    ["large test loo MRPC"]="0:23"
-                    ["small test loo MRPC"]="1:20"    ["large test loo MRPC"]="1:30"
+                    ["small test loo MRPC"]="0:30"    ["large test loo MRPC"]="0:50"
                   # ["small test loo QNLI"]="?:??"    ["large test loo QNLI"]="?:??"
                     ["small test loo QNLI"]="1:50"    ["large test loo QNLI"]="2:40"
                   # ["small test loo QQP"]="?:??"     ["large test loo QQP"]="?:??"
                     ["small test loo QQP"]="4:30"     ["large test loo QQP"]="7:40"
                   # ["small test loo RTE"]="0:15"     ["large test loo RTE"]="0:28"
-                    ["small test loo RTE"]="1:20"     ["large test loo RTE"]="2:30"
+                    ["small test loo RTE"]="1:20"     ["large test loo RTE"]="0:50"
                   # ["small test loo SST2"]="0:15"    ["large test loo SST2"]="0:27"
-                    ["small test loo SST2"]="1:20"    ["large test loo SST2"]="1:30"
+                    ["small test loo SST2"]="0:30"    ["large test loo SST2"]="0:50"
                   # ["small test loo WNLI"]="?:??"    ["large test loo WNLI"]="?:??"
                     ["small test loo WNLI"]="1:20"    ["large test loo WNLI"]="1:20"
 
@@ -219,7 +219,7 @@ for model in 'roberta-sb' 'roberta-sl' # 'roberta-m15' 'roberta-m20' 'roberta-m3
 do
     for dataset in 'bAbI-1' 'bAbI-2' 'bAbI-3' 'BoolQ' 'CB' 'CoLA' 'MIMIC-a' 'MIMIC-d' 'MRPC' 'RTE' 'SST2'  # 'IMDB' 'MNLI' 'QNLI' 'QQP' 'WNLI'
     do
-        for explainer in 'rand' 'grad-l1' 'grad-l2' 'inp-grad-abs' 'inp-grad-sign' 'int-grad-abs' 'int-grad-sign' 'loo-sign' # 'beam-sign-10'
+        for explainer in 'rand' 'grad-l1' 'grad-l2' 'inp-grad-abs' 'inp-grad-sign' 'int-grad-abs' 'int-grad-sign' 'loo-sign' 'loo-abs' # 'beam-sign-10'
         do
             for split in 'test'
             do
