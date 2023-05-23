@@ -7,6 +7,7 @@ class IMDBDataset(AbstractDataset):
     _name = 'IMDB'
     _metrics = ['accuracy', 'macro_f1']
     _early_stopping_metric = 'macro_f1'
+    _jain_etal_metric = 'macro_f1'
 
     _split_train = 'train[:80%]'
     _split_valid = 'train[80%:]'
