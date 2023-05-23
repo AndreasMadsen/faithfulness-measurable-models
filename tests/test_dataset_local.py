@@ -1,8 +1,18 @@
 import pathlib
 
 from ecoroar.dataset import \
+    SNLIDataset, \
     Babi1Dataset, Babi2Dataset, Babi3Dataset, \
     MimicDiabetesDataset, MimicAnemiaDataset
+
+
+def test_local_snli():
+    dataset = SNLIDataset(persistent_dir=pathlib.Path('.'), use_snapshot=False, use_cache=False)
+
+    for (premise, hypothesis), answer in dataset.train().take(1):
+        assert premise.numpy() == b'A man washes or dies clothes in a primitive setting.'
+        assert hypothesis.numpy() == b'Washing clothes on a camping trip.'
+        assert answer.numpy() == 1
 
 def test_local_babi_1():
     dataset = Babi1Dataset(persistent_dir=pathlib.Path('.'), use_snapshot=False, use_cache=False)
