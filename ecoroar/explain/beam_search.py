@@ -12,9 +12,7 @@ from ._util_evaluate import BatchEvaluator
 BeamType = Tuple[tf.Tensor, tf.Tensor, tf.Tensor]
 
 @tf.function(reduce_retracing=True)
-def _candiates_added(existing_candidates: tf.Tensor,
-                     maybe_candidates: tf.Tensor,
-                     aux_data: tf.Tensor) -> Tuple[tf.Tensor, tf.Tensor]:
+def _candiates_added(existing_candidates, maybe_candidates, aux_data):
     is_new_candidate = tf.vectorized_map(
         lambda maybe_candidate: tf.math.reduce_all(
             tf.math.reduce_any(
@@ -202,9 +200,8 @@ class BeamSearch(ImportanceMeasureObservation):
 
         # Compute baseline prediction
         y_baseline = tf.squeeze(
-            self._model(tf.nest.map_structure(lambda item: tf.expand_dims(item, axis=0), x)).logits,
-            axis=0
-        )[y]
+            self._evaluate.single(tf.nest.map_structure(lambda item: tf.expand_dims(item, axis=0), x), y),
+            axis=0)
 
         # 0. Intialize beam.
         # Assumed to be sorted highest score to lowest score.

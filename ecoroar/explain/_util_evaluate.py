@@ -7,7 +7,7 @@ from ..util import get_compiler
 from ..types import TokenizedDict
 
 @tf.function
-def _log2int(x: tf.Tensor) -> tf.Tensor:
+def _log2int(x):
     log2 = tf.math.log(tf.cast(2, dtype=tf.dtypes.float32))
     x_float = tf.cast(x, dtype=tf.dtypes.float32)
     return tf.cast(tf.math.log(x_float) / log2, dtype=x.dtype)
@@ -97,3 +97,18 @@ class BatchEvaluator:
             tf.Tensor: vector of the output,
         """
         return self._wrap_batcher(x, y)
+
+    def single(self, x: TokenizedDict, y: tf.Tensor) -> tf.Tensor:
+        """Evaluates the model using the input x, and extracts the logits for class y
+
+        This does not perform any batching. You could just call the model directly,
+        but that would invoke another jit compilation.
+
+        Args:
+            x (TokenizedDict): Structure of batched tensors
+            y (tf.Tensor): scalar, the column index to extract
+
+        Returns:
+            tf.Tensor: vector of the output,
+        """
+        return self._wrap_logits(x, y)
