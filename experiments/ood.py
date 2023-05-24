@@ -8,7 +8,9 @@ from tqdm import tqdm
 import tensorflow as tf
 from scipy.stats import chi2
 
-from ecoroar.util import generate_experiment_id, model_name_to_huggingface_repo, default_jit_compile, default_max_epochs
+from ecoroar.util import \
+    generate_experiment_id, model_name_to_huggingface_repo, \
+    default_jit_compile, default_max_epochs, default_recursive
 from ecoroar.dataset import datasets
 from ecoroar.tokenizer import HuggingfaceTokenizer
 from ecoroar.model import huggingface_model_from_local
@@ -89,16 +91,21 @@ parser.add_argument('--explainer',
                     choices=explainers.keys(),
                     type=str,
                     help='The importance measure algorithm to use for explanation')
-parser.add_argument('--ood',
-                    default='masf',
-                    choices=['masf', 'masf-slow'],
-                    type=str,
-                    help='The OOD detection method')
+parser.add_argument('--recursive',
+                    action=argparse.BooleanOptionalAction,
+                    default=None,
+                    type=bool,
+                    help='Are the importance measures computed recursively.')
 parser.add_argument('--split',
                     default='test',
                     choices=['train', 'valid', 'test'],
                     type=str,
                     help='The dataset split to evaluate faithfulness on')
+parser.add_argument('--ood',
+                    default='masf',
+                    choices=['masf', 'masf-slow'],
+                    type=str,
+                    help='The OOD detection method')
 parser.add_argument('--dist-repeats',
                     default=1,
                     type=int,
@@ -115,6 +122,7 @@ if __name__ == '__main__':
         args.huggingface_repo = model_name_to_huggingface_repo(args.model)
     args.jit_compile = default_jit_compile(args)
     args.max_epochs = default_max_epochs(args)
+    args.recursive = default_recursive(args)
 
     # Generate job id
     experiment_id = generate_experiment_id(
@@ -123,7 +131,7 @@ if __name__ == '__main__':
         seed=args.seed, max_epochs=args.max_epochs,
         max_masking_ratio=args.max_masking_ratio, masking_strategy=args.masking_strategy,
         validation_dataset=args.validation_dataset,
-        explainer=args.explainer, split=args.split,
+        explainer=args.explainer, recursive=args.recursive, split=args.split,
         ood=args.ood, dist_repeats=args.dist_repeats
     )
 
@@ -138,8 +146,10 @@ if __name__ == '__main__':
     print('  Validation dataset:', args.validation_dataset)
     print('')
     print('  Explainer:', args.explainer)
-    print('  OOD:', args.ood)
+    print('  Recursive:', args.recursive)
     print('  Split:', args.split)
+    print('  OOD:', args.ood)
+    print('  Dist repeats: ', args.dist_repeats)
     print('')
     print('  Batch size:', args.batch_size)
     print('  Max epochs:', args.max_epochs)
@@ -170,7 +180,6 @@ if __name__ == '__main__':
     explainer = explainers[args.explainer](tokenizer, model,
                                            seed=args.seed,
                                            run_eagerly=False, jit_compile=args.jit_compile)
-    masker = ExplainerMasking(explainer, tokenizer)
     ood_detector = ood_detectors[args.ood](tokenizer, model,
                                            run_eagerly=False, jit_compile=args.jit_compile)
 
@@ -236,8 +245,7 @@ if __name__ == '__main__':
             seed=args.seed, max_epochs=args.max_epochs,
             max_masking_ratio=args.max_masking_ratio, masking_strategy=args.masking_strategy,
             validation_dataset=args.validation_dataset,
-            explainer=args.explainer,
-            split=args.split
+            explainer=args.explainer, recursive=args.recursive,  split=args.split
         )
     ood_intermediate_dir = args.persistent_dir / 'intermediate' / 'ood'
     os.makedirs(ood_intermediate_dir, exist_ok=True)

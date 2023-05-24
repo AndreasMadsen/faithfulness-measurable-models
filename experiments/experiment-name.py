@@ -2,7 +2,7 @@ import pathlib
 
 import argparse
 
-from ecoroar.util import generate_experiment_id, default_max_epochs
+from ecoroar.util import generate_experiment_id, default_max_epochs, default_recursive
 
 parser = argparse.ArgumentParser()
 parser.add_argument('scriptpath',
@@ -48,6 +48,11 @@ parser.add_argument('--explainer',
                     default=None,
                     type=str,
                     help='The importance measure algorithm to use for explanation')
+parser.add_argument('--recursive',
+                    action=argparse.BooleanOptionalAction,
+                    default=None,
+                    type=bool,
+                    help='Are the importance measures computed recursively.')
 parser.add_argument('--split',
                     default=None,
                     choices=['train', 'valid', 'test'],
@@ -67,6 +72,7 @@ parser.add_argument('--dist-repeats',
 if __name__ == '__main__':
     args, unknown = parser.parse_known_args()
     args.max_epochs = default_max_epochs(args)
+    args.recursive = default_recursive(args)
 
     experiment_id = generate_experiment_id(
         args.scriptpath.name.rstrip('.py'),
@@ -74,7 +80,7 @@ if __name__ == '__main__':
         seed=args.seed, max_epochs=args.max_epochs,
         max_masking_ratio=args.max_masking_ratio, masking_strategy=args.masking_strategy,
         validation_dataset=args.validation_dataset,
-        explainer=args.explainer, split=args.split,
+        explainer=args.explainer, recursive=args.recursive, split=args.split,
         ood=args.ood, dist_repeats=args.dist_repeats
     )
     print(experiment_id)

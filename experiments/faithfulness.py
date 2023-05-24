@@ -7,7 +7,9 @@ from timeit import default_timer as timer
 from tqdm import tqdm
 import tensorflow as tf
 
-from ecoroar.util import generate_experiment_id, model_name_to_huggingface_repo, default_jit_compile, default_max_epochs
+from ecoroar.util import \
+    generate_experiment_id, model_name_to_huggingface_repo, \
+    default_jit_compile, default_max_epochs, default_recursive
 from ecoroar.dataset import datasets
 from ecoroar.tokenizer import HuggingfaceTokenizer
 from ecoroar.model import huggingface_model_from_local
@@ -87,6 +89,11 @@ parser.add_argument('--explainer',
                     choices=explainers.keys(),
                     type=str,
                     help='The importance measure algorithm to use for explanation')
+parser.add_argument('--recursive',
+                    action=argparse.BooleanOptionalAction,
+                    default=None,
+                    type=bool,
+                    help='Are the importance measures computed recursively.')
 parser.add_argument('--split',
                     default='test',
                     choices=['train', 'valid', 'test'],
@@ -104,6 +111,7 @@ if __name__ == '__main__':
         args.huggingface_repo = model_name_to_huggingface_repo(args.model)
     args.jit_compile = default_jit_compile(args)
     args.max_epochs = default_max_epochs(args)
+    args.recursive = default_recursive(args)
 
     # Generate job id
     experiment_id = generate_experiment_id(
@@ -112,8 +120,7 @@ if __name__ == '__main__':
         seed=args.seed, max_epochs=args.max_epochs,
         max_masking_ratio=args.max_masking_ratio, masking_strategy=args.masking_strategy,
         validation_dataset=args.validation_dataset,
-        explainer=args.explainer,
-        split=args.split
+        explainer=args.explainer, recursive=args.recursive, split=args.split
     )
 
     # Print configuration
@@ -127,6 +134,7 @@ if __name__ == '__main__':
     print('  Validation dataset:', args.validation_dataset)
     print('')
     print('  Explainer:', args.explainer)
+    print('  Recursive:', args.recursive)
     print('  Split:', args.split)
     print('')
     print('  Batch size:', args.batch_size)
@@ -158,7 +166,7 @@ if __name__ == '__main__':
     explainer = explainers[args.explainer](tokenizer, model,
                                            seed=args.seed,
                                            run_eagerly=False, jit_compile=args.jit_compile)
-    masker = ExplainerMasking(explainer, tokenizer)
+    masker = ExplainerMasking(explainer, tokenizer, recursive=args.recursive)
 
     # Load datasets
     dataset_split = dataset.load(args.split, tokenizer)
@@ -182,9 +190,7 @@ if __name__ == '__main__':
     dataset_split_masked = dataset_split \
         .apply(batcher(args.batch_size,
                         padding_values=(tokenizer.padding_values, None),
-                        num_parallel_calls=tf.data.AUTOTUNE)) \
-        .prefetch(tf.data.AUTOTUNE)
-
+                        num_parallel_calls=tf.data.AUTOTUNE))
     durations['setup'] = timer() - setup_time_start
 
     # Evalute test performance at different masking ratios
@@ -201,21 +207,25 @@ if __name__ == '__main__':
         explain_time_start = timer()
         dataset_split_masked = dataset_split_masked \
             .apply(masker(masking_ratio / 100)) \
-            .cache() \
+            .cache()
+
+        dataset_split_masked_xy = dataset_split_masked \
+            .map(lambda x, y, im: (x, y), num_parallel_calls=tf.data.AUTOTUNE, deterministic=True) \
             .prefetch(tf.data.AUTOTUNE)
-        for x, y in tqdm(dataset_split_masked, desc=f'Explaing dataset ({masking_ratio}%)', mininterval=1):
+
+        for x, y in tqdm(dataset_split_masked_xy, desc=f'Explaing dataset ({masking_ratio}%)', mininterval=1):
             pass
         explain_time += timer() - explain_time_start
 
         if args.save_masked_datasets:
-            dataset_split_masked.save(
+            dataset_split_masked_xy.save(
                 str((faithfulness_intermediate_dir / experiment_id).with_suffix(f'.{masking_ratio}.tfds'))
             )
 
         evaluate_time_start = timer()
         results.append({
             'masking_ratio': masking_ratio / 100,
-            **model.evaluate(dataset_split_masked, return_dict=True)
+            **model.evaluate(dataset_split_masked_xy, return_dict=True)
         })
         evaluate_time += timer() - evaluate_time_start
 
