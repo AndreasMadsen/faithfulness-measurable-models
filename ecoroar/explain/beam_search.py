@@ -200,7 +200,7 @@ class BeamSearch(ImportanceMeasureObservation):
 
         # Compute baseline prediction
         y_baseline = tf.squeeze(
-            self._evaluate.single(tf.nest.map_structure(lambda item: tf.expand_dims(item, axis=0), x), y),
+            self._evaluate.single(tf.nest.map_structure(lambda item: tf.expand_dims(item, axis=0), x), tf.expand_dims(y, 0)),
             axis=0)
 
         # 0. Intialize beam.
@@ -224,7 +224,7 @@ class BeamSearch(ImportanceMeasureObservation):
 
             # c. evaluate
             x_beam = self._create_masked_inputs(x, beam, maskable_tokens)
-            y_pred = self._evaluate(x_beam, y)
+            y_pred = self._evaluate(x_beam, tf.repeat(y, tf.shape(x_beam['input_ids'])[0]))
             score_inc = y_baseline - y_pred
             new_score = beam[2] + score_inc
             self._debug(iteration_i, beam, x_beam, new_score)

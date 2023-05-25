@@ -28,8 +28,8 @@ class BatchEvaluator:
         else:
             self._wrap_batcher = std_compiler(self._std_batcher)
 
-    def _logits(self, x_batch: TokenizedDict, y: tf.Tensor) -> tf.Tensor:
-        return self._model(x_batch).logits[:, y]
+    def _logits(self, x_batch: TokenizedDict, y_batch: tf.Tensor) -> tf.Tensor:
+        return tf.gather(self._model(x_batch).logits, y_batch, batch_dims=1)
 
     def _jit_batcher(self, x: TokenizedDict, y: tf.Tensor) -> tf.Tensor:
         # batch evaluate the masked examples in x_masked
@@ -53,13 +53,14 @@ class BatchEvaluator:
             # Extract and evaluate batch
             batch_end = batch_start + batch_size
             x_batch = tf.nest.map_structure(lambda item: item[batch_start:batch_end, ...], x)
-            y_batch = self._wrap_logits(x_batch, y)
+            y_batch = y[batch_start:batch_end]
+            predict_batch = self._wrap_logits(x_batch, y_batch)
 
             # Infill results
             predict_all = tf.tensor_scatter_nd_update(
                 predict_all,
                 tf.expand_dims(tf.range(batch_start, batch_end), axis=1),
-                y_batch
+                predict_batch
             )
 
             # prepear for next iteration
@@ -79,9 +80,10 @@ class BatchEvaluator:
             batch_end = tf.minimum(num_of_samples, (batch_i + 1)*self._batch_size)
 
             x_batch = tf.nest.map_structure(lambda item: item[batch_start:batch_end, ...], x)
-            y_batch = self._wrap_logits(x_batch, y)
+            y_batch = y[batch_start:batch_end]
+            predict_batch = self._wrap_logits(x_batch, y_batch)
 
-            predict_all_array = predict_all_array.write(batch_i, y_batch)
+            predict_all_array = predict_all_array.write(batch_i, predict_batch)
         return predict_all_array.concat()
 
     def __call__(self, x: TokenizedDict, y: tf.Tensor) -> tf.Tensor:
