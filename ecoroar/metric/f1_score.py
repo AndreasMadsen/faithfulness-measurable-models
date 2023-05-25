@@ -1,9 +1,9 @@
 
 import tensorflow as tf
-import tensorflow_addons as tfa
+from ._addon_f1_score import F1Score as tfa_F1Score
 
 
-class F1Score(tfa.metrics.F1Score):
+class F1Score(tfa_F1Score):
     """Make tfa.metrics.F1Score compatible with sparse labels
 
     tfa.metrics.F1Score assumes the label shape to be [None, num_classes].

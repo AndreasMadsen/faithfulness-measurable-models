@@ -35,11 +35,8 @@ class BucketedPaddedBatch(InputTransform):
 
         lengths_list = []
         for dataset in datasets:
-            # get observation lengths
-            # tf.data.experimental.dense_to_ragged_batch becomes
-            # tf.data.Dataset.ragged_batch(num_parallel_calls=tf.data.AUTOTUNE) in TF v2.11.0
             lengths_dataset = dataset \
-                .apply(tf.data.experimental.dense_to_ragged_batch(batch_size)) \
+                .ragged_batch(batch_size) \
                 .map(lambda *args: bounding_shape(*args)[-1], num_parallel_calls=tf.data.AUTOTUNE)
             lengths_list.append(
                 np.fromiter(lengths_dataset.as_numpy_iterator(), dtype=np.int32)
@@ -127,12 +124,9 @@ class BucketedPaddedBatch(InputTransform):
         if padding_values is None:
             raise ValueError('padding_values must be specified')
 
-        # tf.data.experimental.dense_to_ragged_batch becomes
-        # tf.data.Dataset.ragged_batch(deterministic=deterministic, num_parallel_calls=num_parallel_calls)
-        # in TF v2.11.0
         def padded_batch(dataset):
             return dataset \
-                .apply(tf.data.experimental.dense_to_ragged_batch(batch_size)) \
+                .ragged_batch(batch_size) \
                 .map(lambda *args: self._pad_structure(args, padding_values),
                      deterministic=deterministic,
                      num_parallel_calls=num_parallel_calls)

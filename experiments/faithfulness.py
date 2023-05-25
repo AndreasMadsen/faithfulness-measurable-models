@@ -148,8 +148,7 @@ if __name__ == '__main__':
     # Set global configuration options
     if args.deterministic:
         tf.config.experimental.enable_op_determinism()
-    if tuple(map(int, tf.__version__.split('.'))) >= (2, 12,  0):
-        tf.keras.backend.experimental.enable_tf_random_generator()
+    tf.keras.backend.experimental.enable_tf_random_generator()
     tf.keras.utils.set_random_seed(args.seed)
     tf.keras.mixed_precision.set_global_policy(args.precision)
 
