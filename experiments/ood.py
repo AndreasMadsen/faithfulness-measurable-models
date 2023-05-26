@@ -176,9 +176,6 @@ if __name__ == '__main__':
         max_masking_ratio=args.max_masking_ratio, masking_strategy=args.masking_strategy,
         validation_dataset=args.validation_dataset
     ))
-    explainer = explainers[args.explainer](tokenizer, model,
-                                           seed=args.seed,
-                                           run_eagerly=False, jit_compile=args.jit_compile)
     ood_detector = ood_detectors[args.ood](tokenizer, model,
                                            run_eagerly=False, jit_compile=args.jit_compile)
 
