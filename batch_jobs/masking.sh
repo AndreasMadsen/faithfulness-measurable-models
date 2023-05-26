@@ -35,6 +35,8 @@ declare -A time=( # ["small bAbI-1"]="0:32"  ["large bAbI-1"]="1:04"   20
                     ["small QQP"]="5:00"     ["large QQP"]="13:00"
                   # ["small RTE"]="0:23"     ["large RTE"]="0:46"      30
                     ["small RTE"]="0:40"     ["large RTE"]="1:20"
+                  # ["small SNLI"]="4:45"    ["large SNLI"]="10:38"    10
+                    ["small SNLI"]="5:20"    ["large SNLI"]="11:20"
                   # ["small SST2"]="1:24"    ["large SST2"]="2:42"     10
                     ["small SST2"]="1:50"    ["large SST2"]="3:10"
                   # ["small WNLI"]="0:08"    ["large WNLI"]="0:11"     20
@@ -42,7 +44,7 @@ declare -A time=( # ["small bAbI-1"]="0:32"  ["large bAbI-1"]="1:04"   20
 
 for model in 'roberta-sb' 'roberta-sl' # 'roberta-m15' 'roberta-m20' 'roberta-m30' 'roberta-m40' 'roberta-m50'
 do
-    for dataset in 'bAbI-1' 'bAbI-2' 'bAbI-3' 'BoolQ' 'CB' 'CoLA' 'MIMIC-a' 'MIMIC-d' 'MRPC' 'RTE' 'SST2'  # 'IMDB' 'MNLI' 'QNLI' 'QQP' 'WNLI'
+    for dataset in 'bAbI-1' 'bAbI-2' 'bAbI-3' 'BoolQ' 'CB' 'CoLA' 'MIMIC-a' 'MIMIC-d' 'MRPC' 'RTE' 'SST2' # 'SNLI' 'IMDB' 'MNLI' 'QNLI' 'QQP' # 'WNLI'
     do
         for validation_dataset in 'nomask' 'mask' 'both'
         do
@@ -74,7 +76,7 @@ done
 
 for model in 'roberta-sb' 'roberta-sl' # 'roberta-m15' 'roberta-m20' 'roberta-m30' 'roberta-m40' 'roberta-m50'
 do
-    for dataset in 'bAbI-1' 'bAbI-2' 'bAbI-3' 'BoolQ' 'CB' 'CoLA' 'MIMIC-a' 'MIMIC-d' 'MRPC' 'RTE' 'SST2'  # 'IMDB' 'MNLI' 'QNLI' 'QQP' 'WNLI'
+    for dataset in 'bAbI-1' 'bAbI-2' 'bAbI-3' 'BoolQ' 'CB' 'CoLA' 'MIMIC-a' 'MIMIC-d' 'MRPC' 'RTE' 'SST2' # 'SNLI' 'IMDB' 'MNLI' 'QNLI' 'QQP' # 'WNLI'
     do
         for max_masking_ratio in 20 40 60 80
         do
