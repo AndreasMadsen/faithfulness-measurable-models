@@ -6,18 +6,9 @@ from ..transform import SequenceIndentifier
 
 from ._importance_measure import ImportanceMeasureBatch
 from ._util_evaluate import BatchEvaluator
+from ._util_batch_parallel import batch_parallel
 
-def _batch_parallel(fn):
-    @tf.function(reduce_retracing=True)
-    def mapper(*args):
-        return tf.data.Dataset.from_tensor_slices(args) \
-            .map(fn, num_parallel_calls=tf.data.AUTOTUNE, deterministic=True) \
-            .ragged_batch(16) \
-            .get_single_element()
-
-    return mapper
-
-@_batch_parallel
+@tf.function(reduce_retracing=True)
 def _create_mask(maskable_tokens):
     # Identify which tokens should be probed
     token_idx_to_mask = tf.squeeze(tf.where(maskable_tokens), axis=1)
@@ -52,6 +43,8 @@ class LeaveOneOutSign(ImportanceMeasureBatch):
         self._evaluate = BatchEvaluator(self._model, batch_size=self._inference_batch_size,
                                         run_eagerly=run_eagerly, jit_compile=jit_compile)
 
+        self._wrap_create_mask = batch_parallel(self._dataset_batch_size)(_create_mask)
+
     def _create_masked_inputs(self, x: TokenizedDict, mask_pattern: tf.RaggedTensor, maskable_tokens: tf.Tensor) -> TokenizedDict:
         x_repeat = tf.nest.map_structure(
             lambda item: tf.gather(item, mask_pattern.value_rowids()),
@@ -77,7 +70,7 @@ class LeaveOneOutSign(ImportanceMeasureBatch):
         maskable_tokens = tf.logical_and(maskable_tokens, input_ids != self._tokenizer.mask_token_id)
 
         # create masked inputs
-        mask_patterns, mask_indices = _create_mask(maskable_tokens)
+        mask_patterns, mask_indices = self._wrap_create_mask(maskable_tokens)
         mask_patterns = _normalize_mask_patterns_shape(mask_patterns, max_sequence_length)
         x_masked_flattened = self._create_masked_inputs(x, mask_patterns, maskable_tokens)
 

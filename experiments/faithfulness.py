@@ -164,6 +164,7 @@ if __name__ == '__main__':
     ))
     explainer = explainers[args.explainer](tokenizer, model,
                                            seed=args.seed,
+                                           dataset_batch_size=args.batch_size,
                                            run_eagerly=False, jit_compile=args.jit_compile)
     masker = ExplainerMasking(explainer, tokenizer, recursive=args.recursive)
 

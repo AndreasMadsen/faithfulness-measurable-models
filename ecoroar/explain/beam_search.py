@@ -7,20 +7,11 @@ from ..types import TokenizedDict
 from ..transform import SequenceIndentifier
 from ._importance_measure import ImportanceMeasureBatch
 from ._util_evaluate import BatchEvaluator
+from ._util_batch_parallel import batch_parallel
 
 BeamType = Tuple[Union[tf.RaggedTensor, tf.Tensor],
                  Union[tf.RaggedTensor, tf.Tensor],
                  Union[tf.RaggedTensor, tf.Tensor]]
-
-def _batch_parallel(fn):
-    @tf.function(reduce_retracing=True)
-    def mapper(*batch_args, extra_args=tuple()):
-        return tf.data.Dataset.from_tensor_slices(batch_args) \
-            .map(lambda *args: fn(*args, *extra_args), num_parallel_calls=tf.data.AUTOTUNE, deterministic=True) \
-            .ragged_batch(16) \
-            .get_single_element()
-
-    return mapper
 
 @tf.function(reduce_retracing=True)
 def _candiates_added(existing_candidates, maybe_candidates, aux_data):
@@ -39,9 +30,8 @@ def _candiates_added(existing_candidates, maybe_candidates, aux_data):
         tf.gather(aux_data, selector)
     )
 
-@_batch_parallel
 @tf.function(reduce_retracing=True)
-def _candiates_expand(beam: BeamType) -> BeamType:
+def _candiates_expand(beam):
     root_candidates, removal_order, score = beam
     root_candidates_n, max_sequence_length = tf.unstack(tf.shape(root_candidates), num=2)
 
@@ -55,16 +45,9 @@ def _candiates_expand(beam: BeamType) -> BeamType:
 
     # Encode root candiates as sparse tensors. This is used as a set data structure.
     # The T-dimentional indice will encode the mask vector.
-    total_candidates_ta = tf.TensorArray(tf.dtypes.bool, size=root_candidates_n, element_shape=(None, None))
+    total_candidates = tf.zeros((0, max_sequence_length), dtype=tf.dtypes.bool)
     total_removal_order_ta = tf.TensorArray(removal_order.dtype, size=root_candidates_n, element_shape=(None, None))
     total_score_ta = tf.TensorArray(score.dtype, size=root_candidates_n, element_shape=(None, ))
-
-    # This is identical to total_candidates_ta, but is only used internally because it's not possible
-    # to repeatedly call total_candidates_ta.concat(). The reason why total_candidates_ta is used,
-    # is because total_candidates will have the infered shape [None, None]. While
-    #  total_candidates_ta.concat() will have [None, max_sequence_length].
-    #   TODO: There should be a way to make .concat() work.
-    total_candidates = tf.zeros((0, max_sequence_length), dtype=tf.dtypes.bool)
 
     # For each candidate
     for root_candidate_i in tf.range(tf.shape(root_candidates)[0]):
@@ -104,18 +87,17 @@ def _candiates_expand(beam: BeamType) -> BeamType:
 
         # collect candidates
         total_candidates = tf.concat((total_candidates, added_candidates), axis=0)
-        total_candidates_ta = total_candidates_ta.write(root_candidate_i, added_candidates)
         total_removal_order_ta = total_removal_order_ta.write(root_candidate_i, added_removal_order)
         total_score_ta = total_score_ta.write(root_candidate_i, added_score)
 
     # Return new beam, with old scores.
     return (
-        total_candidates_ta.concat(),
+        total_candidates,
         total_removal_order_ta.concat(),
         total_score_ta.concat()
     )
 
-@_batch_parallel
+@tf.function(reduce_retracing=True)
 def _beam_select(beam_score, beam_size):
     return tf.argsort(beam_score, stable=True, direction='DESCENDING')[:beam_size]
 
@@ -158,6 +140,9 @@ class BeamSearch(ImportanceMeasureBatch):
         self._beam_size = tf.convert_to_tensor(beam_size, dtype=tf.dtypes.int32)
         self._debugging = debugging
         self._validate = validate
+
+        self._wrap_candiates_expand = batch_parallel(self._dataset_batch_size)(_candiates_expand)
+        self._wrap_beam_select = batch_parallel(self._dataset_batch_size)(_beam_select)
 
     def _debug(self, interation_i, beam, x_beam_flatten, new_score):
         if self._debugging:
@@ -292,7 +277,7 @@ class BeamSearch(ImportanceMeasureBatch):
             beam = (beam_candidates, beam_removal_order, beam_score)
 
             # a. & b. expand beam
-            beam = _candiates_expand(beam)
+            beam = self._wrap_candiates_expand(beam)
             beam = _normalize_beam_shape(beam, iteration_i, max_sequence_length, validate=self._validate)
 
             # c. evaluate
@@ -304,7 +289,7 @@ class BeamSearch(ImportanceMeasureBatch):
             self._debug(iteration_i, beam, x_beam_flatten, new_score)
 
             # d. crop beam
-            crop_selector = _beam_select(new_score, extra_args=(self._beam_size, ))
+            crop_selector = self._wrap_beam_select(new_score, extra_args=(self._beam_size, ))
             beam = (
                 tf.gather(beam[0], crop_selector, batch_dims=1),
                 tf.gather(beam[1], crop_selector, batch_dims=1),
