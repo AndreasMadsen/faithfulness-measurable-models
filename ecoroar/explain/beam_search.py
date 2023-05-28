@@ -101,24 +101,6 @@ def _candiates_expand(beam):
 def _beam_select(beam_score, beam_size):
     return tf.argsort(beam_score, stable=True, direction='DESCENDING')[:beam_size]
 
-def _normalize_beam_shape(beam, iteration_i, max_sequence_length, validate=True):
-    # tensorflow struggle to infer the fixed-size of of the RaggedTensor, and thinks
-    # that the sequence_length (third dimention) is ragged too. It is not, so do
-    # the cheapest conversion back and fouth (to tensor, to ragged).
-    return (
-        tf.RaggedTensor.from_row_splits(
-            values=tf.reshape(beam[0].flat_values, [-1, max_sequence_length]),
-            row_splits=beam[0].row_splits,
-            validate=validate
-        ),
-        tf.RaggedTensor.from_row_splits(
-            values=tf.reshape(beam[1].flat_values, [-1, iteration_i + 1]),
-            row_splits=beam[1].row_splits,
-            validate=validate
-        ),
-        beam[2]
-    )
-
 class BeamSearch(ImportanceMeasureBatch):
     _name = 'beam-sign'
     _defer_jit = True
@@ -141,8 +123,8 @@ class BeamSearch(ImportanceMeasureBatch):
         self._debugging = debugging
         self._validate = validate
 
-        self._wrap_candiates_expand = batch_parallel(self._dataset_batch_size)(_candiates_expand)
-        self._wrap_beam_select = batch_parallel(self._dataset_batch_size)(_beam_select)
+        self._wrap_candiates_expand = batch_parallel(self._dataset_batch_size, validate=self._debugging)(_candiates_expand)
+        self._wrap_beam_select = batch_parallel(self._dataset_batch_size, validate=self._debugging)(_beam_select)
 
     def _debug(self, interation_i, beam, x_beam_flatten, new_score):
         if self._debugging:
@@ -278,7 +260,6 @@ class BeamSearch(ImportanceMeasureBatch):
 
             # a. & b. expand beam
             beam = self._wrap_candiates_expand(beam)
-            beam = _normalize_beam_shape(beam, iteration_i, max_sequence_length, validate=self._validate)
 
             # c. evaluate
             x_beam_flatten = self._create_masked_inputs(x, beam, maskable_tokens)

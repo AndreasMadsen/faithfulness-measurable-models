@@ -22,15 +22,6 @@ def _create_mask(maskable_tokens):
 
     return (mask_patterns, token_idx_to_mask)
 
-def _normalize_mask_patterns_shape(mask, max_sequence_length):
-    # tensorflow struggle to infer the fixed-size of of the RaggedTensor, and thinks
-    # that the sequence_length (third dimention) is ragged too. It is not, so do
-    # the cheapest conversion back and fouth (to tensor, to ragged).
-    return tf.RaggedTensor.from_row_splits(
-        values=tf.reshape(mask.flat_values, [-1, max_sequence_length]),
-        row_splits=mask.row_splits
-    )
-
 class LeaveOneOutSign(ImportanceMeasureBatch):
     _name = 'loo-sign'
     _defer_jit = True
@@ -71,7 +62,6 @@ class LeaveOneOutSign(ImportanceMeasureBatch):
 
         # create masked inputs
         mask_patterns, mask_indices = self._wrap_create_mask(maskable_tokens)
-        mask_patterns = _normalize_mask_patterns_shape(mask_patterns, max_sequence_length)
         x_masked_flattened = self._create_masked_inputs(x, mask_patterns, maskable_tokens)
 
         # batch evaluate the masked examples in x_masked
