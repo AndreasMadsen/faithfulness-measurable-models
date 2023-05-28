@@ -39,7 +39,7 @@ class ImportanceMeasure(ABC):
         super().__init__()
         self._tokenizer = tokenizer
         self._model = model
-        self._dataset_batch_size = tf.convert_to_tensor(dataset_batch_size, dtype=tf.dtypes.int32)
+        self._dataset_batch_size = dataset_batch_size
         self._inference_batch_size = tf.convert_to_tensor(inference_batch_size, dtype=tf.dtypes.int32)
 
         if seed is None:

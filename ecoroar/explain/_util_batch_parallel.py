@@ -3,6 +3,11 @@ from typing import Union
 
 import tensorflow as tf
 
+def _get_batch_size(batch_args, out_type=tf.dtypes.int32):
+    while isinstance(batch_args, tuple):
+        batch_args = batch_args[0]
+    return tf.shape(batch_args, out_type=out_type)[0]
+
 def batch_parallel(batch_size: Union[int, tf.Tensor], num_parallel_calls=tf.data.AUTOTUNE, validate=True):
     """This decorator will make any tf.function run on batches in parallel
 
@@ -10,9 +15,6 @@ def batch_parallel(batch_size: Union[int, tf.Tensor], num_parallel_calls=tf.data
 
     The resulting tensor(s) will be RaggedTensors when the output shape(s) from the
         decorated function can not infered to be the same.
-
-    Note that the function will run on the CPU. Due to limitations with the
-        underlying tf.data.Dataset executor.
 
     Args:
         batch_size (int): The maximum batch_size that will be encountered.
@@ -28,25 +30,49 @@ def batch_parallel(batch_size: Union[int, tf.Tensor], num_parallel_calls=tf.data
 
         beam_select(tensor, extra_args=(4, ))
     """
-    batch_size = tf.cast(batch_size, dtype=tf.dtypes.int64)
-    def normalize(ragged):
-        return tf.RaggedTensor.from_row_splits(
-                values=tf.reshape(ragged.flat_values, tf.concat(([-1], ragged.bounding_shape()[2:]), axis=0)),
-                row_splits=ragged.row_splits,
-                validate=validate
-            )
+    if num_parallel_calls == tf.data.AUTOTUNE:
+        num_parallel_calls = batch_size
 
     def decorator(fn):
+
         @tf.function(reduce_retracing=True)
         def mapper(*batch_args, extra_args=tuple()):
-            out = tf.data.Dataset.from_tensor_slices(batch_args) \
-                .map(lambda *args: fn(*args, *extra_args), num_parallel_calls=num_parallel_calls, deterministic=True) \
-                .ragged_batch(batch_size) \
-                .get_single_element()
+            batch_size = _get_batch_size(batch_args, out_type=tf.dtypes.int32)
 
-            out = tf.nest.map_structure(normalize, out)
+            @tf.function(reduce_retracing=True)
+            def wrap_fn(idx):
+                return fn(*tf.nest.map_structure(lambda item: item[idx], batch_args), *extra_args)
 
-            return out
+            # prepear TensorArrays using the concrete_function
+            structured_outputs = wrap_fn.get_concrete_function(tf.TensorSpec([], tf.dtypes.int32)).structured_outputs
+            ta_data = tf.nest.map_structure(
+                lambda item: tf.TensorArray(item.dtype, size=batch_size, infer_shape=False, element_shape=item.shape),
+                structured_outputs)
+            ta_length = tf.nest.map_structure(
+                lambda item: tf.TensorArray(tf.dtypes.int64, size=batch_size, infer_shape=False, element_shape=[]),
+                structured_outputs)
+
+            # Run each observation in the batch
+            for obs_i in tf.range(batch_size):
+                tf.autograph.experimental.set_loop_options(
+                    parallel_iterations=num_parallel_calls,
+                    maximum_iterations=batch_size
+                )
+
+                out = wrap_fn(obs_i)
+                ta_data = tf.nest.map_structure(
+                    lambda item, ta: ta.write(obs_i, item),
+                    out, ta_data)
+                ta_length = tf.nest.map_structure(
+                    lambda item, ta: ta.write(obs_i, tf.shape(item, out_type=tf.dtypes.int64)[0]),
+                    out, ta_length)
+
+            # concat to RaggedTensor
+            return tf.nest.map_structure(
+                lambda data, length: tf.RaggedTensor.from_row_lengths(
+                    values=data.concat(), row_lengths=length.stack(), validate=validate
+                ),
+                ta_data, ta_length)
 
         return mapper
     return decorator
