@@ -1,5 +1,5 @@
 
-from typing import Any
+from typing import Tuple
 import tensorflow as tf
 
 from ..types import Model
@@ -12,10 +12,22 @@ def _log2int(x):
     x_float = tf.cast(x, dtype=tf.dtypes.float32)
     return tf.cast(tf.math.log(x_float) / log2, dtype=x.dtype)
 
+def _create_sub_sizes(batch_size):
+    sub_batch_sizes = []
+    remain = batch_size
+    while remain > 0:
+        remain = remain // 2
+        sub_batch_sizes.append(remain)
+    return tf.stack(sub_batch_sizes)
+
 class BatchEvaluator:
-    def __init__(self, model: Model, batch_size: tf.Tensor, run_eagerly: bool = False, jit_compile: bool = False) -> None:
+    def __init__(self, model: Model, batch_size: tf.Tensor,
+                 run_eagerly: bool = False, jit_compile: bool = False,
+                 num_parallel_calls: int=10) -> None:
         self._model = model
         self._batch_size = batch_size
+        self._batch_sub_size = _create_sub_sizes(batch_size)
+        self._num_parallel_calls = num_parallel_calls
 
         jit_compiler = get_compiler(run_eagerly, jit_compile)
         std_compiler = get_compiler(run_eagerly, False)
@@ -31,10 +43,30 @@ class BatchEvaluator:
     def _logits(self, x_batch: TokenizedDict, y_batch: tf.Tensor) -> tf.Tensor:
         return tf.gather(self._model(x_batch).logits, y_batch, batch_dims=1)
 
-    def _jit_batcher(self, x: TokenizedDict, y: tf.Tensor) -> tf.Tensor:
-        # batch evaluate the masked examples in x_masked
+    def _loop_batch_evaluate(self, x: TokenizedDict, y: tf.Tensor, batch_starts: tf.Tensor, batch_ends: tf.Tensor) -> tf.Tensor:
         output_dtype = tf.keras.mixed_precision.global_policy().compute_dtype
-        num_of_samples = tf.shape(x['input_ids'])[0]
+
+        num_of_batches = tf.size(batch_starts)
+        results_ta = tf.TensorArray(output_dtype, size=num_of_batches, infer_shape=False, element_shape=(None, ))
+        for batch_i in tf.range(num_of_batches):
+            tf.autograph.experimental.set_loop_options(
+                parallel_iterations=self._num_parallel_calls
+            )
+
+            batch_start = batch_starts[batch_i]
+            batch_end = batch_ends[batch_i]
+            with tf.name_scope('model_call'):
+                batch_result = self._wrap_logits(
+                    tf.nest.map_structure(lambda item: item[batch_start:batch_end, ...], x),
+                    y[batch_start:batch_end]
+                )
+            results_ta = results_ta.write(batch_i, batch_result)
+
+        return results_ta.concat()
+
+    def _jit_batcher_range(self, num_of_samples: tf.Tensor) -> Tuple[tf.Tensor, tf.Tensor]:
+        num_of_big_batches = num_of_samples // self._batch_size
+        big_batches = tf.repeat(self._batch_size, num_of_big_batches)
 
         # This chucks the input into batches of self._batch_size (B) size.
         #   This is fine for the JIT. However, for the remainder which may not have size B,
@@ -42,49 +74,36 @@ class BatchEvaluator:
         #   Instead, this uses a step down approach. This changes the JIT complications from $n$ to $log2(n)$.
         #   For example:
         #     16, 16, 8, 4, 2, 1. This would reduce from 16*5=80 to 5*5=25 JIT compilations.
-        predict_all = tf.zeros((num_of_samples, ), dtype=output_dtype)
-        batch_start = 0
-        while batch_start < num_of_samples:
-            batch_size = tf.minimum(num_of_samples - batch_start, self._batch_size)
-            # If the batch_size does not divide (self._batch_size) which is assumed to be a power of two,
-            #   then round down the batch size to the highest power of two that is viable.
-            batch_size = tf.math.pow(2, _log2int(batch_size))
+        remaining = num_of_samples - num_of_big_batches * self._batch_size
+        small_batches_select = tf.bitwise.bitwise_and(remaining, self._batch_sub_size) > 0
+        small_batches = tf.gather(self._batch_sub_size, tf.squeeze(tf.where(small_batches_select), 1))
 
-            # Extract and evaluate batch
-            batch_end = batch_start + batch_size
-            x_batch = tf.nest.map_structure(lambda item: item[batch_start:batch_end, ...], x)
-            y_batch = y[batch_start:batch_end]
-            predict_batch = self._wrap_logits(x_batch, y_batch)
+        batch_sizes = tf.concat([big_batches, small_batches], axis=0)
+        batch_ends = tf.math.cumsum(batch_sizes)
+        batch_starts = tf.concat([[0], batch_ends[:-1]], axis=0)
 
-            # Infill results
-            predict_all = tf.tensor_scatter_nd_update(
-                predict_all,
-                tf.expand_dims(tf.range(batch_start, batch_end), axis=1),
-                predict_batch
-            )
+        return (batch_starts, batch_ends)
 
-            # prepear for next iteration
-            batch_start = batch_end
-
-        return predict_all
-
-    def _std_batcher(self, x: TokenizedDict, y: tf.Tensor) -> tf.Tensor:
-        # batch evaluate the masked examples in x_masked
-        output_dtype = tf.keras.mixed_precision.global_policy().compute_dtype
+    def _jit_batcher(self, x: TokenizedDict, y: tf.Tensor) -> tf.Tensor:
         num_of_samples = tf.shape(x['input_ids'])[0]
+        with tf.name_scope('jit_range'):
+            batch_starts, batch_ends = self._jit_batcher_range(num_of_samples)
+        with tf.name_scope('jit_eval_loop'):
+            return self._loop_batch_evaluate(x, y, batch_starts, batch_ends)
+
+    def _std_batcher_range(self, num_of_samples: tf.Tensor) -> Tuple[tf.Tensor, tf.Tensor]:
         num_of_batches = tf.cast(tf.math.ceil(num_of_samples / self._batch_size), dtype=tf.dtypes.int32)
 
-        predict_all_array = tf.TensorArray(output_dtype, size=num_of_batches, infer_shape=False, element_shape=(None, ))
-        for batch_i in tf.range(num_of_batches):
-            batch_start = batch_i*self._batch_size
-            batch_end = tf.minimum(num_of_samples, (batch_i + 1)*self._batch_size)
+        batch_starts = tf.range(num_of_batches) * self._batch_size
+        batch_ends = tf.minimum(num_of_samples, batch_starts + self._batch_size)
+        return (batch_starts, batch_ends)
 
-            x_batch = tf.nest.map_structure(lambda item: item[batch_start:batch_end, ...], x)
-            y_batch = y[batch_start:batch_end]
-            predict_batch = self._wrap_logits(x_batch, y_batch)
-
-            predict_all_array = predict_all_array.write(batch_i, predict_batch)
-        return predict_all_array.concat()
+    def _std_batcher(self, x: TokenizedDict, y: tf.Tensor) -> tf.Tensor:
+        num_of_samples = tf.shape(x['input_ids'])[0]
+        with tf.name_scope('std_range'):
+            batch_starts, batch_ends = self._std_batcher_range(num_of_samples)
+        with tf.name_scope('std_eval_loop'):
+            return self._loop_batch_evaluate(x, y, batch_starts, batch_ends)
 
     def __call__(self, x: TokenizedDict, y: tf.Tensor) -> tf.Tensor:
         """Evaluates the model using the input x, and extracts the logits for class y
