@@ -6,6 +6,10 @@ import tensorflow as tf
 
 from ..types import TokenizedDict, InputTransform, Tokenizer
 from .map_on_gpu import MapOnGPU
+from .sequence_identifier import SequenceIndentifier
+
+def _float_int_multiple(float_tensor, int_tensor):
+    return tf.cast(float_tensor * tf.cast(int_tensor, dtype=float_tensor.dtype), dtype=int_tensor.dtype)
 
 class ExplainerMasking(InputTransform):
     def __init__(self, explainer, tokenizer: Tokenizer):
@@ -18,32 +22,26 @@ class ExplainerMasking(InputTransform):
 
         self._explainer = explainer
         self._tokenizer = tokenizer
+        self._sequence_identifier = SequenceIndentifier(tokenizer)
 
     @tf.function(reduce_retracing=True)
     def _mask_inputs_ids_with_im(self, input_ids: tf.Tensor, im: tf.RaggedTensor, masking_ratio: tf.Tensor):
+        first_sequence_mask = self._sequence_identifier(input_ids) == 1
+
         # ensure that already masked values will continue to be masked,
         # by assigning them infinite importance.
         im_dense = im.to_tensor(default_value=-np.inf, shape=tf.shape(input_ids))
         im_dense = tf.where(input_ids == self._tokenizer.mask_token_id, np.inf, im_dense)
-        kept_tokens = tf.math.reduce_any(
-            tf.expand_dims(input_ids, 0) == tf.reshape(self._tokenizer.kept_tokens, [-1, 1, 1]),
-            axis=0
-        )
-        im_dense = tf.where(kept_tokens, -np.inf, im_dense)
+        # ensure that kept tokens, such as [BOS] and [EOS] will remain
+        im_dense = tf.where(first_sequence_mask, im_dense, -np.inf)
 
         # Rank importance measure
         ranking = tf.argsort(im_dense, axis=1, direction='DESCENDING', stable=True)
 
-        # Create an indice tensor [[batch_idx, token_idx], ... ] tensor with the
-        # top `masking_ratio` elements selected. Make sure that kept_tokens are not
-        # selected, by removing them from the sequence_length.
-        sequence_length = im.row_lengths()
-        maskable_num_of_tokens = sequence_length - tf.math.reduce_sum(
-            tf.cast(kept_tokens, sequence_length.dtype),
-            axis=1)
-        mask_lengths = tf.cast(
-            tf.cast(maskable_num_of_tokens, masking_ratio.dtype) * masking_ratio,
-            dtype=sequence_length.dtype)
+        # Create an indice tensor mask_ranking[batch_idx] = [token_idx, ...] tensor with the
+        # top `masking_ratio` elements selected. Make sure that kept_tokens are not selected.
+        maskable_num_of_tokens = tf.math.reduce_sum(tf.cast(first_sequence_mask, tf.dtypes.int32), axis=1)
+        mask_lengths = _float_int_multiple(masking_ratio, maskable_num_of_tokens)
         mask_ranking = tf.RaggedTensor.from_tensor(ranking, lengths=mask_lengths)
 
         # Set masked elements to have the [MASK] token in the input
@@ -66,6 +64,17 @@ class ExplainerMasking(InputTransform):
             'attention_mask': x['attention_mask']
         }
 
+    @tf.function(reduce_retracing=True)
+    def _mask_input_100p(self, x: TokenizedDict, y: tf.Tensor) -> TokenizedDict:
+        # Mask 100%
+        input_ids = x['input_ids']
+        first_sequence_mask = self._sequence_identifier(input_ids) == 1
+
+        return {
+            'input_ids': tf.where(first_sequence_mask, self._tokenizer.mask_token_id, input_ids),
+            'attention_mask': x['attention_mask']
+        }
+
     def __call__(self, masking_ratio: float) -> Callable[[tf.data.Dataset], tf.data.Dataset]:
         """Mask tokens according to the explainer.
 
@@ -79,13 +88,18 @@ class ExplainerMasking(InputTransform):
         if not (0 <= float(masking_ratio) <= 1):
             raise TypeError(f'masking_ratio must be between 0 and 1, was "{masking_ratio}"')
 
-        masking_ratio = tf.convert_to_tensor(masking_ratio, dtype=tf.dtypes.float32)
+        masking_ratio_tf = tf.convert_to_tensor(masking_ratio, dtype=tf.dtypes.float32)
 
         if masking_ratio == 0.0:
             return (lambda dataset: dataset)
 
-        def _mapper(x, y):
-            return (self._mask_input(x, y, masking_ratio), y)
+        elif masking_ratio == 1.0:
+            # Avoid computing importance measure at 100% masking
+            def _mapper(x, y):
+                return (self._mask_input_100p(x, y), y)
+        else:
+            def _mapper(x, y):
+                return (self._mask_input(x, y, masking_ratio_tf), y)
 
         def _output_signature(dataset):
             return tf.data.experimental.get_structure(dataset)

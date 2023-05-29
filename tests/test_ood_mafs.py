@@ -7,6 +7,7 @@ import numpy as np
 from ecoroar.model import SimpleTestModel
 from ecoroar.tokenizer import SimpleTestTokenizer
 from ecoroar.ood import MaSF
+from ecoroar.test import compile_configs
 
 @pytest.fixture
 def tokenizer():
@@ -28,17 +29,6 @@ def dataset(tokenizer):
         '[BOS] [EOS] [PAD] [PAD]',
     ]).map(lambda doc: (tokenizer((doc, )), 0)) \
       .batch(2)
-
-@dataclass
-class CompileConfig:
-    name: str
-    args: int
-
-compile_configs = [
-    CompileConfig('no_compile', { 'run_eagerly': True, 'jit_compile': False }),
-    CompileConfig('default_compile', { 'run_eagerly': False, 'jit_compile': False }),
-    CompileConfig('jit_compile', { 'run_eagerly': False, 'jit_compile': True })
-]
 
 @pytest.mark.parametrize("compile_config", compile_configs, ids=lambda config: config.name)
 def test_odd_mafs(tokenizer, model, dataset, compile_config):

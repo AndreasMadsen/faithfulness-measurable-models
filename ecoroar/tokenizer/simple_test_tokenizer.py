@@ -19,7 +19,8 @@ class SimpleTestTokenizer(Tokenizer):
 
         self.kept_tokens = tf.stack([
             self.bos_token_id,
-            self.eos_token_id
+            self.eos_token_id,
+            self.pad_token_id
         ])
 
         self.vocab_size = tf.constant(5, tf.dtypes.int32)
@@ -40,7 +41,7 @@ class SimpleTestTokenizer(Tokenizer):
         input_ids = []
         attention_mask = []
         for text in texts:
-            tokens = text.numpy().decode('utf-8').split(' ')
+            tokens = text.numpy().decode('utf-8').split()
             input_ids += [self._token_to_id[token] for token in tokens]
             attention_mask += [int(token != self.pad_token) for token in tokens]
 

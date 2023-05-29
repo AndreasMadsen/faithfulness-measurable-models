@@ -56,7 +56,8 @@ class HuggingfaceTokenizer(Tokenizer):
         self.kept_tokens = tf.constant([
             self._tokenizer.bos_token_id,
             self._tokenizer.sep_token_id,
-            self._tokenizer.eos_token_id
+            self._tokenizer.eos_token_id,
+            self._tokenizer.pad_token_id
         ], tf.dtypes.int32)
 
     @property
