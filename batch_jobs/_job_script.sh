@@ -43,6 +43,11 @@ submit_seeds () {
         return 1
     fi
 
+    if [[ $walltime == *"?"* ]]; then
+        echo -e "\e[33mUndefined walltime $walltime for ${experiment_name/9999/x}\e[0m" >&2
+        return 0
+    fi
+
     local run_seeds=()
     local filename
     for seed in $(echo "$seeds")
