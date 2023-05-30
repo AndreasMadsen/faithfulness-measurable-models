@@ -61,6 +61,7 @@ class Explainer(_AnnotationMapping):
         'int-grad-abs': 'IG (abs)',
         'loo-sign': 'LOO (sign)',
         'loo-abs': 'LOO (abs)',
+        'beam-sign-10': 'Beam (10)',
     }
 
 class Validation(_AnnotationMapping):
