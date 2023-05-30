@@ -44,12 +44,18 @@ for model in 'roberta-sb' 'roberta-sl' # 'roberta-m15' 'roberta-m20' 'roberta-m3
 do
     for dataset in 'bAbI-1' 'bAbI-2' 'bAbI-3' 'BoolQ' 'CB' 'CoLA' 'MIMIC-a' 'MIMIC-d' 'MRPC' 'RTE' 'SST2'  # 'IMDB' 'MNLI' 'QNLI' 'QQP' 'WNLI'
     do
-        for explainer in 'rand' 'grad-l1' 'grad-l2' 'inp-grad-abs' 'inp-grad-sign' 'int-grad-abs' 'int-grad-sign' 'loo-sign' 'loo-abs'
+        for explainer in 'rand' 'grad-l1' 'grad-l2' 'inp-grad-abs' 'inp-grad-sign' 'int-grad-abs' 'int-grad-sign' 'loo-sign' 'loo-abs' 'beam-sign-10'
         do
             for max_masking_ratio in 0 100
             do
                 for dist_repeat in 1 # 2 4 6 8 10
                 do
+                    if [[ "${explainer}" == "beam-"* ]]; then
+                      if [[ "${dataset}" == "bAbI-3" || "${dataset}" == "MIMIC-a" || "${dataset}" == "MIMIC-d" ]]; then
+                        break;
+                      fi
+                    fi
+
                     submit_seeds $(multiply_time "${time[${size[$model]} $dataset]}" $dist_repeat) "$seeds" $(job_script gpu) \
                         experiments/ood.py \
                         --model "${model}" \
