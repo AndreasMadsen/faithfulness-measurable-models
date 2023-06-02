@@ -16,6 +16,9 @@ class MNLIDataset(AbstractDataset):
     _class_count_valid = [26131, 26211, 26198]
     _class_count_test = [3479, 3123, 3213]
 
+    _input_masked = 'premise'
+    _input_aux = 'hypothesis'
+
     def _builder(self, data_dir):
         return tfds.builder("glue/mnli", data_dir=data_dir)
 

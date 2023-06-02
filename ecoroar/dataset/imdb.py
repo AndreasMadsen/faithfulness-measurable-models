@@ -17,6 +17,8 @@ class IMDBDataset(AbstractDataset):
     _class_count_valid = [2469, 2531]
     _class_count_test = [12500, 12500]
 
+    _input_masked = 'text'
+
     def _builder(self, data_dir):
         return tfds.builder("imdb_reviews", data_dir=data_dir)
 

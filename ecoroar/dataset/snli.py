@@ -17,6 +17,9 @@ class SNLIDataset(AbstractDataset):
     _class_count_valid = [3329, 3235, 3278]
     _class_count_test = [3368, 3219, 3237]
 
+    _input_masked = 'premise'
+    _input_aux = 'hypothesis'
+
     def _builder(self, data_dir):
         return LocalSNLI(data_dir=data_dir)
 

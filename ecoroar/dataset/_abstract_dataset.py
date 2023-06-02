@@ -30,6 +30,9 @@ class AbstractDataset(metaclass=ABCMeta):
     _class_count_valid: List[int]
     _class_count_test: List[int]
 
+    _input_masked: str
+    _input_aux: Optional[str] = None
+
     def __init__(self, persistent_dir: pathlib.Path, seed: int = 0, use_snapshot=True, use_cache=True):
         """Abstract Base Class for defining a dataset with standard train/valid/test semantics.
 
@@ -95,6 +98,19 @@ class AbstractDataset(metaclass=ABCMeta):
 
         return {
             metric_name: possible_metric[metric_name] for metric_name in cls._metrics + ['loss']
+        }
+
+    @classmethod
+    def summary(cls):
+        return {
+            'name': cls._name,
+            'metric': cls._early_stopping_metric,
+            'baseline': cls.majority_classifier_test_performance()[cls._early_stopping_metric],
+            'train': sum(cls._class_count_train),
+            'valid': sum(cls._class_count_valid),
+            'test': sum(cls._class_count_test),
+            'masked': cls._input_masked,
+            'auxilary': cls._input_aux
         }
 
     @property

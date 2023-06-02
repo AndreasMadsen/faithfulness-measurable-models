@@ -16,6 +16,9 @@ class QNLIDataset(AbstractDataset):
     _class_count_valid = [10488, 10461]
     _class_count_test = [2702, 2761]
 
+    _input_masked = 'sentence'
+    _input_aux = 'question'
+
     def _builder(self, data_dir):
         return tfds.builder("glue/qnli", data_dir=data_dir)
 

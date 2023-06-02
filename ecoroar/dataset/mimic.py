@@ -13,6 +13,8 @@ class _MimicDatasetGeneralized(AbstractDataset):
     _split_valid = 'validation'
     _split_test = 'test'
 
+    _input_masked = 'text'
+
     def _as_supervised(self, item):
         x = (item['text'], )
         return x, item['diagnosis']

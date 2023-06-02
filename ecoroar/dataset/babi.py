@@ -13,6 +13,9 @@ class _BabiDatasetGeneralized(AbstractDataset):
     _split_valid = 'train[80%:]'
     _split_test = 'test'
 
+    _input_masked = 'paragraph'
+    _input_aux = 'question'
+
     def _as_supervised(self, item):
         x = (item['paragraph'], item['question'])
         return x, item['answer']

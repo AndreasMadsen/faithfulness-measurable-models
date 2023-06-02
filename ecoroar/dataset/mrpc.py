@@ -16,6 +16,9 @@ class MRPCDataset(AbstractDataset):
     _class_count_valid = [233, 501]
     _class_count_test = [129, 279]
 
+    _input_masked = 'sentence1'
+    _input_aux = 'sentence2'
+
     def _builder(self, data_dir):
         return tfds.builder("glue/mrpc", data_dir=data_dir)
 

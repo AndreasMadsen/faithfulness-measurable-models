@@ -16,6 +16,9 @@ class QQPDataset(AbstractDataset):
     _class_count_valid = [45947, 26822]
     _class_count_test = [25545, 14885]
 
+    _input_masked = 'question1'
+    _input_aux = 'question2'
+
     def _builder(self, data_dir):
         return tfds.builder("glue/qqp", data_dir=data_dir)
 
