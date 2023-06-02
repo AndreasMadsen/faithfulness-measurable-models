@@ -8,7 +8,6 @@ from tqdm import tqdm
 import numpy as np
 import pandas as pd
 import plotnine as p9
-import matplotlib.font_manager as fm
 
 from ecoroar.dataset import datasets
 from ecoroar.plot import bootstrap_confint, annotation
@@ -46,6 +45,13 @@ parser.add_argument('--datasets',
                     choices=datasets.keys(),
                     type=str,
                     help='The datasets to plot')
+parser.add_argument('--aggregate',
+                    action='store',
+                    nargs='*',
+                    default=[],
+                    choices=datasets.keys(),
+                    type=str,
+                    help='Datasets the macro-average should be calculated over')
 parser.add_argument('--performance-metric',
                     action='store',
                     default='primary',
@@ -67,6 +73,8 @@ parser.add_argument('--max-masking-ratio',
 if __name__ == "__main__":
     pd.set_option('display.max_rows', None)
     args, unknown = parser.parse_known_args()
+
+    all_datasets = set(args.datasets + args.aggregate)
 
     dataset_mapping = pd.DataFrame([
         {
@@ -100,7 +108,7 @@ if __name__ == "__main__":
 
                 if data['args']['max_masking_ratio'] in [0, args.max_masking_ratio] and \
                    data['args']['model'] in model_categories[args.model_category] and \
-                   data['args']['dataset'] in args.datasets:
+                   data['args']['dataset'] in all_datasets:
                     results.append(data)
 
         df = pd.json_normalize(results).explode('results', ignore_index=True)
@@ -126,25 +134,39 @@ if __name__ == "__main__":
             .assign(**{
                 'args.masking_strategy': 'goal'
             }))
-        df_data = pd.concat([df_main, df_goal])
+        df_all = pd.concat([df_main, df_goal])
+        df_show = df_all.query(' | '.join(f'`args.dataset` == "{dataset}"' for dataset in args.datasets))
 
-        df_plot = (df_data
+        df_plot = (df_show
                 .groupby(['args.model', 'args.dataset', 'args.max_epochs', 'args.validation_dataset', 'args.masking_strategy'], group_keys=True)
-                .apply(bootstrap_confint(['metric']))
+                .apply(bootstrap_confint(['metric', 'baseline']))
                 .reset_index())
 
-        df_baseline = (df
-            .groupby(['args.model', 'args.dataset'], group_keys=True)
-            .apply(bootstrap_confint(['baseline']))
-            .reset_index())
+        if len(args.aggregate) > 0:
+            df_agg = (df_all
+                    .query(' | '.join(f'`args.dataset` == "{dataset}"' for dataset in args.aggregate))
+                    .groupby(['args.seed', 'args.model', 'args.validation_dataset', 'args.masking_strategy'], group_keys=True)
+                    .apply(lambda subset: pd.Series({
+                        'metric': subset['metric'].mean(),
+                        'baseline': subset['baseline'].mean()
+                    }))
+                    .groupby(['args.model', 'args.validation_dataset', 'args.masking_strategy'], group_keys=True)
+                    .apply(bootstrap_confint(['metric', 'baseline']))
+                    .reset_index()
+                    .assign(**{ 'args.dataset': 'All' }))
+            df_plot = pd.concat([df_agg, df_plot])
+
+        df_baseline = (df_plot
+                    .query('`args.validation_dataset` == "nomask" & `args.masking_strategy` == "goal"')
+                    .drop(columns=['args.validation_dataset', 'args.masking_strategy']))
 
         # Generate plot
         p = (p9.ggplot(df_plot, p9.aes(x='args.validation_dataset'))
-            + p9.geom_hline(p9.aes(yintercept='baseline_mean'), linetype=(0, (5, 10)), data=df_baseline)
+            + p9.geom_hline(p9.aes(yintercept='baseline_mean'), linetype='dashed', data=df_baseline)
             + p9.geom_errorbar(p9.aes(ymin='metric_lower', ymax='metric_upper', color='args.masking_strategy'), position=p9.position_dodge(0.5), width=0.5)
             + p9.geom_point(p9.aes(y='metric_mean', color='args.masking_strategy'), fill='black', shape='o', position=p9.position_dodge(0.5), alpha=1)
             + p9.geom_jitter(p9.aes(y='metric', color='args.masking_strategy'),
-                                shape='+', alpha=0.8, position=p9.position_jitterdodge(0.15), data=df_data)
+                                shape='+', alpha=0.8, position=p9.position_jitterdodge(0.15), data=df_show)
             + p9.facet_grid("args.dataset ~ args.model", scales="free_y", labeller=annotation.model.labeller)
             + p9.scale_y_continuous(
                 labels=lambda ticks: [f'{tick:.0%}' for tick in ticks],
@@ -188,9 +210,9 @@ if __name__ == "__main__":
                 legend_box_margin=0,
                 legend_position=(.5, .05),
                 legend_background=p9.element_rect(fill='#F2F2F2'),
-                strip_background_x=p9.element_rect(height=0.2),
+                strip_background_x=p9.element_rect(height=0.25),
                 strip_background_y=p9.element_rect(width=0.2),
-                strip_text_x=p9.element_text(margin={'b': 5}),
+                strip_text_x=p9.element_text(margin={'b': 2}),
                 axis_text_x=p9.element_text(angle = 60, hjust=2)
             )
         elif args.format == 'appendix':
