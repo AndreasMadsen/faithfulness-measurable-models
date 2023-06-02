@@ -30,6 +30,26 @@ class _AnnotationMapping(_Singleton, metaclass=ABCMeta):
     def labeller(self, key):
         return self.mapping.get(key, key)
 
+class Dataset(_AnnotationMapping):
+    mapping = {
+        'bAbI-1': 'bAbI-1',
+        'bAbI-2': 'bAbI-2',
+        'bAbI-3': 'bAbI-3',
+        'BoolQ': 'BoolQ',
+        'CB': 'CB',
+        'CoLA': 'CoLA',
+        'MIMIC-a': 'Anemia',
+        'MIMIC-d': 'Diabetes',
+        'MRPC': 'MRPC',
+        'RTE': 'RTE',
+        'SST2': 'SST2',
+        'IMDB': 'IMDB',
+        'MNLI': 'MNLI',
+        'QNLI': 'QNLI',
+        'QQP': 'QQP',
+        'WNLI': 'WNLI'
+    }
+
 class Model(_AnnotationMapping):
     mapping = {
         'roberta-sb': 'RoBERTa base',
@@ -82,6 +102,7 @@ class Validation(_AnnotationMapping):
 
 class AllAnnotations(_Singleton):
     def __init__(self) -> None:
+        self.dataset = Dataset()
         self.model = Model()
         self.masking_strategy = MaskingStrategy()
         self.explainer = Explainer()

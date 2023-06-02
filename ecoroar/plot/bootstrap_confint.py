@@ -9,7 +9,6 @@ def bootstrap_confint(column_names: List[str], seed: int=0, aggregator: Callable
 
     Such method is particularly useful for performance metrics which are definetly not
     normally distributed.
-    Method proposed here: https://stats.stackexchange.com/questions/263516
 
     Args:
         column_names (List[str]): The columns to aggregate
