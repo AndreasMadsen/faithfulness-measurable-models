@@ -5,6 +5,8 @@ from ._importance_measure import ImportanceMeasureBatch
 
 
 class _GradientGeneralizedExplaner(ImportanceMeasureBatch):
+    _signed = False
+
     def _compute_gradient(self, x, y):
         x = self._model.inputs_embeds(x)
         with tf.GradientTape(watch_accessed_variables=False) as g:
@@ -26,6 +28,7 @@ class _GradientGeneralizedExplaner(ImportanceMeasureBatch):
 
 class GradientL2Explainer(_GradientGeneralizedExplaner):
     _name = 'grad-l2'
+    _base_name = 'grad-l2'
 
     def _explain_batch(self, x, y):
         yc_wrt_x = self._compute_gradient(x, y)
@@ -34,6 +37,7 @@ class GradientL2Explainer(_GradientGeneralizedExplaner):
 
 class GradientL1Explainer(_GradientGeneralizedExplaner):
     _name = 'grad-l1'
+    _base_name = 'grad-l1'
 
     def _explain_batch(self, x, y):
         yc_wrt_x = self._compute_gradient(x, y)
