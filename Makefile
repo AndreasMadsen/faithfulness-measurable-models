@@ -31,14 +31,15 @@ appendix-train:
 	python export/masked_100p_performance_by_valid_ms_plot.py --dataset bAbI-1 bAbI-2 bAbI-3 BoolQ CB CoLA MIMIC-a MIMIC-d MRPC RTE SST2 --model-category size --max-masking-ratio 100 --format appendix
 
 appendix-ood:
-	python export/ood_plot.py --dataset bAbI-1 bAbI-2 bAbI-3 BoolQ CB CoLA MIMIC-a MIMIC-d MRPC RTE SST2 --model-category size --max-masking-ratio 100 --masking-strategy half-det --validation-dataset both --dist-repeat 1 --method simes --threshold 0.05 --format appendix
-	python export/ood_plot.py --dataset bAbI-1 bAbI-2 bAbI-3 BoolQ CB CoLA MIMIC-a MIMIC-d MRPC RTE SST2 --model-category size --max-masking-ratio 0 --masking-strategy half-det --validation-dataset both --dist-repeat 1 --method simes --threshold 0.05 --format appendix
+	python export/ood_plot.py --dataset bAbI-1 bAbI-2 bAbI-3 BoolQ CB CoLA MIMIC-a MIMIC-d MRPC RTE SST2 --model roberta-sl --max-masking-ratio 100 --masking-strategy half-det --validation-dataset both --dist-repeat 1 --method simes --threshold 0.05 --format appendix
+	python export/ood_plot.py --dataset bAbI-1 bAbI-2 bAbI-3 BoolQ CB CoLA MIMIC-a MIMIC-d MRPC RTE SST2 --model  roberta-sb --max-masking-ratio 100 --masking-strategy half-det --validation-dataset both --dist-repeat 1 --method simes --threshold 0.05 --format appendix
 
 appendix-epoch:
 	python export/epoch_plot.py --dataset bAbI-1 bAbI-2 bAbI-3 BoolQ CB CoLA MIMIC-a MIMIC-d MRPC RTE SST2 --model-category size --max-masking-ratio 100 --masking-strategy half-det --validation-dataset both --format appendix
 
 appendix-faithfulness:
-	python export/faithfulness_plot.py --dataset bAbI-1 bAbI-2 bAbI-3 BoolQ CB CoLA MIMIC-a MIMIC-d MRPC RTE SST2 --model-category size --max-masking-ratio 100 --masking-strategy half-det --validation-dataset both --format appendix
+	python export/faithfulness_plot.py --dataset bAbI-1 bAbI-2 bAbI-3 BoolQ CB CoLA MIMIC-a MIMIC-d MRPC RTE SST2 --model roberta-sb --max-masking-ratio 100 --masking-strategy half-det --validation-dataset both --format appendix
+	python export/faithfulness_plot.py --dataset bAbI-1 bAbI-2 bAbI-3 BoolQ CB CoLA MIMIC-a MIMIC-d MRPC RTE SST2 --model roberta-sl --max-masking-ratio 100 --masking-strategy half-det --validation-dataset both --format appendix
 
 appendix-tables:
 	python export/datasets_table.py --dataset bAbI-1 bAbI-2 bAbI-3 BoolQ CB CoLA MIMIC-a MIMIC-d MRPC RTE SST2 --format appendix
@@ -48,15 +49,14 @@ appendix-tables:
 	python export/walltime_faithfulness_table.py --dataset bAbI-1 bAbI-2 bAbI-3 BoolQ CB CoLA MIMIC-a MIMIC-d MRPC RTE SST2 --format appendix
 	python export/walltime_ood_table.py --dataset bAbI-1 bAbI-2 bAbI-3 BoolQ CB CoLA MIMIC-a MIMIC-d MRPC RTE SST2 --format appendix
 
-appendix: appendix-train appendix-ood appendix-epoch appendix-faithfulness
+appendix: appendix-train appendix-ood appendix-epoch appendix-faithfulness appendix-tables
 
 paper-train:
 	python export/unmasked_performance_by_valid_ms_plot.py --dataset MRPC BoolQ --aggregate bAbI-1 bAbI-2 bAbI-3 BoolQ CB CoLA MIMIC-a MIMIC-d MRPC RTE SST2 --model-category size --max-masking-ratio 100 --format paper
 	python export/masked_100p_performance_by_valid_ms_plot.py --dataset MRPC BoolQ --aggregate bAbI-1 bAbI-2 bAbI-3 BoolQ CB CoLA MIMIC-a MIMIC-d MRPC RTE SST2 --model-category size --max-masking-ratio 100 --format paper
 
 paper-ood:
-	python export/ood_plot.py --dataset MRPC BoolQ --model-category size --max-masking-ratio 100 --masking-strategy half-det --validation-dataset both --dist-repeat 1 --method simes --threshold 0.05 --format paper
-	python export/ood_plot.py --dataset MRPC BoolQ --model-category size --max-masking-ratio 0 --masking-strategy half-det --validation-dataset both  --dist-repeat 1 --method simes --threshold 0.05 --format paper
+	python export/ood_plot.py --dataset MRPC BoolQ --model roberta-sl --max-masking-ratio 100 --masking-strategy half-det --validation-dataset both --dist-repeat 1 --method simes --threshold 0.05 --format paper
 
 paper-faithfulness:
 	python export/faithfulness_plot.py --dataset MRPC BoolQ --model-category size --max-masking-ratio 100 --masking-strategy half-det --validation-dataset both --format paper

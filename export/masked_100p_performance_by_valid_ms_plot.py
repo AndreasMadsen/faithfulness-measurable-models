@@ -167,7 +167,7 @@ if __name__ == "__main__":
             + p9.geom_point(p9.aes(y='metric_mean', color='args.masking_strategy'), fill='black', shape='o', position=p9.position_dodge(0.5), alpha=1)
             + p9.geom_jitter(p9.aes(y='metric', color='args.masking_strategy'),
                                 shape='+', alpha=0.8, position=p9.position_jitterdodge(0.15), data=df_show)
-            + p9.facet_grid("args.dataset ~ args.model", scales="free_y", labeller=annotation.model.labeller)
+            + p9.facet_grid("args.dataset ~ args.model", scales="free_y", labeller=(annotation.dataset | annotation.model).labeller)
             + p9.scale_y_continuous(
                 labels=lambda ticks: [f'{tick:.0%}' for tick in ticks],
                 name='100% masked performance'

@@ -6,11 +6,14 @@ import pathlib
 
 from tqdm import tqdm
 import pandas as pd
+import numpy as np
 
 from ecoroar.dataset import datasets
 from ecoroar.plot import bootstrap_confint, annotation
 
 def tex_format_time(secs):
+    if np.isnan(secs):
+        return '--'
     hh, mm = divmod(secs // 60, 60)
     return f'{int(hh):02d}:{int(mm):02d}'
 
@@ -106,8 +109,8 @@ if __name__ == "__main__":
                             roberta_sb = tex_format_time(dur.loc["durations.explain_mean", :].loc["roberta-sb"])
                             roberta_sl = tex_format_time(dur.loc["durations.explain_mean", :].loc["roberta-sl"])
                         except KeyError:
-                            roberta_sb = '--'
-                            roberta_sl = '--'
+                            roberta_sb = tex_format_time(np.nan)
+                            roberta_sl = tex_format_time(np.nan)
                         if first_dataset_row and not first_row:
                             print(r'\cmidrule{1-4}', file=fp)
                         if first_row:

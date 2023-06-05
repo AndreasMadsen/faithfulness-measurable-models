@@ -47,12 +47,11 @@ parser.add_argument('--datasets',
                     choices=datasets.keys(),
                     type=str,
                     help='The datasets to plot')
-parser.add_argument('--model-category',
+parser.add_argument('--model',
                     action='store',
-                    default='size',
+                    default='roberta-sb',
                     type=str,
-                    choices=['size', 'masking-ratio'],
-                    help='Which model category to use.')
+                    help='Which model to use.')
 parser.add_argument('--max-masking-ratio',
                     action='store',
                     default=100,
@@ -101,14 +100,9 @@ if __name__ == "__main__":
     pd.set_option('display.max_rows', None)
     args, unknown = parser.parse_known_args()
 
-    model_categories = {
-        'masking-ratio': ['roberta-m15', 'roberta-m20', 'roberta-m30', 'roberta-m40', 'roberta-m50'],
-        'size': ['roberta-sb', 'roberta-sl']
-    }
-
     experiment_id = generate_experiment_id(
         f'ood_a-{args.method}_p-{args.threshold}',
-        model=args.model_category,
+        model=args.model,
         max_masking_ratio=args.max_masking_ratio,
         masking_strategy=args.masking_strategy,
         validation_dataset=args.validation_dataset,
@@ -134,7 +128,7 @@ if __name__ == "__main__":
                    data['args']['split'] == args.split and \
                    data['args']['ood'] == args.ood and \
                    data['args']['dist_repeats'] == args.dist_repeats and \
-                   data['args']['model'] in model_categories[args.model_category] and \
+                   data['args']['model'] == args.model and \
                    data['args']['dataset'] in args.datasets:
                     results.append(data)
 
@@ -155,8 +149,7 @@ if __name__ == "__main__":
             df_data = df.query('`results.threshold` == @args.threshold')
 
         df_plot = (df_data
-            .query('`args.max_masking_ratio` == @args.max_masking_ratio')
-            .groupby(['args.model', 'args.dataset', 'args.explainer',
+            .groupby(['args.dataset', 'args.max_masking_ratio', 'args.explainer',
                       'results.masking_ratio'], group_keys=True)
             .apply(bootstrap_confint(['results.value']))
             .reset_index())
@@ -164,14 +157,20 @@ if __name__ == "__main__":
         # Create model baseline
         df_baseline_model = (df_data
             .query('`args.max_masking_ratio` == 0 & `args.explainer` == "rand" & `results.masking_ratio` == 0')
-            .groupby(['args.model', 'args.dataset'], group_keys=True)
+            .groupby(['args.dataset'], group_keys=True)
             .apply(bootstrap_confint(['results.value']))
             .reset_index())
+        df_baseline_model = pd.concat([
+            df_baseline_model.assign(**{
+                'args.max_masking_ratio': max_masking_ratio,
+            })
+            for max_masking_ratio in [0, args.max_masking_ratio]
+        ])
         df_baseline_model_with_x_axis = pd.concat([
             df_baseline_model.assign(**{
-                'results.masking_ratio': max_masking_ratio,
+                'results.masking_ratio': masking_ratio,
             })
-            for max_masking_ratio in [-1, 2]
+            for masking_ratio in [-1, 2]
         ])
         # Remove content if model_baseline is disabled
         if not args.model_baseline:
@@ -180,8 +179,7 @@ if __name__ == "__main__":
 
         # Creat p-value baseline
         df_baseline_pvalue = (df_data
-            .query('`args.max_masking_ratio` == @args.max_masking_ratio & `results.masking_ratio` == 0')
-            .groupby(['args.model', 'args.dataset'], group_keys=True)
+            .groupby(['args.max_masking_ratio', 'args.dataset'], group_keys=True)
             .apply(lambda _: pd.Series({ 'threshold': args.threshold }))
             .reset_index())
 
@@ -193,13 +191,13 @@ if __name__ == "__main__":
 
         # Generate plot
         p = (p9.ggplot(df_plot, p9.aes(x='results.masking_ratio'))
-            + p9.geom_hline(p9.aes(yintercept='threshold'), color='black', linetype=(0, (5, 10)), data=df_baseline_pvalue)
+            + p9.geom_hline(p9.aes(yintercept='threshold'), color='black', linetype='dashed', data=df_baseline_pvalue)
             + p9.geom_ribbon(p9.aes(ymin='results.value_lower', ymax='results.value_upper'), fill='green', alpha=0.35, data=df_baseline_model_with_x_axis)
-            + p9.geom_hline(p9.aes(yintercept='results.value_mean'), color='green', linetype=(0, (5, 10)), data=df_baseline_model)
+            + p9.geom_hline(p9.aes(yintercept='results.value_mean'), color='green', linetype='dashed', data=df_baseline_model)
             + p9.geom_ribbon(p9.aes(ymin='results.value_lower', ymax='results.value_upper', fill='args.explainer'), alpha=0.35)
             + p9.geom_point(p9.aes(y='results.value_mean', color='args.explainer'))
             + p9.geom_line(p9.aes(y='results.value_mean', color='args.explainer'))
-            + p9.facet_grid("args.dataset ~ args.model", scales="free_y", labeller=annotation.model.labeller)
+            + p9.facet_grid("args.dataset ~ args.max_masking_ratio", scales="free_y", labeller=(annotation.dataset | annotation.max_masking_ratio).labeller)
             + p9.scale_x_continuous(
                 labels=lambda ticks: [f'{tick:.0%}' for tick in ticks],
                 name='Masking ratio')
@@ -233,7 +231,7 @@ if __name__ == "__main__":
             )
             p += p9.theme(
                 text=p9.element_text(size=11, fontname='Times New Roman'),
-                subplots_adjust={'bottom': 0.31},
+                subplots_adjust={'bottom': 0.34},
                 panel_spacing=.05,
                 legend_box_margin=0,
                 legend_position=(.5, .05),
