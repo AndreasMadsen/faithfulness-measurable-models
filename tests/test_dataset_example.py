@@ -60,6 +60,10 @@ expected_sizes = [
         "Tropical Storm Irene on August 11, 2005 at 16:15 UTC. Tropical Storm Irene will increase in strength over the next several days, possibly developing into   a hurricane that will hit the east coast of the United States, said the National Hurricane Center of Miami, Florida in a report today.  Irene was located approximately 975 kilometers south-southeast of Bermuda at 16:00 UTC today. Forecasters say that the storm is now moving in a west-  northwest direction with top sustained winds of 40 miles per hour.",
         "A storm called Irene is going to approach the east coast of the US."
     )),
+    DatasetExample('SNLI', (
+        "A girl in a blue leotard hula hoops on a stage with balloon shapes in the background.",
+        "A girl is entertaining on stage"
+    )),
     DatasetExample('SST2', (
         "a valueless kiddie paean to pro basketball underwritten by the nba . ",
     )),

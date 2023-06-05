@@ -6,6 +6,7 @@ from .local import LocalMimic
 class _MimicDatasetGeneralized(AbstractDataset):
     _metrics = ['accuracy', 'macro_f1']
     _early_stopping_metric = 'macro_f1'
+    _jain_etal_metric = 'macro_f1'
     _target_name = 'diagnosis'
 
     _split_train = 'train'

@@ -38,7 +38,7 @@ parser.add_argument('--format',
                     action='store',
                     default='wide',
                     type=str,
-                    choices=['half', 'wide'],
+                    choices=['half', 'wide', 'paper', 'appendix'],
                     help='The dimentions and format of the plot.')
 parser.add_argument('--datasets',
                     action='store',
@@ -139,19 +139,15 @@ if __name__ == "__main__":
             .apply(bootstrap_confint(['metric']))
             .reset_index())
 
-        df_baseline = (df
-            .groupby(['args.model', 'args.dataset', 'results.masking_ratio'], group_keys=True)
-            .apply(bootstrap_confint(['baseline']))
-            .reset_index())
-
         # Generate plot
         p = (p9.ggplot(df_plot, p9.aes(x='results.masking_ratio'))
             + p9.geom_ribbon(p9.aes(ymin='metric_lower', ymax='metric_upper', fill='args.explainer'), alpha=0.35)
             + p9.geom_point(p9.aes(y='metric_mean', color='args.explainer'))
             + p9.geom_line(p9.aes(y='metric_mean', color='args.explainer'))
-            + p9.geom_line(p9.aes(y='baseline_mean'), color='black', data=df_baseline)
-            + p9.facet_grid("args.model ~ args.dataset", scales="free_x", labeller=annotation.model.labeller)
-            + p9.scale_x_continuous(name='Masking ratio')
+            + p9.facet_grid("args.dataset ~ args.model", scales="free_y", labeller=annotation.model.labeller)
+            + p9.scale_x_continuous(
+                labels=lambda ticks: [f'{tick:.0%}' for tick in ticks],
+                name='Masking ratio')
             + p9.scale_y_continuous(
                 labels=lambda ticks: [f'{tick:.0%}' for tick in ticks],
                 name='IM masked performance'
@@ -169,10 +165,42 @@ if __name__ == "__main__":
             size = (3.03209, 4.5)
             p += p9.guides(color=p9.guide_legend(ncol=1))
             p += p9.theme(text=p9.element_text(size=11), subplots_adjust={'bottom': 0.38}, legend_position=(.5, .05))
+        elif args.format == 'paper':
+            # The width is the \linewidth of a collumn in the LaTeX document
+            size = (3.03209, 4.5)
+            p += p9.guides(color=p9.guide_legend(ncol=3))
+            p += p9.scale_y_continuous(
+                labels=lambda ticks: [f'{tick:.0%}' for tick in ticks],
+                name=f'                   IM masked performance'
+            )
+            p += p9.theme(
+                text=p9.element_text(size=11, fontname='Times New Roman'),
+                subplots_adjust={'bottom': 0.31},
+                panel_spacing=.05,
+                legend_box_margin=0,
+                legend_position=(.5, .05),
+                legend_background=p9.element_rect(fill='#F2F2F2'),
+                strip_background_x=p9.element_rect(height=0.2),
+                strip_background_y=p9.element_rect(width=0.2),
+                strip_text_x=p9.element_text(margin={'b': 5}),
+                axis_text_x=p9.element_text(angle = 60, hjust=1)
+            )
+        elif args.format == 'appendix':
+            size = (6.30045, 8.6)
+            p += p9.guides(color=p9.guide_legend(ncol=5))
+            p += p9.theme(
+                text=p9.element_text(size=11, fontname='Times New Roman'),
+                subplots_adjust={'bottom': 0.16},
+                panel_spacing=.05,
+                legend_box_margin=0,
+                legend_position=(.5, .05),
+                legend_background=p9.element_rect(fill='#F2F2F2'),
+                axis_text_x=p9.element_text(angle = 15, hjust=1)
+            )
         else:
             size = (20, 7)
             p += p9.ggtitle(experiment_id)
 
-        os.makedirs(f'{args.persistent_dir}/plots', exist_ok=True)
-        p.save(f'{args.persistent_dir}/plots/{experiment_id}.pdf', width=size[0], height=size[1], units='in')
-        p.save(f'{args.persistent_dir}/plots/{experiment_id}.png', width=size[0], height=size[1], units='in')
+        os.makedirs(args.persistent_dir / 'plots' / args.format, exist_ok=True)
+        p.save(args.persistent_dir / 'plots'/ args.format / f'{experiment_id}.pdf', width=size[0], height=size[1], units='in')
+        # p.save(args.persistent_dir / 'plots'/ args.format / f'{experiment_id}.png', width=size[0], height=size[1], units='in')

@@ -148,7 +148,7 @@ if __name__ == "__main__":
                 breaks = annotation.validation_dataset.breaks,
                 labels = annotation.validation_dataset.labels,
                 aesthetics = ["colour", "fill"],
-                name='fine-tuning strategy'
+                name='validation strategy'
             )
             + p9.scale_shape_discrete(guide=False)
             + p9.theme(subplots_adjust={'wspace': 0.25}))
@@ -167,6 +167,6 @@ if __name__ == "__main__":
             size = (20, 7)
             p += p9.ggtitle(experiment_id)
 
-        os.makedirs(f'{args.persistent_dir}/plots', exist_ok=True)
-        p.save(f'{args.persistent_dir}/plots/{experiment_id}.pdf', width=size[0], height=size[1], units='in')
-        p.save(f'{args.persistent_dir}/plots/{experiment_id}.png', width=size[0], height=size[1], units='in')
+        os.makedirs(args.persistent_dir / 'plots' / args.format, exist_ok=True)
+        p.save(args.persistent_dir / 'plots'/ args.format / f'{experiment_id}.pdf', width=size[0], height=size[1], units='in')
+        p.save(args.persistent_dir / 'plots'/ args.format / f'{experiment_id}.png', width=size[0], height=size[1], units='in')

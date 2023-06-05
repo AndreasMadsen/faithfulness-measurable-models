@@ -26,6 +26,35 @@ plot-train:
 
 plot: plot-train plot-faithfulness plot-ood
 
+appendix-train:
+	python export/unmasked_performance_by_valid_ms_plot.py --model-category size --max-masking-ratio 100 --format appendix
+	python export/masked_100p_performance_by_valid_ms_plot.py --model-category size --max-masking-ratio 100 --format appendix
+
+appendix-ood:
+	python export/ood_plot.py --model-category size --max-masking-ratio 100 --masking-strategy half-det --validation-dataset both --dist-repeat 1 --method simes --threshold 0.05 --format appendix
+	python export/ood_plot.py --model-category size --max-masking-ratio 0 --masking-strategy half-det --validation-dataset both --dist-repeat 1 --method simes --threshold 0.05 --format appendix
+
+appendix-epoch:
+	python export/epoch_plot.py --model-category size --max-masking-ratio 100 --masking-strategy half-det --validation-dataset both --format appendix
+
+appendix-faithfulness:
+	python export/faithfulness_plot.py --model-category size --max-masking-ratio 100 --masking-strategy half-det --validation-dataset both --format appendix
+
+appendix: appendix-train appendix-ood appendix-epoch appendix-faithfulness
+
+paper-train:
+	python export/unmasked_performance_by_valid_ms_plot.py --dataset MRPC BoolQ --model-category size --max-masking-ratio 100 --format paper
+	python export/masked_100p_performance_by_valid_ms_plot.py --dataset MRPC BoolQ --model-category size --max-masking-ratio 100 --format paper
+
+paper-ood:
+	python export/ood_plot.py --dataset MRPC BoolQ --model-category size --max-masking-ratio 100 --masking-strategy half-det --validation-dataset both --dist-repeat 1 --method simes --threshold 0.05 --format paper
+	python export/ood_plot.py --dataset MRPC BoolQ --model-category size --max-masking-ratio 0 --masking-strategy half-det --validation-dataset both  --dist-repeat 1 --method simes --threshold 0.05 --format paper
+
+paper-faithfulness:
+	python export/faithfulness_plot.py --dataset MRPC BoolQ --model-category size --max-masking-ratio 100 --masking-strategy half-det --validation-dataset both --format paper
+
+paper: paper-train paper-ood paper-faithfulness
+
 download-intermediate-cedar:
 	rsync --info=progress2 -urltv --delete \
 		-e ssh cc-cedar:~/scratch/ecoroar/intermediate/ ./intermediate
@@ -43,7 +72,7 @@ download-tensorboard-cedar:
 		-e ssh cc-cedar:~/scratch/ecoroar/tensorboard/ ./tensorboard
 
 download-results-cedar:
-	rsync --info=progress2 -urltv --delete \
+	rsync --info=progress2 -urltvW --delete \
 		-e ssh cc-cedar:~/scratch/ecoroar/results/ ./results
 
 download-cache-cedar:

@@ -9,16 +9,19 @@ from tqdm import tqdm
 import numpy as np
 import pandas as pd
 import plotnine as p9
+from mizani.palettes import brewer_pal
 
 from ecoroar.dataset import datasets
 from ecoroar.plot import bootstrap_confint, annotation
 from ecoroar.util import generate_experiment_id
 
-def select_target_metric(df):
-    idx, cols = pd.factorize('history.val_0_' + df.loc[:, 'target_metric'])
-    return df.assign(
-        metric = df.reindex(cols, axis=1).to_numpy()[np.arange(len(df)), idx]
-    )
+def select_target_metric(df, selectors=dict()):
+    add_columns = dict()
+    for new_column, prefix in selectors.items():
+        idx, cols = pd.factorize(prefix + df.loc[:, 'target_metric'])
+        add_columns[new_column] = df.reindex(cols, axis=1).to_numpy()[np.arange(len(df)), idx]
+
+    return df.assign(**add_columns)
 
 def delete_columns(df, prefix):
     remove_columns = df.columns[df.columns.str.startswith(prefix)].to_numpy().tolist()
@@ -42,7 +45,7 @@ parser.add_argument('--format',
                     action='store',
                     default='wide',
                     type=str,
-                    choices=['half', 'wide'],
+                    choices=['half', 'full', 'paper', 'appendix'],
                     help='The dimentions and format of the plot.')
 parser.add_argument('--datasets',
                     action='store',
@@ -68,6 +71,11 @@ parser.add_argument('--max-masking-ratio',
                     default=100,
                     type=int,
                     help='The maximum masking ratio (percentage integer) to apply on the training dataset')
+parser.add_argument('--masking-strategy',
+                    default='half-det',
+                    choices=['uni', 'half-det', 'half-ran'],
+                    type=str,
+                    help='The masking strategy to use for masking during fune-tuning')
 parser.add_argument('--validation-dataset',
                     default='both',
                     choices=['nomask', 'mask', 'both'],
@@ -75,7 +83,7 @@ parser.add_argument('--validation-dataset',
                     help='The transformation applied to the validation dataset used for early stopping.')
 
 if __name__ == "__main__":
-    pd.set_option('display.max_rows', None)
+    #pd.set_option('display.max_rows', None)
     args, unknown = parser.parse_known_args()
 
     dataset_mapping = pd.DataFrame([
@@ -90,8 +98,9 @@ if __name__ == "__main__":
         'size': ['roberta-sb', 'roberta-sl']
     }
 
-    experiment_id = generate_experiment_id('epoch_by_ms',
+    experiment_id = generate_experiment_id('epoch',
                                             model=args.model_category,
+                                            masking_strategy=args.masking_strategy,
                                             max_masking_ratio=args.max_masking_ratio,
                                             validation_dataset=args.validation_dataset)
 
@@ -106,7 +115,8 @@ if __name__ == "__main__":
                 except json.decoder.JSONDecodeError:
                     print(f'{file} has a format error')
 
-                if data['args']['max_masking_ratio'] in [0, args.max_masking_ratio] and \
+                if data['args']['masking_strategy'] == args.masking_strategy and \
+                   data['args']['max_masking_ratio'] == args.max_masking_ratio and \
                    data['args']['model'] in model_categories[args.model_category] and \
                    data['args']['dataset'] in args.datasets and \
                    data['args']['validation_dataset'] in args.validation_dataset:
@@ -117,13 +127,37 @@ if __name__ == "__main__":
         df = pd.concat([df, results], axis=1)
 
         # Select test metric
+        args_columns = df.columns[df.columns.str.startswith('args.')].to_numpy().tolist()
         df = (df
               .merge(dataset_mapping, on='args.dataset')
-              .transform(select_target_metric)
-              .drop(columns=['results', 'target_metric'])
+              .transform(partial(select_target_metric, selectors={
+                'metric.train': 'history.',
+                'metric.val': 'history.val_',
+                'metric.val_0': 'history.val_0_',
+                'metric.val_10': 'history.val_10_',
+                'metric.val_20': 'history.val_20_',
+                'metric.val_30': 'history.val_30_',
+                'metric.val_40': 'history.val_40_',
+                'metric.val_50': 'history.val_50_',
+                'metric.val_60': 'history.val_60_',
+                'metric.val_70': 'history.val_70_',
+                'metric.val_80': 'history.val_80_',
+                'metric.val_90': 'history.val_90_',
+                'metric.val_100': 'history.val_100_'
+              }))
               .assign(**{'epoch': lambda df: df['history.epoch'] + 1})
               .transform(partial(delete_columns, prefix='history.'))
-              .transform(partial(delete_columns, prefix='durations.')))
+              .transform(partial(delete_columns, prefix='durations.'))
+              .drop(columns=['results', 'target_metric'])
+              .melt(id_vars=args_columns + ['epoch'],
+                    value_vars=[
+                        'metric.val', 'metric.val_0', 'metric.val_10',
+                        'metric.val_20', 'metric.val_30', 'metric.val_40',
+                        'metric.val_50', 'metric.val_60', 'metric.val_70',
+                        'metric.val_80', 'metric.val_90', 'metric.val_100'
+                    ],
+                    value_name='metric.value',
+                    var_name='metric.dataset'))
 
     if args.stage in ['preprocess']:
         os.makedirs(args.persistent_dir / 'pandas', exist_ok=True)
@@ -132,49 +166,67 @@ if __name__ == "__main__":
         df = pd.read_parquet((args.persistent_dir / 'pandas' / experiment_id).with_suffix('.parquet'))
 
     if args.stage in ['both', 'plot']:
-        df_main = df.query('`args.max_masking_ratio` == @args.max_masking_ratio')
-        df_goal = (df
-            .query('`args.max_masking_ratio` == 0')
-            .assign(**{
-                'args.masking_strategy': 'goal'
-            }))
-
-        df_data = pd.concat([df_main, df_goal])
-
-        df_epochs = (df_data
-            .groupby(['args.model', 'args.dataset', 'epoch', 'args.masking_strategy'], group_keys=True)
-            .apply(bootstrap_confint(['metric']))
+        df_epochs = (df
+            .groupby(['args.model', 'args.dataset', 'epoch', 'metric.dataset'], group_keys=True)
+            .apply(bootstrap_confint(['metric.value']))
             .reset_index())
 
         # Generate plot
         p = (p9.ggplot(df_epochs, p9.aes(x='epoch'))
-            + p9.geom_jitter(p9.aes(y='metric', group='args.seed', color='args.masking_strategy'),
-                             shape='+', alpha=0.5, width=0.25, data=df_data)
-            + p9.geom_ribbon(p9.aes(ymin='metric_lower', ymax='metric_upper', fill='args.masking_strategy'), alpha=0.35)
-            + p9.geom_line(p9.aes(y='metric_mean', color='args.masking_strategy'))
-            + p9.facet_grid("args.model ~ args.dataset", scales="free_x", labeller=annotation.model.labeller)
+            + p9.geom_ribbon(p9.aes(ymin='metric.value_lower', ymax='metric.value_upper', fill='metric.dataset'), alpha=0.35)
+            + p9.geom_line(p9.aes(y='metric.value_mean', color='metric.dataset'))
+            + p9.facet_grid("args.dataset ~ args.model", scales="free_y", labeller=annotation.model.labeller)
             + p9.scale_x_continuous(name='Epoch')
             + p9.scale_y_continuous(
                 labels=lambda ticks: [f'{tick:.0%}' for tick in ticks],
-                name='Unmasked performance'
+                name='Validation performance'
             )
-            + p9.scale_color_discrete(
-                breaks = annotation.masking_strategy.breaks,
-                labels = annotation.masking_strategy.labels,
+            + p9.scale_color_manual(
+                values = ['#000000'] + brewer_pal(type='div', palette=8)(11),
+                breaks = annotation.validation.breaks,
+                labels = annotation.validation.labels,
                 aesthetics = ["colour", "fill"],
-                name='fine-tuning strategy',
+                name='Validation dataset',
             )
-            + p9.guides(shape=False))
+            + p9.scale_shape_discrete(guide=False))
 
         if args.format == 'half':
             # The width is the \linewidth of a collumn in the LaTeX document
             size = (3.03209, 4.5)
             p += p9.guides(color=p9.guide_legend(ncol=2))
             p += p9.theme(text=p9.element_text(size=11), subplots_adjust={'bottom': 0.25}, legend_position=(.5, .05))
+        elif args.format == 'paper':
+            # The width is the \linewidth of a collumn in the LaTeX document
+            size = (3.03209, 4.5)
+            p += p9.guides(color=p9.guide_legend(ncol=3))
+            p += p9.theme(
+                text=p9.element_text(size=11, fontname='Times New Roman'),
+                subplots_adjust={'bottom': 0.31},
+                panel_spacing=.05,
+                legend_box_margin=0,
+                legend_position=(.5, .05),
+                legend_background=p9.element_rect(fill='#F2F2F2'),
+                strip_background_x=p9.element_rect(height=0.2),
+                strip_background_y=p9.element_rect(width=0.2),
+                strip_text_x=p9.element_text(margin={'b': 5}),
+                axis_text_x=p9.element_text(angle = 60, hjust=1)
+            )
+        elif args.format == 'appendix':
+            size = (6.30045, 8.6)
+            p += p9.guides(color=p9.guide_legend(ncol=4))
+            p += p9.theme(
+                text=p9.element_text(size=11, fontname='Times New Roman'),
+                subplots_adjust={'bottom': 0.17},
+                panel_spacing=.05,
+                legend_box_margin=0,
+                legend_position=(.5, .05),
+                legend_background=p9.element_rect(fill='#F2F2F2'),
+                axis_text_x=p9.element_text(angle = 15, hjust=1)
+            )
         else:
             size = (20, 7)
             p += p9.ggtitle(experiment_id)
 
         os.makedirs(args.persistent_dir / 'plots' / args.format, exist_ok=True)
         p.save(args.persistent_dir / 'plots'/ args.format / f'{experiment_id}.pdf', width=size[0], height=size[1], units='in')
-        p.save(args.persistent_dir / 'plots'/ args.format / f'{experiment_id}.png', width=size[0], height=size[1], units='in')
+        # p.save(args.persistent_dir / 'plots'/ args.format / f'{experiment_id}.png', width=size[0], height=size[1], units='in')

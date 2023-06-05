@@ -5,8 +5,9 @@ from ._abstract_dataset import AbstractDataset
 
 class SST2Dataset(AbstractDataset):
     _name = 'SST2'
-    _metrics = ['accuracy']
+    _metrics = ['accuracy', 'macro_f1']
     _early_stopping_metric = 'accuracy'
+    _jain_etal_metric = 'macro_f1'
 
     _split_train = 'train[:80%]'
     _split_valid = 'train[80%:]'

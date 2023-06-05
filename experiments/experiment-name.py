@@ -55,7 +55,7 @@ parser.add_argument('--split',
                     help='The dataset split to evaluate faithfulness on')
 parser.add_argument('--ood',
                     default=None,
-                    choices=['MaSF'],
+                    choices=['masf', 'masf-slow'],
                     type=str,
                     help='The OOD detection method')
 parser.add_argument('--dist-repeats',

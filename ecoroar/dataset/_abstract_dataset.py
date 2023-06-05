@@ -1,7 +1,7 @@
 import pathlib
 import shutil
 from functools import cached_property, partial
-from typing import List, Tuple, Dict, Union, Iterable
+from typing import List, Tuple, Dict, Union, Iterable, Optional
 from abc import ABCMeta, abstractmethod
 
 import numpy as np
@@ -15,6 +15,7 @@ class AbstractDataset(metaclass=ABCMeta):
     _name: str
     _metrics: List[str]
     _early_stopping_metric: str
+    _jain_etal_metric: Optional[str]
     _target_name: str = 'label'
 
     _split_train: str

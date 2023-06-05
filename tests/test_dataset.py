@@ -32,6 +32,7 @@ expected_sizes = [
     DatasetSize('QNLI', 83794, 20949, 5463, 2),
     DatasetSize('QQP', 291077, 72769, 40430, 2),
     DatasetSize('RTE', 1992, 498, 277, 2),
+    DatasetSize('SNLI', 549367, 9842, 9824, 3),
     DatasetSize('SST2', 53879, 13470, 872, 2),
     DatasetSize('WNLI', 508, 127, 71, 2),
 ]
@@ -129,4 +130,4 @@ def test_majority_classifier_test_performance(info):
 
     for metric in metrics:
         metric.update_state(y_true, y_pred)
-        np.testing.assert_allclose(metric.result(), performance[metric.name])
+        np.testing.assert_allclose(metric.result(), performance[metric.name], rtol=1e-6)

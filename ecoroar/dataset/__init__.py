@@ -1,7 +1,7 @@
 
 __all__ = ['BoolQDataset', 'CBDataset', 'CoLADataset', 'IMDBDataset',
            'MNLIDataset', 'MRPCDataset', 'QNLIDataset', 'QQPDataset',
-           'RTEDataset', 'SST2Dataset', 'WNLIDataset',
+           'RTEDataset', 'SNLIDataset', 'SST2Dataset', 'WNLIDataset',
            'Babi1Dataset', 'Babi2Dataset', 'Babi3Dataset',
            'MimicDiabetesDataset', 'MimicAnemiaDataset',
            'datasets']
@@ -15,6 +15,7 @@ from .mrpc import MRPCDataset
 from .qnli import QNLIDataset
 from .qqp import QQPDataset
 from .rte import RTEDataset
+from .snli import SNLIDataset
 from .sst2 import SST2Dataset
 from .wnli import WNLIDataset
 from .babi import Babi1Dataset, Babi2Dataset, Babi3Dataset
@@ -25,7 +26,7 @@ datasets = {
     for Dataset
     in [BoolQDataset, CBDataset, CoLADataset, IMDBDataset,
         MNLIDataset, MRPCDataset, QNLIDataset, QQPDataset,
-        RTEDataset, SST2Dataset, WNLIDataset,
+        RTEDataset, SNLIDataset, SST2Dataset, WNLIDataset,
         Babi1Dataset, Babi2Dataset, Babi3Dataset,
         MimicDiabetesDataset, MimicAnemiaDataset]
 }
