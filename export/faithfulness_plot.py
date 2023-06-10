@@ -20,6 +20,10 @@ def select_target_metric(df):
         metric = df.reindex(cols, axis=1).to_numpy()[np.arange(len(df)), idx]
     )
 
+def check_converged(df):
+    unmasked_performance = df.query('`results.masking_ratio` == 0')
+    return unmasked_performance['metric'] > unmasked_performance['convergence_threshold']
+
 def annotate_explainer(df):
     sign_lookup = {
         name: 'sign' if explainer._signed else 'abs'
@@ -108,7 +112,8 @@ if __name__ == "__main__":
             'target_metric': dataset._early_stopping_metric if args.performance_metric == 'primary' else args.performance_metric,
             'baseline': dataset.majority_classifier_test_performance()[
                 dataset._early_stopping_metric if args.performance_metric == 'primary' else args.performance_metric
-            ]
+            ],
+            'convergence_threshold': dataset._convergence_threshold,
         }
         for dataset in datasets.values()
     ])
@@ -154,6 +159,9 @@ if __name__ == "__main__":
 
     if args.stage in ['both', 'plot']:
         df_plot = (df
+            .groupby(['args.seed', 'args.dataset', 'args.explainer'], group_keys=True)
+            .filter(check_converged)
+            .reset_index()
             .groupby(['args.dataset', 'args.explainer', 'results.masking_ratio'], group_keys=True)
             .apply(bootstrap_confint(['metric']))
             .reset_index())

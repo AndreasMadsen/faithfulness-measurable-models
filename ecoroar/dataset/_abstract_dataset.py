@@ -17,6 +17,7 @@ class AbstractDataset(metaclass=ABCMeta):
     _early_stopping_metric: str
     _jain_etal_metric: Optional[str]
     _target_name: str = 'label'
+    _convergence_threshold = -1  # A very lower-bound to check if the model convereged
 
     _split_train: str
     _split_valid: str

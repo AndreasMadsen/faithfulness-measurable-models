@@ -20,6 +20,9 @@ def select_target_metric(df):
         metric = df.reindex(cols, axis=1).to_numpy()[np.arange(len(df)), idx]
     )
 
+def check_converged(df):
+    unmasked_performance = df.query('`results.masking_ratio` == 0')
+    return unmasked_performance['metric'] > unmasked_performance['convergence_threshold']
 
 def compute_acu(df):
     df_sorted = df.sort_values(by=['results.masking_ratio'])
@@ -147,7 +150,8 @@ if __name__ == "__main__":
     dataset_mapping = pd.DataFrame([
         {
             'args.dataset': dataset._name,
-            'target_metric': dataset._early_stopping_metric if args.performance_metric == 'primary' else args.performance_metric
+            'target_metric': dataset._early_stopping_metric if args.performance_metric == 'primary' else args.performance_metric,
+            'convergence_threshold': dataset._convergence_threshold,
         }
         for dataset in datasets.values()
     ])
@@ -247,7 +251,10 @@ if __name__ == "__main__":
         df_tab = (df
             .query('`args.explainer` != "rand"')
             .merge(df.query('`args.explainer` == "rand"').drop(columns=['args.explainer']).rename(columns={'metric': 'baseline'}),
-                   on=['args.seed', 'args.model', 'args.dataset', 'results.masking_ratio'])
+                   on=['args.seed', 'args.model', 'args.dataset', 'results.masking_ratio', 'convergence_threshold'])
+            .groupby(['args.seed', 'args.model', 'args.dataset', 'args.explainer'], group_keys=True)
+            .filter(check_converged)
+            .reset_index()
             .groupby(['args.seed', 'args.model', 'args.dataset', 'args.explainer'], group_keys=True)
             .apply(compute_acu)
             .reset_index()
