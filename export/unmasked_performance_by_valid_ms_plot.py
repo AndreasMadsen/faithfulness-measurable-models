@@ -198,7 +198,7 @@ if __name__ == "__main__":
                 name='                       Unmasked performance'
             )
             p += p9.theme(
-                text=p9.element_text(size=11, fontname='Times New Roman'),
+                text=p9.element_text(size=10, fontname='Times New Roman'),
                 subplots_adjust={'bottom': 0.33},
                 panel_spacing=.05,
                 legend_box_margin=0,
@@ -213,7 +213,7 @@ if __name__ == "__main__":
             size = (6.30045, 8.8)
             p += p9.guides(color=p9.guide_legend(ncol=3))
             p += p9.theme(
-                text=p9.element_text(size=11, fontname='Times New Roman'),
+                text=p9.element_text(size=10, fontname='Times New Roman'),
                 subplots_adjust={'bottom': 0.15},
                 panel_spacing=.05,
                 legend_box_margin=0,
