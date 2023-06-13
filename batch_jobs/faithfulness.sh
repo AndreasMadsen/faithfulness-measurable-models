@@ -1,7 +1,7 @@
 #!/bin/bash
 # jobs: 11
 source "batch_jobs/_job_script.sh"
-seeds="0 1 2 3 4"
+seeds="0"
 
 declare -A size=( ["roberta-sb"]="small" ["roberta-sl"]="large"
                   ["roberta-m15"]="large" ["roberta-m20"]="large" ["roberta-m30"]="large" ["roberta-m40"]="large" ["roberta-m50"]="large" )
@@ -182,60 +182,63 @@ declare -A time=( # ["small test rand bAbI-1"]="0:02"  ["large test rand bAbI-1"
                   # ["small test loo WNLI"]="?:??"    ["large test loo WNLI"]="?:??"
                     ["small test loo WNLI"]="1:20"    ["large test loo WNLI"]="1:20"
 
-                  # ["small test beam bAbI-1"]="0:07"  ["large test beam bAbI-1"]="0:14"
-                    ["small test beam bAbI-1"]="1:20"  ["large test beam bAbI-1"]="1:25"
-                  # ["small test beam bAbI-2"]="0:14"  ["large test beam bAbI-2"]="0:31"
-                    ["small test beam bAbI-2"]="1:30"  ["large test beam bAbI-2"]="1:50"
-                  # ["small test beam bAbI-3"]="0:21"  ["large test beam bAbI-3"]="0:57"
-                    ["small test beam bAbI-3"]="1:40"  ["large test beam bAbI-3"]="2:10"
-                  # ["small test beam BoolQ"]="0:48"   ["large test beam BoolQ"]="1:56"
-                    ["small test beam BoolQ"]="2:00"   ["large test beam BoolQ"]="3:30"
-                  # ["small test beam CB"]="0:06"      ["large test beam CB"]="0:09"
-                    ["small test beam CB"]="1:15"      ["large test beam CB"]="1:20"
-                  # ["small test beam CoLA"]="0:09"    ["large test beam CoLA"]="0:14"
-                    ["small test beam CoLA"]="1:20"    ["large test beam CoLA"]="1:30"
-                  # ["small test beam IMDB"]="7:39"    ["large test beam IMDB"]="22:07"
-                    ["small test beam IMDB"]="9:30"    ["large test beam IMDB"]="23:30"
-                  # ["small test beam MIMIC-a"]="0:26" ["large test beam MIMIC-a"]="1:11"
-                    ["small test beam MIMIC-a"]="1:40" ["large test beam MIMIC-a"]="2:30"
-                  # ["small test beam MIMIC-d"]="0:34" ["large test beam MIMIC-d"]="1:37"
-                    ["small test beam MIMIC-d"]="2:00" ["large test beam MIMIC-d"]="3:00"
-                  # ["small test beam MNLI"]="0:43"    ["large test beam MNLI"]="1:47"
-                    ["small test beam MNLI"]="2:00"    ["large test beam MNLI"]="3:30"
-                  # ["small test beam MRPC"]="0:08"    ["large test beam MRPC"]="0:14"
-                    ["small test beam MRPC"]="1:20"    ["large test beam MRPC"]="1:30"
-                  # ["small test beam QNLI"]="0:29"    ["large test beam QNLI"]="1:14"
-                    ["small test beam QNLI"]="1:50"    ["large test beam QNLI"]="2:40"
-                  # ["small test beam QQP"]="2:10"     ["large test beam QQP"]="5:40"
-                    ["small test beam QQP"]="4:30"     ["large test beam QQP"]="7:40"
-                  # ["small test beam RTE"]="0:09"     ["large test beam RTE"]="0:15"
-                    ["small test beam RTE"]="1:20"     ["large test beam RTE"]="2:30"
-                  # ["small test beam SST2"]="0:08"    ["large test beam SST2"]="0:14"
-                    ["small test beam SST2"]="1:20"    ["large test beam SST2"]="1:30"
-                  # ["small test beam WNLI"]="0:07"    ["large test beam WNLI"]="0:09"
-                    ["small test beam WNLI"]="1:20"    ["large test beam WNLI"]="1:20" )
+                  # ["small test beam-10 bAbI-1"]="1:00"    ["large test beam-10 bAbI-1"]="2:29"
+                    ["small test beam-10 bAbI-1"]="1:30"    ["large test beam-10 bAbI-1"]="3:00"
+                  # ["small test beam-10 bAbI-2"]="30:??"   ["large test beam-10 bAbI-2"]="52:??"
+                    ["small test beam-10 bAbI-2"]="40:00"   ["large test beam-10 bAbI-2"]="60:00"
+                  # ["small test beam-10 bAbI-3"]="451:??"  ["large test beam-10 bAbI-3"]="UNK:??"
+                    ["small test beam-10 bAbI-3"]="?:??"    ["large test beam-10 bAbI-3"]="?:??"
+                  # ["small test beam-10 BoolQ"]="0:40"     ["large test beam-10 BoolQ"]="1:28"
+                    ["small test beam-10 BoolQ"]="1:00"     ["large test beam-10 BoolQ"]="2:00"
+                  # ["small test beam-10 CB"]="0:53"        ["large test beam-10 CB"]="2:12"
+                    ["small test beam-10 CB"]="1:30"        ["large test beam-10 CB"]="3:00"
+                  # ["small test beam-10 CoLA"]="0:16"      ["large test beam-10 CoLA"]="0:25"
+                    ["small test beam-10 CoLA"]="1:00"      ["large test beam-10 CoLA"]="1:00"
+                  # ["small test beam-10 IMDB"]="?:??"      ["large test beam-10 IMDB"]="?:??"
+                    ["small test beam-10 IMDB"]="?:??"      ["large test beam-10 IMDB"]="?:??"
+                  # ["small test beam-10 MIMIC-a"]="UNK:??" ["large test beam-10 MIMIC-a"]="UNK:??"
+                    ["small test beam-10 MIMIC-a"]="?:??"   ["large test beam-10 MIMIC-a"]="?:??"
+                  # ["small test beam-10 MIMIC-d"]="UNK:??" ["large test beam-10 MIMIC-d"]="UNK:??"
+                    ["small test beam-10 MIMIC-d"]="?:??"   ["large test beam-10 MIMIC-d"]="?:??"
+                  # ["small test beam-10 MNLI"]="?:??"      ["large test beam-10 MNLI"]="?:??"
+                    ["small test beam-10 MNLI"]="2:00"      ["large test beam-10 MNLI"]="4:00"
+                  # ["small test beam-10 MRPC"]="0:19"      ["large test beam-10 MRPC"]="0:38"
+                    ["small test beam-10 MRPC"]="1:00"      ["large test beam-10 MRPC"]="1:00"
+                  # ["small test beam-10 QNLI"]="?:??"      ["large test beam-10 QNLI"]="?:??"
+                    ["small test beam-10 QNLI"]="2:00"      ["large test beam-10 QNLI"]="4:00"
+                  # ["small test beam-10 QQP"]="?:??"       ["large test beam-10 QQP"]="?:??"
+                    ["small test beam-10 QQP"]="??:??"      ["large test beam-10 QQP"]="??:??"
+                  # ["small test beam-10 RTE"]="1:38"       ["large test beam-10 RTE"]="5:??"
+                    ["small test beam-10 RTE"]="2:00"       ["large test beam-10 RTE"]="6:00"
+                  # ["small test beam-10 SST2"]="0:22"      ["large test beam-10 SST2"]="0:49"
+                    ["small test beam-10 SST2"]="1:00"      ["large test beam-10 SST2"]="1:30"
+                  # ["small test beam-10 WNLI"]="?:??"      ["large test beam-10 WNLI"]="?:??"
+                    ["small test beam-10 WNLI"]="?:??"      ["large test beam-10 WNLI"]="?:??" )
 
 for model in 'roberta-sb' 'roberta-sl' # 'roberta-m15' 'roberta-m20' 'roberta-m30' 'roberta-m40' 'roberta-m50'
 do
-    for dataset in 'bAbI-1' 'bAbI-2' 'bAbI-3' 'BoolQ' 'CB' 'CoLA' 'MIMIC-a' 'MIMIC-d' 'MRPC' 'RTE' 'SST2'  # 'IMDB' 'MNLI' 'QNLI' 'QQP' 'WNLI'
+    for dataset in 'bAbI-1' 'bAbI-2' 'bAbI-3' 'BoolQ' 'CB' 'CoLA' 'MIMIC-a' 'MIMIC-d' 'MRPC' 'RTE' 'SST2' # 'SNLI' 'IMDB' 'MNLI' 'QNLI' 'QQP' # 'WNLI'
     do
-        for explainer in 'rand' 'grad-l1' 'grad-l2' 'inp-grad-abs' 'inp-grad-sign' 'int-grad-abs' 'int-grad-sign' 'loo-sign' 'loo-abs' # 'beam-sign-10'
+        for explainer in 'rand' 'grad-l1' 'grad-l2' 'inp-grad-abs' 'inp-grad-sign' 'int-grad-abs' 'int-grad-sign' 'loo-sign' 'loo-abs' 'beam-sign-10'
         do
             for split in 'test'
             do
-                for max_masking_ratio in 0 100
+                for max_masking_ratio in 100 0
                 do
-                    submit_seeds "${time[${size[$model]} $split ${algo[$explainer]} $dataset]}" "$seeds" $(job_script gpu) \
-                        experiments/faithfulness.py \
-                        --model "${model}" \
-                        --dataset "${dataset}" \
-                        --max-masking-ratio "${max_masking_ratio}" \
-                        --masking-strategy 'half-det' \
-                        --validation-dataset 'both' \
-                        --explainer "${explainer}" \
-                        --split "${split}" \
-                        --jit-compile \
-                        --save-masked-datasets
+                    for seeds in 0 1 2 3 4
+                    do
+                      submit_seeds "${time[${size[$model]} $split ${algo[$explainer]} $dataset]}" "$seeds" $(job_script gpu) \
+                          experiments/faithfulness.py \
+                          --model "${model}" \
+                          --dataset "${dataset}" \
+                          --max-masking-ratio "${max_masking_ratio}" \
+                          --masking-strategy 'half-det' \
+                          --validation-dataset 'both' \
+                          --explainer "${explainer}" \
+                          --split "${split}" \
+                          --jit-compile \
+                          --save-masked-datasets
+                    done
                 done
             done
         done

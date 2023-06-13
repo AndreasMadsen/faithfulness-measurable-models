@@ -1,9 +1,9 @@
 
 import tensorflow as tf
-import tensorflow_addons as tfa
+from ._addons_matthew import MatthewsCorrelationCoefficient as tfa_MatthewsCorrelationCoefficient
 
 
-class Matthew(tfa.metrics.MatthewsCorrelationCoefficient):
+class Matthew(tfa_MatthewsCorrelationCoefficient):
     """Make tfa.metrics.MatthewsCorrelationCoefficient compatible with sparse labels
 
     tfa.metrics.MatthewsCorrelationCoefficient assumes the label shape to be [None, num_classes].

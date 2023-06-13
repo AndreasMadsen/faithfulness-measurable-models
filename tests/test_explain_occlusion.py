@@ -16,9 +16,11 @@ def tokenizer():
 @pytest.fixture
 def model(tokenizer):
     return LookupTestModel.from_string(tokenizer, mapping={
+                                            #1
         '[BOS] token  [EOS]  [PAD]': (-2.0, 2.0),
         '[BOS] [MASK] [EOS]  [PAD]': (-3.0, 3.0),
 
+                                      #0
         '[BOS] token  token  [EOS]': (2.0, -2.0),
         '[BOS] token  [MASK] [EOS]': (1.0, -1.0),
         '[BOS] [MASK] token  [EOS]': (-1.0, 1.0),
@@ -77,6 +79,16 @@ def x_4(tokenizer):
       .batch(1) \
       .get_single_element()
 
+@pytest.fixture
+def x_124(tokenizer):
+    return tf.data.Dataset.from_tensor_slices([
+        '[BOS] token [EOS] [PAD] [PAD] [PAD]',
+        '[BOS] token token [EOS] [PAD] [PAD]',
+        '[BOS] token token token token [EOS]',
+    ]).map(lambda doc: tokenizer((doc, ))) \
+      .batch(3) \
+      .get_single_element()
+
 
 @pytest.mark.parametrize("config", compile_configs, ids=lambda config: config.name)
 def test_explainer_leave_on_out_abs(tokenizer, model, x_12, config):
@@ -124,4 +136,15 @@ def test_explainer_beam_search_size_above_2(tokenizer, model, x_4, config, beam_
     im = explainer(x_4, tf.constant([0])).to_tensor(default_value=-1).numpy()
     np.testing.assert_allclose(im, [
         [0, 1, 3, 2, 4, 0],
+    ])
+
+@pytest.mark.parametrize("config", compile_configs, ids=lambda config: config.name)
+def test_explainer_beam_search_batching(tokenizer, model, x_124, config):
+    explainer = BeamSearch(tokenizer, model, beam_size=4, **config.args)
+
+    im = explainer(x_124, tf.constant([1, 0, 0])).to_tensor(default_value=-1).numpy()
+    np.testing.assert_allclose(im, [
+        [0, 1, 0, -1, -1, -1],
+        [0, 2, 1,  0, -1, -1],
+        [0, 1, 3,  2,  4,  0],
     ])

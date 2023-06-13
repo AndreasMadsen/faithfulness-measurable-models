@@ -11,7 +11,7 @@ from .input_times_gradient import InputTimesGradientSignExplainer, InputTimesGra
 from .integrated_gradient import IntegratedGradientSignExplainer, IntegratedGradientAbsExplainer
 from .random import RandomExplainer
 from .leave_one_out import LeaveOneOutSign, LeaveOneOutAbs
-from .beam_search import BeamSearch50, BeamSearch20, BeamSearch10
+from .beam_search import BeamSearch, BeamSearch50, BeamSearch20, BeamSearch10
 
 explainers = {
     Explainer._name: Explainer

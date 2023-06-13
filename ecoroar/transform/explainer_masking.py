@@ -12,31 +12,33 @@ def _float_int_multiple(float_tensor, int_tensor):
     return tf.cast(float_tensor * tf.cast(int_tensor, dtype=float_tensor.dtype), dtype=int_tensor.dtype)
 
 class ExplainerMasking(InputTransform):
-    def __init__(self, explainer, tokenizer: Tokenizer):
+    def __init__(self, explainer, tokenizer: Tokenizer, recursive: bool=True):
         """Masks the input according to the importance measure provided by an explainer
 
         Args:
             explainer (ImportanceMeasure): this will be called to explain the (x, y) pair
             tokenizer (Tokenizer): tokenizer, specifically used to provide the mask_token_id
+            recursive (bool, optional): should the importance measure be reevaluated
         """
 
         self._explainer = explainer
         self._tokenizer = tokenizer
+        self._recursive = recursive
+
         self._sequence_identifier = SequenceIndentifier(tokenizer)
 
     @tf.function(reduce_retracing=True)
-    def _mask_inputs_ids_with_im(self, input_ids: tf.Tensor, im: tf.RaggedTensor, masking_ratio: tf.Tensor):
+    def _mask_inputs_ids_with_im(self, input_ids: tf.Tensor, im: tf.Tensor, masking_ratio: tf.Tensor):
         first_sequence_mask = self._sequence_identifier(input_ids) == 1
 
         # ensure that already masked values will continue to be masked,
         # by assigning them infinite importance.
-        im_dense = im.to_tensor(default_value=-np.inf, shape=tf.shape(input_ids))
-        im_dense = tf.where(input_ids == self._tokenizer.mask_token_id, np.inf, im_dense)
+        im = tf.where(input_ids == self._tokenizer.mask_token_id, np.inf, im)
         # ensure that kept tokens, such as [BOS] and [EOS] will remain
-        im_dense = tf.where(first_sequence_mask, im_dense, -np.inf)
+        im = tf.where(first_sequence_mask, im, -np.inf)
 
         # Rank importance measure
-        ranking = tf.argsort(im_dense, axis=1, direction='DESCENDING', stable=True)
+        ranking = tf.argsort(im, axis=1, direction='DESCENDING', stable=True)
 
         # Create an indice tensor mask_ranking[batch_idx] = [token_idx, ...] tensor with the
         # top `masking_ratio` elements selected. Make sure that kept_tokens are not selected.
@@ -55,10 +57,7 @@ class ExplainerMasking(InputTransform):
         )
 
     @tf.function(reduce_retracing=True)
-    def _mask_input(self, x: TokenizedDict, y: tf.Tensor, masking_ratio: tf.Tensor) -> TokenizedDict:
-        # Compute importance measure
-        im = self._explainer(x, y)
-
+    def _mask_input(self, x: TokenizedDict, y: tf.Tensor, im: tf.Tensor, masking_ratio: tf.Tensor) -> TokenizedDict:
         return {
             'input_ids': self._mask_inputs_ids_with_im(x['input_ids'], im, masking_ratio),
             'attention_mask': x['attention_mask']
@@ -90,18 +89,37 @@ class ExplainerMasking(InputTransform):
 
         masking_ratio_tf = tf.convert_to_tensor(masking_ratio, dtype=tf.dtypes.float32)
 
+        # define mapping function
         if masking_ratio == 0.0:
-            return (lambda dataset: dataset)
+            if self._recursive:
+                return lambda dataset: dataset.map(
+                   lambda x, y: (x, y, tf.zeros((tf.shape(x['input_ids'])[0], 0), dtype=tf.dtypes.float32))
+                )
+            else:
+                def _mapper(x, y):
+                    im = self._explainer(x, y).to_tensor(default_value=-np.inf, shape=tf.shape(x['input_ids']))
+                    return (x, y, im)
+                def _output_signature(dataset):
+                    return (*tf.data.experimental.get_structure(dataset),
+                            tf.TensorSpec(shape=(None,None), dtype=tf.dtypes.float32))
 
         elif masking_ratio == 1.0:
             # Avoid computing importance measure at 100% masking
-            def _mapper(x, y):
-                return (self._mask_input_100p(x, y), y)
-        else:
-            def _mapper(x, y):
-                return (self._mask_input(x, y, masking_ratio_tf), y)
+            def _mapper(x, y, im):
+                return (self._mask_input_100p(x, y), y, im)
+            def _output_signature(dataset):
+                return tf.data.experimental.get_structure(dataset)
 
-        def _output_signature(dataset):
-            return tf.data.experimental.get_structure(dataset)
+        else:
+            if self._recursive:
+                def _mapper(x, y, im_empty):
+                    im = self._explainer(x, y).to_tensor(default_value=-np.inf, shape=tf.shape(x['input_ids']))
+                    return (self._mask_input(x, y, im, masking_ratio_tf), y, im_empty)
+            else:
+                def _mapper(x, y, im):
+                    return (self._mask_input(x, y, im, masking_ratio_tf), y, im)
+
+            def _output_signature(dataset):
+                return tf.data.experimental.get_structure(dataset)
 
         return MapOnGPU(_mapper, _output_signature)

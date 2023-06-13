@@ -4,7 +4,7 @@ def generate_experiment_id(name: str,
                            seed: int = None, max_epochs: int = None,
                            max_masking_ratio: int = None, masking_strategy: str = None,
                            validation_dataset: str = None,
-                           explainer: str = None, split: str = None,
+                           explainer: str = None, recursive: bool = None, split: str = None,
                            ood: str = None, dist_repeats: int = None):
     """Creates a standardized experiment name.
 
@@ -22,6 +22,7 @@ def generate_experiment_id(name: str,
         masking_strategy (str, optional): the masking strategy to use for masking during fune-tuning.
         validation_dataset (str, optional): The transformation applied to the validation dataset used for early stopping.
         explainer (str, optional): the explanation algorithm used.
+        recursive (boo, optional): are the importance measures computed recursively.
         split (str, optional): the split faithfulness evaluation is performed on.
         ood (str, optional): the ood detection method used.
         dist_repeats (int, optional): the number of repeats used to estimate the distribution for ood
@@ -46,6 +47,8 @@ def generate_experiment_id(name: str,
         experiment_id += f"_v-{validation_dataset}"
     if isinstance(explainer, str):
         experiment_id += f"_x-{explainer.lower()}"
+    if isinstance(recursive, bool):
+        experiment_id += f"_re-{int(recursive)}"
     if isinstance(split, str):
         experiment_id += f"_sp-{split.lower()}"
     if isinstance(ood, str):

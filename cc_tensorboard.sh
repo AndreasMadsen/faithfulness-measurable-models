@@ -7,7 +7,7 @@ source $SLURM_TMPDIR/env/bin/activate
 python -m pip install --no-index -U pip setuptools
 
 # Install tensorboard
-python -m pip install tensorflow tensorboard
+python -m pip install --no-index --find-links $HOME/python_wheels 'tensorflow==2.12.0' tensorboard tensorboard_plugin_profile
 
 tb() {
     logdir=

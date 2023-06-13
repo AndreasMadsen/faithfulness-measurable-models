@@ -11,7 +11,7 @@ python -m pip install -U build
 # Download package dependencies
 mkdir -p $HOME/python_wheels
 cd $HOME/python_wheels
-python -m pip download --no-deps 'tensorflow_datasets >= 4.8.2' 'etils[enp,epath]>=0.9.0'
+python -m pip download --no-deps 'array_record' 'tensorboard_plugin_profile' 'gviz-api>=1.9.0'
 
 # Install project
 cd $HOME/workspace/economical-roar
