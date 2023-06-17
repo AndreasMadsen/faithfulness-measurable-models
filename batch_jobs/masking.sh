@@ -19,24 +19,24 @@ declare -A time=( # ["small bAbI-1"]="0:32"  ["large bAbI-1"]="1:04"   20
                     ["small CB"]="0:30"      ["large CB"]="0:40"
                   # ["small CoLA"]="0:22"    ["large CoLA"]="0:37"     15
                     ["small CoLA"]="2:50"    ["large CoLA"]="1:00"
-                  # ["small IMDB"]="2:35"    ["large IMDB"]="6:33"     10
+                  # ["small IMDB"]="1:53"    ["large IMDB"]="4:11"     10
                     ["small IMDB"]="3:00"    ["large IMDB"]="7:00"
                   # ["small MIMIC-a"]="0:52" ["large MIMIC-a"]="2:10"  20
                     ["small MIMIC-a"]="1:20" ["large MIMIC-a"]="2:40"
                   # ["small MIMIC-d"]="1:35" ["large MIMIC-d"]="3:58"  20
                     ["small MIMIC-d"]="2:00" ["large MIMIC-d"]="4:30"
                   # ["small MNLI"]="6:21"    ["large MNLI"]="??:??"    10
-                    ["small MNLI"]="7:00"    ["large MNLI"]="13:30"
+                    ["small MNLI"]="8:00"    ["large MNLI"]="16:00"
                   # ["small MRPC"]="0:17"    ["large MRPC"]="0:30"     20
                     ["small MRPC"]="0:40"    ["large MRPC"]="1:00"
                   # ["small QNLI"]="5:05"    ["large QNLI"]="?:??"     20
                     ["small QNLI"]="5:40"    ["large QNLI"]="13:00"
                   # ["small QQP"]="4:39"     ["large QQP"]="?:??"      10
-                    ["small QQP"]="5:00"     ["large QQP"]="13:00"
+                    ["small QQP"]="6:00"     ["large QQP"]="13:00"
                   # ["small RTE"]="0:23"     ["large RTE"]="0:46"      30
                     ["small RTE"]="0:40"     ["large RTE"]="1:20"
-                  # ["small SNLI"]="4:45"    ["large SNLI"]="10:38"    10
-                    ["small SNLI"]="5:20"    ["large SNLI"]="11:20"
+                  # ["small SNLI"]="5:19"    ["large SNLI"]="10:46"    10
+                    ["small SNLI"]="5:50"    ["large SNLI"]="11:20"
                   # ["small SST2"]="1:24"    ["large SST2"]="2:42"     10
                     ["small SST2"]="1:50"    ["large SST2"]="3:10"
                   # ["small WNLI"]="0:08"    ["large WNLI"]="0:11"     20
@@ -44,7 +44,7 @@ declare -A time=( # ["small bAbI-1"]="0:32"  ["large bAbI-1"]="1:04"   20
 
 for model in 'roberta-sb' 'roberta-sl' # 'roberta-m15' 'roberta-m20' 'roberta-m30' 'roberta-m40' 'roberta-m50'
 do
-    for dataset in 'bAbI-1' 'bAbI-2' 'bAbI-3' 'BoolQ' 'CB' 'CoLA' 'MIMIC-a' 'MIMIC-d' 'MRPC' 'RTE' 'SST2' # 'SNLI' 'IMDB' 'MNLI' 'QNLI' 'QQP' # 'WNLI'
+    for dataset in 'bAbI-1' 'bAbI-2' 'bAbI-3' 'BoolQ' 'CB' 'CoLA' 'MIMIC-a' 'MIMIC-d' 'MRPC' 'RTE' 'SST2' 'SNLI' 'IMDB' 'MNLI' 'QNLI' 'QQP' # 'WNLI'
     do
         for validation_dataset in 'nomask' 'mask' 'both'
         do
@@ -76,6 +76,7 @@ done
 
 for model in 'roberta-sb' 'roberta-sl' # 'roberta-m15' 'roberta-m20' 'roberta-m30' 'roberta-m40' 'roberta-m50'
 do
+    break
     for dataset in 'bAbI-1' 'bAbI-2' 'bAbI-3' 'BoolQ' 'CB' 'CoLA' 'MIMIC-a' 'MIMIC-d' 'MRPC' 'RTE' 'SST2' # 'SNLI' 'IMDB' 'MNLI' 'QNLI' 'QQP' # 'WNLI'
     do
         for max_masking_ratio in 20 40 60 80

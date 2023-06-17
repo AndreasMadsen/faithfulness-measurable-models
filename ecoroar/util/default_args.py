@@ -6,8 +6,8 @@ def default_jit_compile(args):
     if args.dataset is None:
         return None
 
-    # QQP, MNLI, and SNLI are quite slow and raily fails under JIT, this makes them 2x faster
-    return args.dataset in ['QQP', 'MNLI', 'SNLI']
+    # these are quite slow, this makes them 2x faster
+    return args.dataset in ['QQP', 'MNLI', 'QNLI', 'SNLI', 'IMDB']
 
 def default_max_epochs(args):
     if args.max_epochs is not None:

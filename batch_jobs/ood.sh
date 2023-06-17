@@ -37,12 +37,14 @@ declare -A time=( # ["small bAbI-1"]="0:06"  ["large bAbI-1"]="0:10"
                     ["small RTE"]="0:20"     ["large RTE"]="0:20"
                   # ["small SST2"]="?:??"    ["large SST2"]="?:??"
                     ["small SST2"]="1:10"    ["large SST2"]="2:00"
+                  # ["small SNLI"]="?:??"    ["large SNLI"]="?:??"
+                    ["small SNLI"]="0:20"    ["large SNLI"]="0:20"
                   # ["small WNLI"]="?:??"    ["large WNLI"]="?:??"
                     ["small WNLI"]="0:30"    ["large WNLI"]="0:30"      )
 
 for model in 'roberta-sb' 'roberta-sl' # 'roberta-m15' 'roberta-m20' 'roberta-m30' 'roberta-m40' 'roberta-m50'
 do
-    for dataset in 'bAbI-1' 'bAbI-2' 'bAbI-3' 'BoolQ' 'CB' 'CoLA' 'MIMIC-a' 'MIMIC-d' 'MRPC' 'RTE' 'SST2'  # 'IMDB' 'MNLI' 'QNLI' 'QQP' 'WNLI'
+    for dataset in 'bAbI-1' 'bAbI-2' 'bAbI-3' 'BoolQ' 'CB' 'CoLA' 'MIMIC-a' 'MIMIC-d' 'MRPC' 'RTE' 'SST2' 'SNLI' 'IMDB' # 'MNLI' 'QNLI' 'QQP' # 'WNLI'
     do
         for explainer in 'rand' 'grad-l1' 'grad-l2' 'inp-grad-abs' 'inp-grad-sign' 'int-grad-abs' 'int-grad-sign' 'loo-sign' 'loo-abs' 'beam-sign-10'
         do
@@ -51,7 +53,7 @@ do
                 for dist_repeat in 1 # 2 4 6 8 10
                 do
                     if [[ "${explainer}" == "beam-"* ]]; then
-                      if [[ "${dataset}" == "bAbI-3" || "${dataset}" == "MIMIC-a" || "${dataset}" == "MIMIC-d" ]]; then
+                      if [[ "${dataset}" == "bAbI-3" || "${dataset}" == "MIMIC-"* || "${dataset}" == "IMDB" ]]; then
                         break;
                       fi
                     fi
