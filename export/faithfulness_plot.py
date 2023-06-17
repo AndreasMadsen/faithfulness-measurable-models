@@ -110,9 +110,6 @@ if __name__ == "__main__":
         {
             'args.dataset': dataset._name,
             'target_metric': dataset._early_stopping_metric if args.performance_metric == 'primary' else args.performance_metric,
-            'baseline': dataset.majority_classifier_test_performance()[
-                dataset._early_stopping_metric if args.performance_metric == 'primary' else args.performance_metric
-            ],
             'convergence_threshold': dataset._convergence_threshold,
         }
         for dataset in datasets.values()
@@ -214,11 +211,11 @@ if __name__ == "__main__":
                 axis_text_x=p9.element_text(angle = 60, hjust=1)
             )
         elif args.format == 'appendix':
-            size = (6.30045, 8.6)
+            size = (6.30045, 8.5)
             p += p9.guides(color=p9.guide_legend(ncol=5))
             p += p9.theme(
                 text=p9.element_text(size=10, fontname='Times New Roman'),
-                subplots_adjust={'bottom': 0.16},
+                subplots_adjust={'bottom': 0.15},
                 panel_spacing=.05,
                 legend_box_margin=0,
                 legend_position=(.5, .05),

@@ -84,7 +84,7 @@ class _AllAnnotations():
             'int-grad-abs': 'IG (abs)',
             'loo-sign': 'LOO (sign)',
             'loo-abs': 'LOO (abs)',
-            'beam-sign-10': 'Beam (10)',
+            'beam-sign-10': 'Beam',
         })
         self.explainer_sign = _AnnotationMapping({
             'abs': 'Absolute',
@@ -97,7 +97,7 @@ class _AllAnnotations():
             'inp-grad': 'x $\odot$ grad',
             'int-grad': 'IG',
             'loo': 'LOO',
-            'beam-10': 'Beam (10)',
+            'beam-10': 'Beam',
         })
 
 

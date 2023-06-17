@@ -19,6 +19,23 @@ def select_target_metric(df):
         metric = df.reindex(cols, axis=1).to_numpy()[np.arange(len(df)), idx]
     )
 
+def get_validation_performance(history, test_results):
+    losses = [epoch_losses['loss'] for epoch_losses in history]
+    best_epoch_losses = history[np.argmin(losses)]
+
+    test_keys = test_results[0].keys()
+    val_results = [
+        {
+            metric_name: (
+                masking_ratio
+                if metric_name == 'masking_ratio'
+                else best_epoch_losses[f'val_{masking_ratio*100:.0f}_{metric_name}']
+            ) for metric_name in test_keys
+        }
+        for masking_ratio in [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+    ]
+    return val_results
+
 parser = argparse.ArgumentParser(
     description = 'Plots the 0% masking test performance given different training masking ratios')
 parser.add_argument('--persistent-dir',
@@ -69,6 +86,12 @@ parser.add_argument('--max-masking-ratio',
                     default=100,
                     type=int,
                     help='The maximum masking ratio (percentage integer) to apply on the training dataset')
+parser.add_argument('--split',
+                    action='store',
+                    default='test',
+                    type=str,
+                    choices=['test', 'valid'],
+                    help='Either test or valid, chooses which dataset to take results from')
 
 if __name__ == "__main__":
     pd.set_option('display.max_rows', None)
@@ -80,7 +103,7 @@ if __name__ == "__main__":
         {
             'args.dataset': dataset._name,
             'target_metric': dataset._early_stopping_metric if args.performance_metric == 'primary' else args.performance_metric,
-            'baseline': dataset.majority_classifier_test_performance()[
+            'baseline': dataset.majority_classifier_performance(args.split)[
                 dataset._early_stopping_metric if args.performance_metric == 'primary' else args.performance_metric
             ]
         }
@@ -93,7 +116,8 @@ if __name__ == "__main__":
 
     experiment_id = generate_experiment_id('masked_100p_performance_by_valid_ms',
                                             model=args.model_category,
-                                            max_masking_ratio=args.max_masking_ratio)
+                                            max_masking_ratio=args.max_masking_ratio,
+                                            split=args.split)
 
     if args.stage in ['both', 'preprocess']:
         # Read JSON files into dataframe
@@ -109,6 +133,8 @@ if __name__ == "__main__":
                 if data['args']['max_masking_ratio'] in [0, args.max_masking_ratio] and \
                    data['args']['model'] in model_categories[args.model_category] and \
                    data['args']['dataset'] in all_datasets:
+                    if args.split == 'valid':
+                        data['results'] = get_validation_performance(data['history'], data['results'])
                     results.append(data)
 
         df = pd.json_normalize(results).explode('results', ignore_index=True)
@@ -205,7 +231,7 @@ if __name__ == "__main__":
             )
             p += p9.theme(
                 text=p9.element_text(size=10, fontname='Times New Roman'),
-                subplots_adjust={'bottom': 0.33},
+                subplots_adjust={'bottom': 0.31},
                 panel_spacing=.05,
                 legend_box_margin=0,
                 legend_position=(.5, .05),

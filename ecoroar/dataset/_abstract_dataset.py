@@ -78,15 +78,15 @@ class AbstractDataset(metaclass=ABCMeta):
         return f'val_{self._early_stopping_metric}'
 
     @classmethod
-    def majority_classifier_test_performance(cls):
+    def majority_classifier_performance(cls, split: str = 'test'):
         class_count_train = np.asarray(cls._class_count_train)
-        class_count_test = np.asarray(cls._class_count_test)
+        class_count_measure = np.asarray(getattr(cls, f'_class_count_{split}'))
         best_class_idx = np.argmax(class_count_train)
         num_classes = class_count_train.size
 
         # Some notation from https://en.wikipedia.org/wiki/Phi_coefficient
-        c = class_count_test[best_class_idx] # total number of smaples correctly predicted
-        s = np.sum(class_count_test) # total number of samples
+        c = class_count_measure[best_class_idx] # total number of smaples correctly predicted
+        s = np.sum(class_count_measure) # total number of samples
 
         possible_metric = {
             'loss': np.nan,  # Not possible to compute cross entropy of zero probability
@@ -106,7 +106,7 @@ class AbstractDataset(metaclass=ABCMeta):
         return {
             'name': cls._name,
             'metric': cls._early_stopping_metric,
-            'baseline': cls.majority_classifier_test_performance()[cls._early_stopping_metric],
+            'baseline': cls.majority_classifier_performance('test')[cls._early_stopping_metric],
             'train': sum(cls._class_count_train),
             'valid': sum(cls._class_count_valid),
             'test': sum(cls._class_count_test),

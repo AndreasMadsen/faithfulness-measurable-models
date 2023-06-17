@@ -27,8 +27,10 @@ plot-train:
 plot: plot-train plot-faithfulness plot-ood
 
 appendix-train:
-	python export/unmasked_performance_by_valid_ms_plot.py --dataset bAbI-1 bAbI-2 bAbI-3 BoolQ CB CoLA MIMIC-a MIMIC-d MRPC RTE SST2 --model-category size --max-masking-ratio 100 --format appendix
-	python export/masked_100p_performance_by_valid_ms_plot.py --dataset bAbI-1 bAbI-2 bAbI-3 BoolQ CB CoLA MIMIC-a MIMIC-d MRPC RTE SST2 --model-category size --max-masking-ratio 100 --format appendix
+	python export/unmasked_performance_by_valid_ms_plot.py --dataset bAbI-1 bAbI-2 bAbI-3 BoolQ CB CoLA MIMIC-a MIMIC-d MRPC RTE SST2 --model-category size --max-masking-ratio 100 --split test --format appendix
+	python export/masked_100p_performance_by_valid_ms_plot.py --dataset bAbI-1 bAbI-2 bAbI-3 BoolQ CB CoLA MIMIC-a MIMIC-d MRPC RTE SST2 --model-category size --max-masking-ratio 100 --split test --format appendix
+	python export/unmasked_performance_by_valid_ms_plot.py --dataset bAbI-1 bAbI-2 bAbI-3 BoolQ CB CoLA MIMIC-a MIMIC-d MRPC RTE SST2 --model-category size --max-masking-ratio 100 --split valid --format appendix
+	python export/masked_100p_performance_by_valid_ms_plot.py --dataset bAbI-1 bAbI-2 bAbI-3 BoolQ CB CoLA MIMIC-a MIMIC-d MRPC RTE SST2 --model-category size --max-masking-ratio 100 --split valid --format appendix
 
 appendix-ood:
 	python export/ood_plot.py --dataset bAbI-1 bAbI-2 bAbI-3 BoolQ CB CoLA MIMIC-a MIMIC-d MRPC RTE SST2 --model roberta-sl --max-masking-ratio 100 --masking-strategy half-det --validation-dataset both --dist-repeat 1 --method simes --threshold 0.05 --format appendix
@@ -42,6 +44,11 @@ appendix-faithfulness:
 	python export/faithfulness_plot.py --dataset bAbI-1 bAbI-2 bAbI-3 BoolQ CB CoLA MIMIC-a MIMIC-d MRPC RTE SST2 --model roberta-sl --max-masking-ratio 100 --masking-strategy half-det --validation-dataset both --format appendix
 
 appendix-tables:
+	python3 export/racu_table.py --model roberta-sb --page 1 --dataset bAbI-1 bAbI-2 bAbI-3 BoolQ CB CoLA --format appendix
+	python3 export/racu_table.py --model roberta-sb --page 2 --dataset MIMIC-a MIMIC-d MRPC RTE SST2 --format appendix
+	python3 export/racu_table.py --model roberta-sl --page 1 --dataset bAbI-1 bAbI-2 bAbI-3 BoolQ CB CoLA --format appendix
+	python3 export/racu_table.py --model roberta-sl --page 2 --dataset MIMIC-a MIMIC-d MRPC RTE SST2 --format appendix
+
 	python export/datasets_table.py --dataset bAbI-1 bAbI-2 bAbI-3 BoolQ CB CoLA MIMIC-a MIMIC-d MRPC RTE SST2 --format appendix
 	python export/models_table.py --dataset bAbI-1 bAbI-2 bAbI-3 BoolQ CB CoLA MIMIC-a MIMIC-d MRPC RTE SST2 --format appendix
 	python export/walltime_fine-tune_table.py --dataset bAbI-1 bAbI-2 bAbI-3 BoolQ CB CoLA MIMIC-a MIMIC-d MRPC RTE SST2 --format appendix
@@ -56,12 +63,15 @@ paper-train:
 	python export/masked_100p_performance_by_valid_ms_plot.py --dataset MRPC BoolQ --aggregate bAbI-1 bAbI-2 bAbI-3 BoolQ CB CoLA MIMIC-a MIMIC-d MRPC RTE SST2 --model-category size --max-masking-ratio 100 --format paper
 
 paper-ood:
-	python export/ood_plot.py --dataset MRPC BoolQ --model roberta-sl --max-masking-ratio 100 --masking-strategy half-det --validation-dataset both --dist-repeat 1 --method simes --threshold 0.05 --format paper
+	python export/ood_plot.py --dataset MRPC BoolQ --model roberta-sb --max-masking-ratio 100 --masking-strategy half-det --validation-dataset both --dist-repeat 1 --method simes --threshold 0.05 --format paper
 
 paper-faithfulness:
-	python export/faithfulness_plot.py --dataset MRPC BoolQ --model-category size --max-masking-ratio 100 --masking-strategy half-det --validation-dataset both --format paper
+	python export/faithfulness_plot.py --dataset MRPC BoolQ --model roberta-sb --max-masking-ratio 100 --masking-strategy half-det --validation-dataset both --format paper
 
-paper: paper-train paper-ood paper-faithfulness
+paper-tables:
+	python3 export/racu_table.py --model roberta-sb --datasets MIMIC-a MIMIC-d SST2 bAbI-1 --max-masking-ratio 100 --masking-strategy half-det --validation-dataset both --format paper
+
+paper: paper-train paper-ood paper-faithfulness paper-tables
 
 download-intermediate-cedar:
 	rsync --info=progress2 -urltv --delete \

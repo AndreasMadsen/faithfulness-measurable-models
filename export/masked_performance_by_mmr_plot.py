@@ -77,7 +77,7 @@ if __name__ == "__main__":
         {
             'args.dataset': dataset._name,
             'target_metric': dataset._early_stopping_metric if args.performance_metric == 'primary' else args.performance_metric,
-            'baseline': dataset.majority_classifier_test_performance()[
+            'baseline': dataset.majority_classifier_performance()[
                 dataset._early_stopping_metric if args.performance_metric == 'primary' else args.performance_metric
             ]
         }
