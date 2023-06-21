@@ -19,20 +19,20 @@ declare -A time=( # ["small bAbI-1"]="0:06"  ["large bAbI-1"]="0:10"
                     ["small CB"]="0:20"      ["large CB"]="0:20"
                   # ["small CoLA"]="0:09"    ["large CoLA"]="0:10"
                     ["small CoLA"]="0:20"    ["large CoLA"]="0:20"
-                  # ["small IMDB"]="0:??"    ["large IMDB"]="?:??"
-                    ["small IMDB"]="0:20"    ["large IMDB"]="5:40"
+                  # ["small IMDB"]="0:18"    ["large IMDB"]="0:48"
+                    ["small IMDB"]="0:30"    ["large IMDB"]="1:20"
                   # ["small MIMIC-a"]="0:07" ["large MIMIC-a"]="0:05"
                     ["small MIMIC-a"]="0:20" ["large MIMIC-a"]="0:20"
                   # ["small MIMIC-d"]="0:07" ["large MIMIC-d"]="0:07"
                     ["small MIMIC-d"]="0:20" ["large MIMIC-d"]="0:20"
-                  # ["small MNLI"]="?:??"    ["large MNLI"]="?:??"
-                    ["small MNLI"]="6:20"    ["large MNLI"]="11:30"
+                  # ["small MNLI"]="0:21"    ["large MNLI"]="1:02"
+                    ["small MNLI"]="1:00"    ["large MNLI"]="1:30"
                   # ["small MRPC"]="0:06"    ["large MRPC"]="0:06"
                     ["small MRPC"]="0:20"    ["large MRPC"]="0:20"
-                  # ["small QNLI"]="?:??"    ["large QNLI"]="?:??"
-                    ["small QNLI"]="3:30"    ["large QNLI"]="7:00"
-                  # ["small QQP"]="?:??"     ["large QQP"]="?:??"
-                    ["small QQP"]="4:00"     ["large QQP"]="9:00"
+                  # ["small QNLI"]="0:06"    ["large QNLI"]="0:13"
+                    ["small QNLI"]="0:30"    ["large QNLI"]="0:40"
+                  # ["small QQP"]="0:49"     ["large QQP"]="2:12"
+                    ["small QQP"]="1:20"     ["large QQP"]="3:00"
                   # ["small RTE"]="0:06"     ["large RTE"]="0:07"
                     ["small RTE"]="0:20"     ["large RTE"]="0:20"
                   # ["small SST2"]="?:??"    ["large SST2"]="?:??"
@@ -44,7 +44,7 @@ declare -A time=( # ["small bAbI-1"]="0:06"  ["large bAbI-1"]="0:10"
 
 for model in 'roberta-sb' 'roberta-sl' # 'roberta-m15' 'roberta-m20' 'roberta-m30' 'roberta-m40' 'roberta-m50'
 do
-    for dataset in 'bAbI-1' 'bAbI-2' 'bAbI-3' 'BoolQ' 'CB' 'CoLA' 'MIMIC-a' 'MIMIC-d' 'MRPC' 'RTE' 'SST2' 'SNLI' 'IMDB' # 'MNLI' 'QNLI' 'QQP' # 'WNLI'
+    for dataset in 'bAbI-1' 'bAbI-2' 'bAbI-3' 'BoolQ' 'CB' 'CoLA' 'MIMIC-a' 'MIMIC-d' 'MRPC' 'RTE' 'SST2' 'SNLI' 'IMDB' 'MNLI' 'QNLI' 'QQP' # 'WNLI'
     do
         for explainer in 'rand' 'grad-l1' 'grad-l2' 'inp-grad-abs' 'inp-grad-sign' 'int-grad-abs' 'int-grad-sign' 'loo-sign' 'loo-abs' 'beam-sign-10'
         do
