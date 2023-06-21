@@ -8,15 +8,36 @@ This module is not published on PyPi but you can install directly with:
 python -m pip install -e .
 ```
 
+## API
+
+The module will then be available under `ecoroar`. For example, to use the `MaSF` implementation:
+
+```python
+from ecoroar.ood import MaSF
+from ecoroar.dataset import BoolQ
+
+tokenizer = HuggingfaceTokenizer(path_to_fine_tuned_model)
+model = huggingface_model_from_local(path_to_fine_tuned_model)
+ood_detector = MaSF(tokenizer, model)
+
+ood_detector.fit(masked_validation_dataset)
+dataset_split_annotated = masked_test_dataset.apply(ood_detector)
+```
+
+All parts are documented via their docstring. It is recommended to use the experiment reference scripts
+in `experiments/` as examples.
+
 ## Experiments
 
 ### Tasks
 
 There are scripts for each type of experiment:
 
-1. Masked model training: `python experiments/masking.py`
+1. Model fine-tuning: `python experiments/masking.py`
 2. Faithfulness evaluation: `python experiments/faithfulness.py`
 3. OOD evaluation: `python experiments/ood.py`
+
+The importance measures used by OOD are calculated in the `python experiments/faithfulness.py` script.
 
 ### Parameters
 
@@ -24,10 +45,44 @@ Each of the above scripts takes the same set of CLI arguments. You can learn
 about each argument with `--help`. The most important arguments which
 will allow you to run the experiments presented in the paper are:
 
-* `--dataset`: The dataset used.
-* `--model`: The model used.
-* `--explainer`: The importance measure used.
-* `--masking-strategy` The masking strategy to use during fine-tuning.
+**used in step fine-tuning, faithfulness, and OOD.**
+
+* `--dataset`: The dataset used. Can be `BoolQ`, `CB`, `CoLA`, `IMDB`, `MNLI`, `MRPC`, `QNLI`, `QQP`, `RTE`, `SNLI`, `SST2`, `WNLI`, `bAbI-1`, `bAbI-2`, `bAbI-3`, `MIMIC-d` (Diabetes), or `MIMIC-a` (Anemia).
+* `--model`: The model used. Can be `roberta-sl` (RoBERTa-large) or `roberta-sb` (RoBERTa-base).
+* `--max-masking-ratio'`: The maximum masking ratio (percentage integer) to apply on the training dataset.
+* `--masking-strategy`: The masking strategy to use for masking during fune-tuning.
+* `--validation-dataset`: The masking strategy to use for masking during fune-tuning.
+
+Use `--max-masking-ratio 100 --masking-strategy half-det --validation-dataset both` to run the _masked fine-tuning_ experiments.
+
+For example:
+
+```sh
+python experiments/masking.py --max-masking-ratio 100 --masking-strategy half-det --validation-dataset both --dataset BoolQ --model roberta-sl
+```
+
+**used in step faithfulness and OOD.**
+
+* `--explainer`: The importance measure used. Can be `rand`, `grad-l2`, `grad-l1`, `inp-grad-sign`, `inp-grad-abs`, `int-grad-sign`, `int-grad-abs`, `loo-sign`, `loo-abs`, `beam-sign-50`, `beam-sign-20`, or `beam-sign-10`.
+
+Use `--save-masked-datasets` to save the intermediate masked datasets used for evaluating faithfulness. These can later be reused for checking for OOD issues.
+
+For example:
+
+```sh
+python experiments/faithfulness.py --max-masking-ratio 100 --masking-strategy half-det --validation-dataset both --dataset BoolQ --model roberta-sl --explainer int-grad-sign --save-masked-datasets
+```
+
+**used in step OOD.**
+
+* `--ood`: The OOD detection method. Should just be `masf` (default).
+* `--dist-repeats`: How many interations of the validation dataset should be used. For MaSF, just use `1` (default).
+
+For example:
+
+```sh
+python experiments/ood.py --max-masking-ratio 100 --masking-strategy half-det --validation-dataset both --dataset BoolQ --model roberta-sl --explainer int-grad-sign --ood masf
+```
 
 ## Running on a HPC setup
 

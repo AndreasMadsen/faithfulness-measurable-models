@@ -103,6 +103,9 @@ def _beam_select(beam_score, beam_size):
 
 class BeamSearch(ImportanceMeasureBatch):
     _name = 'beam-sign'
+    _signed = True
+    _base_name = 'beam'
+
     _defer_jit = True
     _default_beam_size = None
 
@@ -306,12 +309,15 @@ class BeamSearch(ImportanceMeasureBatch):
 
 class BeamSearch10(BeamSearch):
     _name = 'beam-sign-10'
+    _base_name = 'beam-10'
     _default_beam_size = 10
 
 class BeamSearch20(BeamSearch):
     _name = 'beam-sign-20'
+    _base_name = 'beam-20'
     _default_beam_size = 20
 
 class BeamSearch50(BeamSearch):
     _name = 'beam-sign-50'
+    _base_name = 'beam-50'
     _default_beam_size = 50

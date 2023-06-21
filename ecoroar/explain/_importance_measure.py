@@ -10,6 +10,8 @@ from ..util import get_compiler
 
 class ImportanceMeasure(ABC):
     _name: str
+    _signed: bool
+    _base_name: str
     _defer_jit: bool = False
 
     def __init__(self, tokenizer: Tokenizer, model: Model,

@@ -17,6 +17,7 @@ class AbstractDataset(metaclass=ABCMeta):
     _early_stopping_metric: str
     _jain_etal_metric: Optional[str]
     _target_name: str = 'label'
+    _convergence_threshold = -1  # A very lower-bound to check if the model convereged
 
     _split_train: str
     _split_valid: str
@@ -29,6 +30,9 @@ class AbstractDataset(metaclass=ABCMeta):
     _class_count_train: List[int]
     _class_count_valid: List[int]
     _class_count_test: List[int]
+
+    _input_masked: str
+    _input_aux: Optional[str] = None
 
     def __init__(self, persistent_dir: pathlib.Path, seed: int = 0, use_snapshot=True, use_cache=True):
         """Abstract Base Class for defining a dataset with standard train/valid/test semantics.
@@ -74,15 +78,15 @@ class AbstractDataset(metaclass=ABCMeta):
         return f'val_{self._early_stopping_metric}'
 
     @classmethod
-    def majority_classifier_test_performance(cls):
+    def majority_classifier_performance(cls, split: str = 'test'):
         class_count_train = np.asarray(cls._class_count_train)
-        class_count_test = np.asarray(cls._class_count_test)
+        class_count_measure = np.asarray(getattr(cls, f'_class_count_{split}'))
         best_class_idx = np.argmax(class_count_train)
         num_classes = class_count_train.size
 
         # Some notation from https://en.wikipedia.org/wiki/Phi_coefficient
-        c = class_count_test[best_class_idx] # total number of smaples correctly predicted
-        s = np.sum(class_count_test) # total number of samples
+        c = class_count_measure[best_class_idx] # total number of smaples correctly predicted
+        s = np.sum(class_count_measure) # total number of samples
 
         possible_metric = {
             'loss': np.nan,  # Not possible to compute cross entropy of zero probability
@@ -95,6 +99,19 @@ class AbstractDataset(metaclass=ABCMeta):
 
         return {
             metric_name: possible_metric[metric_name] for metric_name in cls._metrics + ['loss']
+        }
+
+    @classmethod
+    def summary(cls):
+        return {
+            'name': cls._name,
+            'metric': cls._early_stopping_metric,
+            'baseline': cls.majority_classifier_performance('test')[cls._early_stopping_metric],
+            'train': sum(cls._class_count_train),
+            'valid': sum(cls._class_count_valid),
+            'test': sum(cls._class_count_test),
+            'masked': cls._input_masked,
+            'auxilary': cls._input_aux
         }
 
     @property

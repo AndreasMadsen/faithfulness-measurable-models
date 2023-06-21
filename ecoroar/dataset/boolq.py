@@ -16,6 +16,9 @@ class BoolQDataset(AbstractDataset):
     _class_count_valid = [744, 1141]
     _class_count_test = [1237, 2033]
 
+    _input_masked = 'passage'
+    _input_aux = 'question'
+
     def _builder(self, data_dir):
         return tfds.builder("super_glue/boolq", data_dir=data_dir)
 

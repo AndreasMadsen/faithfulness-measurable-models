@@ -116,7 +116,7 @@ def test_class_count(info):
 def test_majority_classifier_test_performance(info):
     Dataset = datasets[info.name]
     metrics = Dataset(persistent_dir=pathlib.Path('.'), use_snapshot=False, use_cache=False).metrics()
-    performance = Dataset.majority_classifier_test_performance()
+    performance = Dataset.majority_classifier_performance()
 
     class_count_test = np.asarray(Dataset._class_count_test)
     best_class_idx = np.argmax(Dataset._class_count_train)

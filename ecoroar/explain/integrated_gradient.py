@@ -6,6 +6,8 @@ from ._importance_measure import ImportanceMeasureBatch
 
 class IntegratedGradientSignExplainer(ImportanceMeasureBatch):
     _name = 'int-grad-sign'
+    _signed = True
+    _base_name = 'int-grad'
 
     def __init__(self, *args, riemann_samples=20, **kwargs) -> None:
         super().__init__(*args, **kwargs)
@@ -76,6 +78,7 @@ class IntegratedGradientSignExplainer(ImportanceMeasureBatch):
 
 class IntegratedGradientAbsExplainer(IntegratedGradientSignExplainer):
     _name = 'int-grad-abs'
+    _signed = False
 
     def _explain_batch(self, x, y):
         yc_wrt_x_compact = super()._explain_batch(x, y)

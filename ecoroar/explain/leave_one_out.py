@@ -24,6 +24,8 @@ def _create_mask(maskable_tokens):
 
 class LeaveOneOutSign(ImportanceMeasureBatch):
     _name = 'loo-sign'
+    _signed = True
+    _base_name = 'loo'
     _defer_jit = True
 
     def __init__(self, tokenizer: Tokenizer, *args,
@@ -83,6 +85,7 @@ class LeaveOneOutSign(ImportanceMeasureBatch):
 
 class LeaveOneOutAbs(LeaveOneOutSign):
     _name = 'loo-abs'
+    _signed = False
 
     def _explain_batch(self, x, y):
         importance = super()._explain_batch(x, y)

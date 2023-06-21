@@ -6,6 +6,8 @@ from ._importance_measure import ImportanceMeasureBatch
 
 class InputTimesGradientSignExplainer(ImportanceMeasureBatch):
     _name = 'inp-grad-sign'
+    _signed = True
+    _base_name = 'inp-grad'
 
     def _explain_batch(self, x, y):
         # Prepear a compact embedding matrix for doing sum(x * dy/dz @ W.T) efficently.
@@ -48,6 +50,7 @@ class InputTimesGradientSignExplainer(ImportanceMeasureBatch):
 
 class InputTimesGradientAbsExplainer(InputTimesGradientSignExplainer):
     _name = 'inp-grad-abs'
+    _signed = False
 
     def _explain_batch(self, x, y):
         yc_wrt_x_compact = super()._explain_batch(x, y)

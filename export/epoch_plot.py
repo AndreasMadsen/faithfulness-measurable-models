@@ -116,7 +116,7 @@ if __name__ == "__main__":
                     print(f'{file} has a format error')
 
                 if data['args']['masking_strategy'] == args.masking_strategy and \
-                   data['args']['max_masking_ratio'] == args.max_masking_ratio and \
+                   data['args']['max_masking_ratio'] in [0, args.max_masking_ratio] and \
                    data['args']['model'] in model_categories[args.model_category] and \
                    data['args']['dataset'] in args.datasets and \
                    data['args']['validation_dataset'] in args.validation_dataset:
@@ -131,33 +131,12 @@ if __name__ == "__main__":
         df = (df
               .merge(dataset_mapping, on='args.dataset')
               .transform(partial(select_target_metric, selectors={
-                'metric.train': 'history.',
-                'metric.val': 'history.val_',
                 'metric.val_0': 'history.val_0_',
-                'metric.val_10': 'history.val_10_',
-                'metric.val_20': 'history.val_20_',
-                'metric.val_30': 'history.val_30_',
-                'metric.val_40': 'history.val_40_',
-                'metric.val_50': 'history.val_50_',
-                'metric.val_60': 'history.val_60_',
-                'metric.val_70': 'history.val_70_',
-                'metric.val_80': 'history.val_80_',
-                'metric.val_90': 'history.val_90_',
-                'metric.val_100': 'history.val_100_'
               }))
               .assign(**{'epoch': lambda df: df['history.epoch'] + 1})
               .transform(partial(delete_columns, prefix='history.'))
               .transform(partial(delete_columns, prefix='durations.'))
-              .drop(columns=['results', 'target_metric'])
-              .melt(id_vars=args_columns + ['epoch'],
-                    value_vars=[
-                        'metric.val', 'metric.val_0', 'metric.val_10',
-                        'metric.val_20', 'metric.val_30', 'metric.val_40',
-                        'metric.val_50', 'metric.val_60', 'metric.val_70',
-                        'metric.val_80', 'metric.val_90', 'metric.val_100'
-                    ],
-                    value_name='metric.value',
-                    var_name='metric.dataset'))
+              .drop(columns=['results', 'target_metric']))
 
     if args.stage in ['preprocess']:
         os.makedirs(args.persistent_dir / 'pandas', exist_ok=True)
@@ -166,27 +145,32 @@ if __name__ == "__main__":
         df = pd.read_parquet((args.persistent_dir / 'pandas' / experiment_id).with_suffix('.parquet'))
 
     if args.stage in ['both', 'plot']:
+        df = df.assign(**{
+            'plot.max_masking_ratio': df['args.max_masking_ratio'].astype(str)
+        })
+
         df_epochs = (df
-            .groupby(['args.model', 'args.dataset', 'epoch', 'metric.dataset'], group_keys=True)
-            .apply(bootstrap_confint(['metric.value']))
+            .groupby(['args.model', 'args.dataset', 'plot.max_masking_ratio', 'epoch'], group_keys=True)
+            .apply(bootstrap_confint(['metric.val_0']))
             .reset_index())
 
         # Generate plot
         p = (p9.ggplot(df_epochs, p9.aes(x='epoch'))
-            + p9.geom_ribbon(p9.aes(ymin='metric.value_lower', ymax='metric.value_upper', fill='metric.dataset'), alpha=0.35)
-            + p9.geom_line(p9.aes(y='metric.value_mean', color='metric.dataset'))
+            + p9.geom_ribbon(p9.aes(ymin='metric.val_0_lower', ymax='metric.val_0_upper', fill='plot.max_masking_ratio'), alpha=0.35)
+            + p9.geom_line(p9.aes(y='metric.val_0_mean', color='plot.max_masking_ratio'))
+            + p9.geom_jitter(p9.aes(y='metric.val_0', color='plot.max_masking_ratio'),
+                             shape='+', alpha=0.5, position=p9.position_jitterdodge(0.05), data=df)
             + p9.facet_grid("args.dataset ~ args.model", scales="free_y", labeller=annotation.model.labeller)
             + p9.scale_x_continuous(name='Epoch')
             + p9.scale_y_continuous(
                 labels=lambda ticks: [f'{tick:.0%}' for tick in ticks],
-                name='Validation performance'
+                name='0% masked validation performance'
             )
-            + p9.scale_color_manual(
-                values = ['#000000'] + brewer_pal(type='div', palette=8)(11),
-                breaks = annotation.validation.breaks,
-                labels = annotation.validation.labels,
+            + p9.scale_color_discrete(
+                breaks = annotation.max_masking_ratio.breaks,
+                labels = annotation.max_masking_ratio.labels,
                 aesthetics = ["colour", "fill"],
-                name='Validation dataset',
+                name='Fine-tuning method'
             )
             + p9.scale_shape_discrete(guide=False))
 
@@ -200,7 +184,7 @@ if __name__ == "__main__":
             size = (3.03209, 4.5)
             p += p9.guides(color=p9.guide_legend(ncol=3))
             p += p9.theme(
-                text=p9.element_text(size=11, fontname='Times New Roman'),
+                text=p9.element_text(size=10, fontname='Times New Roman'),
                 subplots_adjust={'bottom': 0.31},
                 panel_spacing=.05,
                 legend_box_margin=0,
@@ -215,8 +199,8 @@ if __name__ == "__main__":
             size = (6.30045, 8.6)
             p += p9.guides(color=p9.guide_legend(ncol=4))
             p += p9.theme(
-                text=p9.element_text(size=11, fontname='Times New Roman'),
-                subplots_adjust={'bottom': 0.17},
+                text=p9.element_text(size=10, fontname='Times New Roman'),
+                subplots_adjust={'bottom': 0.14},
                 panel_spacing=.05,
                 legend_box_margin=0,
                 legend_position=(.5, .05),

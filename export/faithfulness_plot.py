@@ -12,6 +12,7 @@ import numpy as np
 from ecoroar.dataset import datasets
 from ecoroar.plot import bootstrap_confint, annotation
 from ecoroar.util import generate_experiment_id
+from ecoroar.explain import explainers
 
 def select_target_metric(df):
     idx, cols = pd.factorize('results.' + df.loc[:, 'target_metric'])
@@ -19,6 +20,33 @@ def select_target_metric(df):
         metric = df.reindex(cols, axis=1).to_numpy()[np.arange(len(df)), idx]
     )
 
+def check_converged(df):
+    unmasked_performance = df.query('`results.masking_ratio` == 0')
+    return unmasked_performance['metric'] > unmasked_performance['convergence_threshold']
+
+def annotate_explainer(df):
+    sign_lookup = {
+        name: 'sign' if explainer._signed else 'abs'
+        for name, explainer in explainers.items()
+    }
+    base_lookup = {
+        name: explainer._base_name
+        for name, explainer in explainers.items()
+    }
+
+    df_annotated = df.assign(**{
+        'plot.explainer_sign': df['args.explainer'].map(sign_lookup),
+        'plot.explainer_base': df['args.explainer'].map(base_lookup)
+    })
+
+    x = pd.concat([
+        df_annotated,
+        df_annotated.query('`args.explainer` == "rand"').assign(**{
+            'plot.explainer_sign': 'sign'
+        })
+    ])
+
+    return x
 
 parser = argparse.ArgumentParser(
     description = 'Plots the 0% masking test performance given different training masking ratios'
@@ -53,12 +81,11 @@ parser.add_argument('--performance-metric',
                     type=str,
                     choices=['primary', 'loss', 'accuracy'],
                     help='Which metric to use as a performance metric.')
-parser.add_argument('--model-category',
+parser.add_argument('--model',
                     action='store',
-                    default='size',
+                    default='roberta-sb',
                     type=str,
-                    choices=['size', 'masking-ratio'],
-                    help='Which model category to use.')
+                    help='Which model to use.')
 parser.add_argument('--max-masking-ratio',
                     action='store',
                     default=100,
@@ -83,19 +110,13 @@ if __name__ == "__main__":
         {
             'args.dataset': dataset._name,
             'target_metric': dataset._early_stopping_metric if args.performance_metric == 'primary' else args.performance_metric,
-            'baseline': dataset.majority_classifier_test_performance()[
-                dataset._early_stopping_metric if args.performance_metric == 'primary' else args.performance_metric
-            ]
+            'convergence_threshold': dataset._convergence_threshold,
         }
         for dataset in datasets.values()
     ])
-    model_categories = {
-        'masking-ratio': ['roberta-m15', 'roberta-m20', 'roberta-m30', 'roberta-m40', 'roberta-m50'],
-        'size': ['roberta-sb', 'roberta-sl']
-    }
 
     experiment_id = generate_experiment_id('faithfulness',
-                                            model=args.model_category,
+                                            model=args.model,
                                             max_masking_ratio=args.max_masking_ratio,
                                             masking_strategy=args.masking_strategy,
                                             split=args.split)
@@ -114,7 +135,7 @@ if __name__ == "__main__":
                 if data['args']['max_masking_ratio'] == args.max_masking_ratio and \
                    data['args']['masking_strategy'] == args.masking_strategy and \
                    data['args']['split'] == args.split and \
-                   data['args']['model'] in model_categories[args.model_category] and \
+                   data['args']['model'] in args.model and \
                    data['args']['dataset'] in args.datasets:
                     results.append(data)
 
@@ -135,16 +156,20 @@ if __name__ == "__main__":
 
     if args.stage in ['both', 'plot']:
         df_plot = (df
-            .groupby(['args.model', 'args.dataset', 'args.explainer', 'results.masking_ratio'], group_keys=True)
+            .groupby(['args.seed', 'args.dataset', 'args.explainer'], group_keys=True)
+            .filter(check_converged)
+            .reset_index()
+            .groupby(['args.dataset', 'args.explainer', 'results.masking_ratio'], group_keys=True)
             .apply(bootstrap_confint(['metric']))
             .reset_index())
+        df_plot = annotate_explainer(df_plot)
 
         # Generate plot
         p = (p9.ggplot(df_plot, p9.aes(x='results.masking_ratio'))
-            + p9.geom_ribbon(p9.aes(ymin='metric_lower', ymax='metric_upper', fill='args.explainer'), alpha=0.35)
-            + p9.geom_point(p9.aes(y='metric_mean', color='args.explainer'))
-            + p9.geom_line(p9.aes(y='metric_mean', color='args.explainer'))
-            + p9.facet_grid("args.dataset ~ args.model", scales="free_y", labeller=annotation.model.labeller)
+            + p9.geom_ribbon(p9.aes(ymin='metric_lower', ymax='metric_upper', fill='plot.explainer_base'), alpha=0.35)
+            + p9.geom_point(p9.aes(y='metric_mean', color='plot.explainer_base'))
+            + p9.geom_line(p9.aes(y='metric_mean', color='plot.explainer_base'))
+            + p9.facet_grid("args.dataset ~ plot.explainer_sign", scales="free_y", labeller=(annotation.dataset | annotation.explainer_sign).labeller)
             + p9.scale_x_continuous(
                 labels=lambda ticks: [f'{tick:.0%}' for tick in ticks],
                 name='Masking ratio')
@@ -153,8 +178,8 @@ if __name__ == "__main__":
                 name='IM masked performance'
             )
             + p9.scale_color_discrete(
-                breaks = annotation.explainer.breaks,
-                labels = annotation.explainer.labels,
+                breaks = annotation.explainer_base.breaks,
+                labels = annotation.explainer_base.labels,
                 aesthetics = ["colour", "fill"],
                 name='importance measure (IM)'
             )
@@ -167,30 +192,30 @@ if __name__ == "__main__":
             p += p9.theme(text=p9.element_text(size=11), subplots_adjust={'bottom': 0.38}, legend_position=(.5, .05))
         elif args.format == 'paper':
             # The width is the \linewidth of a collumn in the LaTeX document
-            size = (3.03209, 4.5)
+            size = (3.03209, 3.4)
             p += p9.guides(color=p9.guide_legend(ncol=3))
             p += p9.scale_y_continuous(
                 labels=lambda ticks: [f'{tick:.0%}' for tick in ticks],
-                name=f'                   IM masked performance'
+                name=f'                      IM masked performance'
             )
             p += p9.theme(
-                text=p9.element_text(size=11, fontname='Times New Roman'),
-                subplots_adjust={'bottom': 0.31},
+                text=p9.element_text(size=10, fontname='Times New Roman'),
+                subplots_adjust={'bottom': 0.38},
                 panel_spacing=.05,
                 legend_box_margin=0,
                 legend_position=(.5, .05),
                 legend_background=p9.element_rect(fill='#F2F2F2'),
-                strip_background_x=p9.element_rect(height=0.2),
+                strip_background_x=p9.element_rect(height=0.25),
                 strip_background_y=p9.element_rect(width=0.2),
                 strip_text_x=p9.element_text(margin={'b': 5}),
                 axis_text_x=p9.element_text(angle = 60, hjust=1)
             )
         elif args.format == 'appendix':
-            size = (6.30045, 8.6)
+            size = (6.30045, 8.5)
             p += p9.guides(color=p9.guide_legend(ncol=5))
             p += p9.theme(
-                text=p9.element_text(size=11, fontname='Times New Roman'),
-                subplots_adjust={'bottom': 0.16},
+                text=p9.element_text(size=10, fontname='Times New Roman'),
+                subplots_adjust={'bottom': 0.15},
                 panel_spacing=.05,
                 legend_box_margin=0,
                 legend_position=(.5, .05),

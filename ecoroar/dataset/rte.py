@@ -16,6 +16,9 @@ class RTEDataset(AbstractDataset):
     _class_count_valid = [254, 244]
     _class_count_test = [146, 131]
 
+    _input_masked = 'sentence1'
+    _input_aux = 'sentence2'
+
     def _builder(self, data_dir):
         return tfds.builder("glue/rte", data_dir=data_dir)
 

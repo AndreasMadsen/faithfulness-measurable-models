@@ -17,6 +17,8 @@ class SST2Dataset(AbstractDataset):
     _class_count_valid = [5955, 7515]
     _class_count_test = [428, 444]
 
+    _input_masked = 'sentence'
+
     def _builder(self, data_dir):
         return tfds.builder("glue/sst2", data_dir=data_dir)
 

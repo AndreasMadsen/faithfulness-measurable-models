@@ -16,6 +16,8 @@ class CoLADataset(AbstractDataset):
     _class_count_valid = [514, 1196]
     _class_count_test = [322, 721]
 
+    _input_masked = 'sentence'
+
     def _builder(self, data_dir):
         return tfds.builder("glue/cola", data_dir=data_dir)
 

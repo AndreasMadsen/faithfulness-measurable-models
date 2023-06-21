@@ -8,10 +8,14 @@ class _BabiDatasetGeneralized(AbstractDataset):
     _early_stopping_metric = 'micro_f1'
     _jain_etal_metric = 'accuracy'
     _target_name = 'answer'
+    _convergence_threshold = 0.5
 
     _split_train = 'train[:80%]'
     _split_valid = 'train[80%:]'
     _split_test = 'test'
+
+    _input_masked = 'paragraph'
+    _input_aux = 'question'
 
     def _as_supervised(self, item):
         x = (item['paragraph'], item['question'])

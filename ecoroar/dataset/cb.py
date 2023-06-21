@@ -16,6 +16,9 @@ class CBDataset(AbstractDataset):
     _class_count_valid = [27, 19, 4]
     _class_count_test = [23, 28, 5]
 
+    _input_masked = 'premise'
+    _input_aux = 'hypothesis'
+
     def _builder(self, data_dir):
         return tfds.builder("super_glue/cb", data_dir=data_dir)
 
