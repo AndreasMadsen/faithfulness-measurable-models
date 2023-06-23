@@ -40,6 +40,11 @@ parser.add_argument('--format',
                     type=str,
                     choices=['half', 'full', 'paper', 'appendix'],
                     help='The dimentions and format of the plot.')
+parser.add_argument('--page',
+                    action='store',
+                    default=None,
+                    type=str,
+                    help='The page name')
 parser.add_argument('--datasets',
                     action='store',
                     nargs='+',
@@ -103,6 +108,7 @@ if __name__ == "__main__":
     experiment_id = generate_experiment_id(
         f'ood_a-{args.method}_p-{args.threshold}',
         model=args.model,
+        dataset=args.page,
         max_masking_ratio=args.max_masking_ratio,
         masking_strategy=args.masking_strategy,
         validation_dataset=args.validation_dataset,

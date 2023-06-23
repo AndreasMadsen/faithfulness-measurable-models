@@ -97,6 +97,11 @@ parser.add_argument('--format',
                     type=str,
                     choices=['paper', 'appendix'],
                     help='The dimentions and format of the plot.')
+parser.add_argument('--page',
+                    action='store',
+                    default=None,
+                    type=str,
+                    help='The page name')
 parser.add_argument('--datasets',
                     action='store',
                     nargs='+',
@@ -111,11 +116,6 @@ parser.add_argument('--explainers',
                     choices=explainers.keys(),
                     type=str,
                     help='The explainers to show')
-parser.add_argument('--page',
-                    action='store',
-                    default=None,
-                    type=str,
-                    help='The page name')
 parser.add_argument('--performance-metric',
                     action='store',
                     default='primary',
