@@ -53,7 +53,7 @@ parser.add_argument('--format',
                     action='store',
                     default='wide',
                     type=str,
-                    choices=['half', 'wide', 'paper', 'appendix'],
+                    choices=['half', 'wide', 'paper', 'keynote', 'appendix'],
                     help='The dimentions and format of the plot.')
 parser.add_argument('--page',
                     action='store',
@@ -241,6 +241,25 @@ if __name__ == "__main__":
                 panel_spacing=.05,
                 legend_box_margin=0,
                 legend_position=(.5, .05),
+                legend_background=p9.element_rect(fill='#F2F2F2'),
+                strip_background_x=p9.element_rect(height=0.25),
+                strip_background_y=p9.element_rect(width=0.2),
+                strip_text_x=p9.element_text(margin={'b': 2}),
+                axis_text_x=p9.element_text(angle = 60, hjust=2)
+            )
+        elif args.format == 'keynote':
+            size = (3.03209, 4.5)
+            p += p9.guides(color=p9.guide_legend(ncol=1))
+            p += p9.scale_y_continuous(
+                labels=lambda ticks: [f'{tick:.0%}' for tick in ticks],
+                name='                              100% masked performance'
+            )
+            p += p9.theme(
+                text=p9.element_text(size=10, fontname='Times New Roman'),
+                subplots_adjust={'bottom': 0.31},
+                panel_spacing=.05,
+                legend_box_margin=0,
+                legend_position='right',
                 legend_background=p9.element_rect(fill='#F2F2F2'),
                 strip_background_x=p9.element_rect(height=0.25),
                 strip_background_y=p9.element_rect(width=0.2),

@@ -86,7 +86,17 @@ paper-faithfulness:
 paper-tables:
 	python3 export/racu_table.py --model roberta-sb --datasets MIMIC-a MIMIC-d SST2 bAbI-1 --max-masking-ratio 100 --masking-strategy half-det --validation-dataset both --format paper
 
-paper: paper-train paper-ood paper-faithfulness paper-tables
+keynote-train:
+	python export/unmasked_performance_by_valid_ms_plot.py --dataset MRPC BoolQ --aggregate bAbI-1 bAbI-2 bAbI-3 BoolQ CB CoLA MIMIC-a MIMIC-d MRPC RTE SST2 SNLI IMDB MNLI QNLI QQP --model-category size --max-masking-ratio 100 --format keynote
+	python export/masked_100p_performance_by_valid_ms_plot.py --dataset MRPC BoolQ --aggregate bAbI-1 bAbI-2 bAbI-3 BoolQ CB CoLA MIMIC-a MIMIC-d MRPC RTE SST2 SNLI IMDB MNLI QNLI QQP --model-category size --max-masking-ratio 100 --format keynote
+
+keynote-ood:
+	python export/ood_plot.py --dataset MRPC BoolQ --model roberta-sb --max-masking-ratio 100 --masking-strategy half-det --validation-dataset both --dist-repeat 1 --method simes --threshold 0.05 --format keynote
+
+keynote-faithfulness:
+	python export/faithfulness_plot.py --dataset MRPC BoolQ --model roberta-sb --max-masking-ratio 100 --masking-strategy half-det --validation-dataset both --format keynote
+
+keynote: keynote-train keynote-ood keynote-faithfulness
 
 download-intermediate-cedar:
 	rsync --info=progress2 -urltv --delete \
