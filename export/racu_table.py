@@ -14,15 +14,18 @@ from ecoroar.plot import bootstrap_confint, annotation
 from ecoroar.util import generate_experiment_id
 from ecoroar.explain import explainers
 
+
 def select_target_metric(df):
     idx, cols = pd.factorize('results.' + df.loc[:, 'target_metric'])
     return df.assign(
-        metric = df.reindex(cols, axis=1).to_numpy()[np.arange(len(df)), idx]
+        metric=df.reindex(cols, axis=1).to_numpy()[np.arange(len(df)), idx]
     )
+
 
 def check_converged(df):
     unmasked_performance = df.query('`results.masking_ratio` == 0')
     return unmasked_performance['metric'] > unmasked_performance['convergence_threshold']
+
 
 def compute_acu(df):
     df_sorted = df.sort_values(by=['results.masking_ratio'])
@@ -47,11 +50,13 @@ def compute_acu(df):
         'racu': total / max_area
     })
 
+
 def tex_format_ci(mean, lower, upper):
     if np.isnan(mean):
         return '--'
 
     return f'${mean*100:.1f}_{{{-(mean - lower)*100:.1f}}}^{{+{(upper - mean)*100:.1f}}}$'
+
 
 def annotate_explainer(df):
     sign_lookup = {
@@ -77,8 +82,9 @@ def annotate_explainer(df):
 
     return x
 
+
 parser = argparse.ArgumentParser(
-    description = 'Plots the 0% masking test performance given different training masking ratios'
+    description='Plots the 0% masking test performance given different training masking ratios'
 )
 parser.add_argument('--persistent-dir',
                     action='store',
@@ -157,45 +163,45 @@ if __name__ == "__main__":
     ])
 
     recursive_roar = [
-        { 'model': 'roberta-sb', 'dataset': 'MIMIC-a', 'explainer': 'grad-l2', 'mean': 18.2, 'upper': 11.8, 'lower': -13.8 },
-        { 'model': 'roberta-sb', 'dataset': 'MIMIC-a', 'explainer': 'inp-grad-abs', 'mean': 8.8, 'upper': 22.7, 'lower': -22.8 },
-        { 'model': 'roberta-sb', 'dataset': 'MIMIC-a', 'explainer': 'int-grad-abs', 'mean': 12.5, 'upper': 11.3, 'lower': -7.0 },
+        {'model': 'roberta-sb', 'dataset': 'MIMIC-a', 'explainer': 'grad-l2', 'mean': 18.2, 'upper': 11.8, 'lower': -13.8},
+        {'model': 'roberta-sb', 'dataset': 'MIMIC-a', 'explainer': 'inp-grad-abs', 'mean': 8.8, 'upper': 22.7, 'lower': -22.8},
+        {'model': 'roberta-sb', 'dataset': 'MIMIC-a', 'explainer': 'int-grad-abs', 'mean': 12.5, 'upper': 11.3, 'lower': -7.0},
 
-        { 'model': 'roberta-sb', 'dataset': 'MIMIC-d', 'explainer': 'grad-l2', 'mean': 57.9, 'upper': 14.4, 'lower': -19.8 },
-        { 'model': 'roberta-sb', 'dataset': 'MIMIC-d', 'explainer': 'inp-grad-abs', 'mean': 53.4, 'upper': 23.2, 'lower': -29.3 },
-        { 'model': 'roberta-sb', 'dataset': 'MIMIC-d', 'explainer': 'int-grad-abs', 'mean': 26.1, 'upper': 12.0, 'lower': -25.1 },
+        {'model': 'roberta-sb', 'dataset': 'MIMIC-d', 'explainer': 'grad-l2', 'mean': 57.9, 'upper': 14.4, 'lower': -19.8},
+        {'model': 'roberta-sb', 'dataset': 'MIMIC-d', 'explainer': 'inp-grad-abs', 'mean': 53.4, 'upper': 23.2, 'lower': -29.3},
+        {'model': 'roberta-sb', 'dataset': 'MIMIC-d', 'explainer': 'int-grad-abs', 'mean': 26.1, 'upper': 12.0, 'lower': -25.1},
 
-        { 'model': 'roberta-sb', 'dataset': 'IMDB', 'explainer': 'grad-l2', 'mean': 25.4, 'upper': 3.1, 'lower': -2.0 },
-        { 'model': 'roberta-sb', 'dataset': 'IMDB', 'explainer': 'inp-grad-abs', 'mean': 16.9, 'upper': 1.1, 'lower': -3.0 },
-        { 'model': 'roberta-sb', 'dataset': 'IMDB', 'explainer': 'int-grad-abs', 'mean': 35.1, 'upper': 2.4, 'lower': -1.7 },
+        {'model': 'roberta-sb', 'dataset': 'IMDB', 'explainer': 'grad-l2', 'mean': 25.4, 'upper': 3.1, 'lower': -2.0},
+        {'model': 'roberta-sb', 'dataset': 'IMDB', 'explainer': 'inp-grad-abs', 'mean': 16.9, 'upper': 1.1, 'lower': -3.0},
+        {'model': 'roberta-sb', 'dataset': 'IMDB', 'explainer': 'int-grad-abs', 'mean': 35.1, 'upper': 2.4, 'lower': -1.7},
 
-        { 'model': 'roberta-sb', 'dataset': 'SNLI', 'explainer': 'grad-l2', 'mean': 50.7, 'upper': 1.1, 'lower': -0.8 },
-        { 'model': 'roberta-sb', 'dataset': 'SNLI', 'explainer': 'inp-grad-abs', 'mean': 41.0, 'upper': 0.4, 'lower': -0.5 },
-        { 'model': 'roberta-sb', 'dataset': 'SNLI', 'explainer': 'int-grad-abs', 'mean': 56.7, 'upper': 1.0, 'lower': -1.1 },
+        {'model': 'roberta-sb', 'dataset': 'SNLI', 'explainer': 'grad-l2', 'mean': 50.7, 'upper': 1.1, 'lower': -0.8},
+        {'model': 'roberta-sb', 'dataset': 'SNLI', 'explainer': 'inp-grad-abs', 'mean': 41.0, 'upper': 0.4, 'lower': -0.5},
+        {'model': 'roberta-sb', 'dataset': 'SNLI', 'explainer': 'int-grad-abs', 'mean': 56.7, 'upper': 1.0, 'lower': -1.1},
 
-        { 'model': 'roberta-sb', 'dataset': 'SST2', 'explainer': 'grad-l2', 'mean': 26.1, 'upper': 1.6, 'lower': -2.2 },
-        { 'model': 'roberta-sb', 'dataset': 'SST2', 'explainer': 'inp-grad-abs', 'mean': 18.6, 'upper': 4.1, 'lower': -4.6 },
-        { 'model': 'roberta-sb', 'dataset': 'SST2', 'explainer': 'int-grad-abs', 'mean': 32.9, 'upper': 1.8, 'lower': -1.5 },
+        {'model': 'roberta-sb', 'dataset': 'SST2', 'explainer': 'grad-l2', 'mean': 26.1, 'upper': 1.6, 'lower': -2.2},
+        {'model': 'roberta-sb', 'dataset': 'SST2', 'explainer': 'inp-grad-abs', 'mean': 18.6, 'upper': 4.1, 'lower': -4.6},
+        {'model': 'roberta-sb', 'dataset': 'SST2', 'explainer': 'int-grad-abs', 'mean': 32.9, 'upper': 1.8, 'lower': -1.5},
 
-        { 'model': 'roberta-sb', 'dataset': 'bAbI-1', 'explainer': 'grad-l2', 'mean': 64.2, 'upper': 2.6, 'lower': -2.6 },
-        { 'model': 'roberta-sb', 'dataset': 'bAbI-1', 'explainer': 'inp-grad-abs', 'mean': 52.1, 'upper': 1.8, 'lower': -3.7 },
-        { 'model': 'roberta-sb', 'dataset': 'bAbI-1', 'explainer': 'int-grad-abs', 'mean': 48.2, 'upper': 4.1, 'lower': -5.7 },
+        {'model': 'roberta-sb', 'dataset': 'bAbI-1', 'explainer': 'grad-l2', 'mean': 64.2, 'upper': 2.6, 'lower': -2.6},
+        {'model': 'roberta-sb', 'dataset': 'bAbI-1', 'explainer': 'inp-grad-abs', 'mean': 52.1, 'upper': 1.8, 'lower': -3.7},
+        {'model': 'roberta-sb', 'dataset': 'bAbI-1', 'explainer': 'int-grad-abs', 'mean': 48.2, 'upper': 4.1, 'lower': -5.7},
 
-        { 'model': 'roberta-sb', 'dataset': 'bAbI-2', 'explainer': 'grad-l2', 'mean': 57.8, 'upper': 2.0, 'lower': -2.0 },
-        { 'model': 'roberta-sb', 'dataset': 'bAbI-2', 'explainer': 'inp-grad-abs', 'mean': 48.1, 'upper': 3.2, 'lower': -3.5 },
-        { 'model': 'roberta-sb', 'dataset': 'bAbI-2', 'explainer': 'int-grad-abs', 'mean': 42.0, 'upper': 3.8, 'lower': -4.8 },
+        {'model': 'roberta-sb', 'dataset': 'bAbI-2', 'explainer': 'grad-l2', 'mean': 57.8, 'upper': 2.0, 'lower': -2.0},
+        {'model': 'roberta-sb', 'dataset': 'bAbI-2', 'explainer': 'inp-grad-abs', 'mean': 48.1, 'upper': 3.2, 'lower': -3.5},
+        {'model': 'roberta-sb', 'dataset': 'bAbI-2', 'explainer': 'int-grad-abs', 'mean': 42.0, 'upper': 3.8, 'lower': -4.8},
 
-        { 'model': 'roberta-sb', 'dataset': 'bAbI-3', 'explainer': 'grad-l2', 'mean': 34.0, 'upper': 14.6, 'lower': -15.1 },
-        { 'model': 'roberta-sb', 'dataset': 'bAbI-3', 'explainer': 'inp-grad-abs', 'mean': 22.4, 'upper': 15.9, 'lower': -12.4 },
-        { 'model': 'roberta-sb', 'dataset': 'bAbI-3', 'explainer': 'int-grad-abs', 'mean': -27.9, 'upper': 18.0, 'lower': -49.1 },
+        {'model': 'roberta-sb', 'dataset': 'bAbI-3', 'explainer': 'grad-l2', 'mean': 34.0, 'upper': 14.6, 'lower': -15.1},
+        {'model': 'roberta-sb', 'dataset': 'bAbI-3', 'explainer': 'inp-grad-abs', 'mean': 22.4, 'upper': 15.9, 'lower': -12.4},
+        {'model': 'roberta-sb', 'dataset': 'bAbI-3', 'explainer': 'int-grad-abs', 'mean': -27.9, 'upper': 18.0, 'lower': -49.1},
     ]
 
     experiment_id = generate_experiment_id('racu',
-                                            model=args.model,
-                                            dataset=args.page,
-                                            max_masking_ratio=args.max_masking_ratio,
-                                            masking_strategy=args.masking_strategy,
-                                            split=args.split)
+                                           model=args.model,
+                                           dataset=args.page,
+                                           max_masking_ratio=args.max_masking_ratio,
+                                           masking_strategy=args.masking_strategy,
+                                           split=args.split)
 
     if args.stage in ['both', 'preprocess']:
         # Read JSON files into dataframe
@@ -233,38 +239,38 @@ if __name__ == "__main__":
     if args.stage in ['both', 'plot']:
         rroar_df = pd.DataFrame(recursive_roar)
         rroar_df = (rroar_df
-            .assign(**{
-                'mean': rroar_df['mean'] / 100,
-                'lower': (rroar_df['mean'] + rroar_df['lower']) / 100,
-                'upper': (rroar_df['mean'] + rroar_df['upper']) / 100
-            })
-            .rename(columns={
-                'model': 'args.model',
-                'dataset': 'args.dataset',
-                'explainer': 'args.explainer',
-                'mean': 'rroar_racu_mean',
-                'upper': 'rroar_racu_upper',
-                'lower': 'rroar_racu_lower'
-            })
-        )
+                    .assign(**{
+                        'mean': rroar_df['mean'] / 100,
+                        'lower': (rroar_df['mean'] + rroar_df['lower']) / 100,
+                        'upper': (rroar_df['mean'] + rroar_df['upper']) / 100
+                    })
+                    .rename(columns={
+                        'model': 'args.model',
+                        'dataset': 'args.dataset',
+                        'explainer': 'args.explainer',
+                        'mean': 'rroar_racu_mean',
+                        'upper': 'rroar_racu_upper',
+                        'lower': 'rroar_racu_lower'
+                    })
+                    )
 
         df_tab = (df
-            .query('`args.explainer` != "rand"')
-            .merge(df.query('`args.explainer` == "rand"').drop(columns=['args.explainer']).rename(columns={'metric': 'baseline'}),
-                   on=['args.seed', 'args.model', 'args.dataset', 'results.masking_ratio', 'convergence_threshold'])
-            .groupby(['args.seed', 'args.model', 'args.dataset', 'args.explainer'], group_keys=True)
-            .filter(check_converged)
-            .reset_index()
-            .groupby(['args.seed', 'args.model', 'args.dataset', 'args.explainer'], group_keys=True)
-            .apply(compute_acu)
-            .reset_index()
-            .groupby(['args.model', 'args.dataset', 'args.explainer'], group_keys=True)
-            .apply(bootstrap_confint(['acu', 'racu']))
-            .reset_index()
-            .merge(rroar_df, on=['args.model', 'args.dataset', 'args.explainer'], how='left')
-            .drop(columns=['args.model'])
-            .transform(annotate_explainer)
-            .set_index(['args.dataset', 'args.explainer']))
+                  .query('`args.explainer` != "rand"')
+                  .merge(df.query('`args.explainer` == "rand"').drop(columns=['args.explainer']).rename(columns={'metric': 'baseline'}),
+                         on=['args.seed', 'args.model', 'args.dataset', 'results.masking_ratio', 'convergence_threshold'])
+                  .groupby(['args.seed', 'args.model', 'args.dataset', 'args.explainer'], group_keys=True)
+                  .filter(check_converged)
+                  .reset_index()
+                  .groupby(['args.seed', 'args.model', 'args.dataset', 'args.explainer'], group_keys=True)
+                  .apply(compute_acu)
+                  .reset_index()
+                  .groupby(['args.model', 'args.dataset', 'args.explainer'], group_keys=True)
+                  .apply(bootstrap_confint(['acu', 'racu']))
+                  .reset_index()
+                  .merge(rroar_df, on=['args.model', 'args.dataset', 'args.explainer'], how='left')
+                  .drop(columns=['args.model'])
+                  .transform(annotate_explainer)
+                  .set_index(['args.dataset', 'args.explainer']))
 
         explainers = [x for x in args.explainers if x in set(df['args.explainer'].unique()) and x != 'rand']
 
@@ -284,11 +290,11 @@ if __name__ == "__main__":
                 for im_name in explainers:
                     try:
                         dur = df_tab.loc[pd.IndexSlice[dataset_name, im_name], :]
-                        our_racu =  tex_format_ci(dur['racu_mean'], dur['racu_lower'], dur['racu_upper'])
+                        our_racu = tex_format_ci(dur['racu_mean'], dur['racu_lower'], dur['racu_upper'])
                         our_acu = tex_format_ci(dur['acu_mean'], dur['acu_lower'], dur['acu_upper'])
                         rroar_racu = tex_format_ci(dur['rroar_racu_mean'], dur['rroar_racu_lower'], dur['rroar_racu_upper'])
                     except KeyError:
-                        our_racu =  tex_format_ci(np.nan, np.nan, np.nan)
+                        our_racu = tex_format_ci(np.nan, np.nan, np.nan)
                         our_acu = tex_format_ci(np.nan, np.nan, np.nan)
                         rroar_racu = tex_format_ci(np.nan, np.nan, np.nan)
 

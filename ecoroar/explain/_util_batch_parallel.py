@@ -1,6 +1,7 @@
 
 import tensorflow as tf
 
+
 def batch_parallel(batch_size: int, num_parallel_calls=tf.data.AUTOTUNE, validate=True):
     """This decorator will make any tf.function run on batches in parallel
 

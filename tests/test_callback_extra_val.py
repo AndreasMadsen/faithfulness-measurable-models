@@ -3,16 +3,18 @@ from ecoroar.callback import ExtraValidationDataset
 
 import tensorflow as tf
 
+
 def _create_dataset(rng, n_obs, w):
     w = tf.convert_to_tensor(w, dtype=tf.dtypes.float32)
     x = rng.normal([n_obs, tf.size(w)])
     y = x @ tf.expand_dims(w, axis=-1)
     return tf.data.Dataset.from_tensor_slices((x, y))
 
+
 def test_callback_extra_validation_dataset():
     rng = tf.random.Generator.from_seed(0)
 
-    model = tf.keras.Sequential([ tf.keras.layers.Dense(units=1) ])
+    model = tf.keras.Sequential([tf.keras.layers.Dense(units=1)])
     model.compile(
         optimizer='rmsprop',
         loss='mean_squared_logarithmic_error',

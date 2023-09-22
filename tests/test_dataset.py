@@ -9,6 +9,7 @@ import numpy as np
 from ecoroar.dataset import datasets
 from ecoroar.tokenizer import HuggingfaceTokenizer
 
+
 @dataclass
 class DatasetSize:
     name: str
@@ -16,6 +17,7 @@ class DatasetSize:
     valid: int
     test: int
     num_classes: int
+
 
 expected_sizes = [
     DatasetSize('bAbI-1', 8000, 2000, 1000, 6),
@@ -37,17 +39,20 @@ expected_sizes = [
     DatasetSize('WNLI', 508, 127, 71, 2),
 ]
 
+
 @pytest.mark.parametrize("info", expected_sizes, ids=lambda info: info.name)
 def test_dataset_name(info):
     dataset = datasets[info.name](persistent_dir=pathlib.Path('.'), use_snapshot=False, use_cache=False)
 
     assert dataset.name == info.name
 
+
 @pytest.mark.parametrize("info", expected_sizes, ids=lambda info: info.name)
 def test_dataset_num_classes(info):
     dataset = datasets[info.name](persistent_dir=pathlib.Path('.'), use_snapshot=False, use_cache=False)
 
     assert dataset.num_classes == info.num_classes
+
 
 @pytest.mark.parametrize("info", expected_sizes, ids=lambda info: info.name)
 def test_dataset_num_examples(info):
@@ -60,6 +65,7 @@ def test_dataset_num_examples(info):
     assert dataset.test_num_examples == info.test
     assert dataset.num_examples('test') == info.test
 
+
 @pytest.mark.parametrize("info", expected_sizes, ids=lambda info: info.name)
 def test_dataset_cadinality(info):
     dataset = datasets[info.name](persistent_dir=pathlib.Path('.'), use_snapshot=False, use_cache=False)
@@ -70,6 +76,7 @@ def test_dataset_cadinality(info):
     assert dataset.load('valid').cardinality() == info.valid
     assert dataset.test().cardinality() == info.test
     assert dataset.load('test').cardinality() == info.test
+
 
 @pytest.mark.parametrize("info", expected_sizes, ids=lambda info: info.name)
 @pytest.mark.slow
@@ -84,6 +91,7 @@ def test_tokenizer_integration(info):
             (x_encoded['attention_mask'], ('T', ))
         ])
 
+
 @pytest.mark.parametrize("info", expected_sizes, ids=lambda info: info.name)
 @pytest.mark.slow
 def test_class_count(info):
@@ -95,7 +103,8 @@ def test_class_count(info):
             .batch(4096, num_parallel_calls=tf.data.AUTOTUNE, deterministic=False) \
             .reduce(
                 tf.zeros((dataset.num_classes, ), dtype=tf.dtypes.int32),
-                lambda r, y: r + tf.math.bincount(tf.cast(y, dtype=tf.dtypes.int32), minlength=dataset.num_classes, maxlength=dataset.num_classes)
+                lambda r, y: r + tf.math.bincount(tf.cast(y, dtype=tf.dtypes.int32),
+                                                  minlength=dataset.num_classes, maxlength=dataset.num_classes)
             ) \
             .numpy() \
             .tolist()
@@ -111,6 +120,7 @@ def test_class_count(info):
     test_class_count = class_count(dataset.test())
     assert test_class_count == dataset.test_class_count
     assert sum(test_class_count) == dataset.test_num_examples
+
 
 @pytest.mark.parametrize("info", expected_sizes, ids=lambda info: info.name)
 def test_majority_classifier_test_performance(info):

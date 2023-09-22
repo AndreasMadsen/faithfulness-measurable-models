@@ -19,9 +19,11 @@ _PATHS = {
     }
 }
 
+
 @dataclass
 class LocalBabiConfig(tfds.core.BuilderConfig):
     task_no: int = None
+
 
 class LocalBabi(tfds.core.GeneratorBasedBuilder):
     """DatasetBuilder for babi dataset."""

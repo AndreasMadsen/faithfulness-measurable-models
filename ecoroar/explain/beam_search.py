@@ -13,6 +13,7 @@ BeamType = Tuple[Union[tf.RaggedTensor, tf.Tensor],
                  Union[tf.RaggedTensor, tf.Tensor],
                  Union[tf.RaggedTensor, tf.Tensor]]
 
+
 @tf.function(reduce_retracing=True)
 def _candiates_added(existing_candidates, maybe_candidates, aux_data):
     is_new_candidate = tf.vectorized_map(
@@ -29,6 +30,7 @@ def _candiates_added(existing_candidates, maybe_candidates, aux_data):
         tf.gather(maybe_candidates, selector),
         tf.gather(aux_data, selector)
     )
+
 
 @tf.function(reduce_retracing=True)
 def _candiates_expand(beam):
@@ -97,9 +99,11 @@ def _candiates_expand(beam):
         total_score_ta.concat()
     )
 
+
 @tf.function(reduce_retracing=True)
 def _beam_select(beam_score, beam_size):
     return tf.argsort(beam_score, stable=True, direction='DESCENDING')[:beam_size]
+
 
 class BeamSearch(ImportanceMeasureBatch):
     _name = 'beam-sign'
@@ -109,7 +113,7 @@ class BeamSearch(ImportanceMeasureBatch):
     _defer_jit = True
     _default_beam_size = None
 
-    def __init__(self, *args, beam_size: int=None, debugging = False, validate = True,
+    def __init__(self, *args, beam_size: int = None, debugging=False, validate=True,
                  run_eagerly: bool = False, jit_compile: bool = False,
                  **kwargs) -> None:
         super().__init__(*args, run_eagerly=run_eagerly, jit_compile=jit_compile, **kwargs)
@@ -120,7 +124,8 @@ class BeamSearch(ImportanceMeasureBatch):
             raise ValueError('beam_size should be set')
 
         self._sequence_identifier = SequenceIndentifier(self._tokenizer)
-        self._evaluate = BatchEvaluator(self._model, batch_size=self._inference_batch_size, run_eagerly=run_eagerly, jit_compile=jit_compile)
+        self._evaluate = BatchEvaluator(self._model, batch_size=self._inference_batch_size,
+                                        run_eagerly=run_eagerly, jit_compile=jit_compile)
 
         self._beam_size = tf.convert_to_tensor(beam_size, dtype=tf.dtypes.int32)
         self._debugging = debugging
@@ -138,10 +143,10 @@ class BeamSearch(ImportanceMeasureBatch):
                 print(f'  overvation: {obs_i}')
                 for input_ids_p, removal_order_p, score_p in zip(input_ids[obs_i], beam[1][obs_i], new_score[obs_i]):
                     print(
-                        '    ' +
-                        ' '.join(map(str, input_ids_p.numpy().tolist())) + ' | ' +
-                        ''.join(map(str, removal_order_p.numpy().tolist())) + ':' +
-                        str(score_p.numpy().tolist())
+                        '    '
+                        + ' '.join(map(str, input_ids_p.numpy().tolist())) + ' | '
+                        + ''.join(map(str, removal_order_p.numpy().tolist())) + ':'
+                        + str(score_p.numpy().tolist())
                     )
 
     def _create_masked_inputs(self, x: TokenizedDict, beam: BeamType, maskable_tokens: tf.Tensor) -> TokenizedDict:
@@ -255,9 +260,9 @@ class BeamSearch(ImportanceMeasureBatch):
 
         for iteration_i in tf.range(tf.math.reduce_max(max_iterations)):
             tf.autograph.experimental.set_loop_options(
-                shape_invariants=[(beam_candidates,          tf.TensorShape([None, None, None])),
-                                  (beam_removal_order,       tf.TensorShape([None, None, None])),
-                                  (beam_score,               tf.TensorShape([None, None]))]
+                shape_invariants=[(beam_candidates, tf.TensorShape([None, None, None])),
+                                  (beam_removal_order, tf.TensorShape([None, None, None])),
+                                  (beam_score, tf.TensorShape([None, None]))]
             )
             beam = (beam_candidates, beam_removal_order, beam_score)
 
@@ -267,7 +272,7 @@ class BeamSearch(ImportanceMeasureBatch):
             # c. evaluate
             x_beam_flatten = self._create_masked_inputs(x, beam, maskable_tokens)
             y_pred = self._evaluate(x_beam_flatten, tf.gather(y, beam[2].value_rowids()))
-            y_pred = beam[2].with_values(y_pred) # reshape to the expected RaggedTensor
+            y_pred = beam[2].with_values(y_pred)  # reshape to the expected RaggedTensor
             score_inc = tf.expand_dims(y_baseline, 1) - y_pred
             new_score = beam[2] + score_inc
             self._debug(iteration_i, beam, x_beam_flatten, new_score)
@@ -307,15 +312,18 @@ class BeamSearch(ImportanceMeasureBatch):
 # TODO: I will admit. This is kinda a hack to control this hyperparameter. This should
 #  go in the experiment_id generator, but then I would have to integrate that parameter everywhere.
 
+
 class BeamSearch10(BeamSearch):
     _name = 'beam-sign-10'
     _base_name = 'beam-10'
     _default_beam_size = 10
 
+
 class BeamSearch20(BeamSearch):
     _name = 'beam-sign-20'
     _base_name = 'beam-20'
     _default_beam_size = 20
+
 
 class BeamSearch50(BeamSearch):
     _name = 'beam-sign-50'

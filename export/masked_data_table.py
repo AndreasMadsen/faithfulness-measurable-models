@@ -14,7 +14,7 @@ from ecoroar.tokenizer import HuggingfaceTokenizer
 from ecoroar.model import huggingface_model_from_local
 
 parser = argparse.ArgumentParser(
-    description = 'Exports masked datasets as .csv'
+    description='Exports masked datasets as .csv'
 )
 parser.add_argument('--persistent-dir',
                     action='store',

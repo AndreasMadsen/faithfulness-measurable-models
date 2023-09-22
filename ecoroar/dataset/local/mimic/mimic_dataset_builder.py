@@ -7,6 +7,7 @@ import tensorflow_datasets as tfds
 import pandas as pd
 import numpy as np
 
+
 @dataclass
 class LocalMimicConfig(tfds.core.BuilderConfig):
     icd9_prefix_code: str = None
@@ -54,7 +55,7 @@ class LocalMimic(tfds.core.GeneratorBasedBuilder):
             supervised_keys=('text', 'diagnosis'),
             homepage='https://doi.org/10.13026/C2XW26',
             license="PhysioNet Credentialed Health Data License 1.5.0"
-    )
+        )
 
     def _split_generators(self, dl_manager: tfds.download.DownloadManager):
         # Get relevant cases
@@ -85,9 +86,9 @@ class LocalMimic(tfds.core.GeneratorBasedBuilder):
 
         # Get discharge summary
         df_notes = pd.read_csv(dl_manager.manual_dir / 'mimic' / 'noteevents.csv.gz',
-                            compression='gzip',
-                            usecols=['SUBJECT_ID', 'HADM_ID', 'CATEGORY', 'CHARTDATE', 'DESCRIPTION', 'TEXT'],
-                            engine='c') \
+                               compression='gzip',
+                               usecols=['SUBJECT_ID', 'HADM_ID', 'CATEGORY', 'CHARTDATE', 'DESCRIPTION', 'TEXT'],
+                               engine='c') \
             .dropna() \
             .query('`CATEGORY` == "Discharge summary"') \
             .join(df_icd9_codes, on=['SUBJECT_ID', 'HADM_ID'], how='inner') \

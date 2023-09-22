@@ -42,7 +42,7 @@ def test_masking_special_tokens_kept(tokenizer, single_obs_input):
         # masker_max samples a random masking ratio between 0 and 1.
         # Therefore not all tokens will be masked.
         np.testing.assert_array_equal(masker_max(single_obs_input)['input_ids'].numpy(),
-                                     [[0, mask, mask, mask, mask, mask, mask, mask, mask, mask, mask, 2]])
+                                      [[0, mask, mask, mask, mask, mask, mask, mask, mask, mask, mask, 2]])
         masked_output = masker_max(single_obs_input)['input_ids']
         assert masked_output.numpy()[0, 0] == tokenizer.bos_token_id.numpy()
         assert masked_output.numpy()[0, -1] == tokenizer.eos_token_id.numpy()

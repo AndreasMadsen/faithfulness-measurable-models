@@ -11,7 +11,8 @@ class F1Score(tfa_F1Score):
         sparse labels indices of shape [None, 1]. This wrapper converts the sparse
         labels to the expected one_hot encoding.
     """
-    def __init__(self, num_classes: int, average: str='macro', name: str=None):
+
+    def __init__(self, num_classes: int, average: str = 'macro', name: str = None):
         """Computes the F1-score, enther macro or micro
 
         Args:

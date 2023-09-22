@@ -54,6 +54,7 @@ def test_explainer_gradient_l1(tokenizer, model, x, config):
         [6, 0, 6, -1]
     ])
 
+
 @pytest.mark.parametrize("config", compile_configs, ids=lambda config: config.name)
 def test_explainer_input_times_gradient_abs(tokenizer, model, x, config):
     explainer = InputTimesGradientAbsExplainer(tokenizer, model, **config.args)
@@ -63,6 +64,7 @@ def test_explainer_input_times_gradient_abs(tokenizer, model, x, config):
         [0, 2, 2, 0],
         [2, 0, 2, -1]
     ])
+
 
 @pytest.mark.parametrize("config", compile_configs, ids=lambda config: config.name)
 def test_explainer_input_times_gradient_sign(tokenizer, model, x, config):
@@ -74,6 +76,7 @@ def test_explainer_input_times_gradient_sign(tokenizer, model, x, config):
         [2, 0, 2, -1]
     ])
 
+
 @pytest.mark.parametrize("config", compile_configs, ids=lambda config: config.name)
 def test_explainer_integrated_gradient_sign_1_sample(tokenizer, model, x, config):
     explainer = IntegratedGradientSignExplainer(tokenizer, model, riemann_samples=1, **config.args)
@@ -84,6 +87,7 @@ def test_explainer_integrated_gradient_sign_1_sample(tokenizer, model, x, config
         [2, 0, 2, -1]
     ])
 
+
 @pytest.mark.parametrize("config", compile_configs, ids=lambda config: config.name)
 def test_explainer_integrated_gradient_abs_1_sample(tokenizer, model, x, config):
     explainer = IntegratedGradientAbsExplainer(tokenizer, model, riemann_samples=1, **config.args)
@@ -93,6 +97,7 @@ def test_explainer_integrated_gradient_abs_1_sample(tokenizer, model, x, config)
         [0, 2, 2, 0],
         [2, 0, 2, -1]
     ])
+
 
 @pytest.mark.parametrize("config", compile_configs, ids=lambda config: config.name)
 def test_explainer_integrated_gradient_abs_2_samples(tokenizer, model, x, config):

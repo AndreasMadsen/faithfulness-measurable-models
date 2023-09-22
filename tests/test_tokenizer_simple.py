@@ -5,12 +5,14 @@ import numpy as np
 
 from ecoroar.tokenizer import SimpleTestTokenizer
 
+
 @pytest.fixture
 def text_dataset():
     return tf.data.Dataset.from_tensor_slices([
-            '[BOS] token token [EOS] [PAD]',
-            '[BOS] token [EOS] [PAD] [PAD]',
+        '[BOS] token token [EOS] [PAD]',
+        '[BOS] token [EOS] [PAD] [PAD]',
     ])
+
 
 def test_simple_tokenizer(text_dataset):
     tokenizer = SimpleTestTokenizer()

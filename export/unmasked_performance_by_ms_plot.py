@@ -13,14 +13,16 @@ from ecoroar.dataset import datasets
 from ecoroar.plot import bootstrap_confint, annotation
 from ecoroar.util import generate_experiment_id
 
+
 def select_target_metric(df):
     idx, cols = pd.factorize('results.' + df.loc[:, 'target_metric'])
     return df.assign(
-        metric = df.reindex(cols, axis=1).to_numpy()[np.arange(len(df)), idx]
+        metric=df.reindex(cols, axis=1).to_numpy()[np.arange(len(df)), idx]
     )
 
+
 parser = argparse.ArgumentParser(
-    description = 'Plots the 0% masking test performance given different training masking ratios')
+    description='Plots the 0% masking test performance given different training masking ratios')
 parser.add_argument('--persistent-dir',
                     action='store',
                     default=pathlib.Path(__file__).absolute().parent.parent,
@@ -85,9 +87,9 @@ if __name__ == "__main__":
     }
 
     experiment_id = generate_experiment_id('unmasked_performance_by_ms',
-                                            model=args.model_category,
-                                            max_masking_ratio=args.max_masking_ratio,
-                                            validation_dataset=args.validation_dataset)
+                                           model=args.model_category,
+                                           max_masking_ratio=args.max_masking_ratio,
+                                           validation_dataset=args.validation_dataset)
 
     if args.stage in ['both', 'preprocess']:
         # Read JSON files into dataframe
@@ -125,39 +127,41 @@ if __name__ == "__main__":
     if args.stage in ['both', 'plot']:
         df_main = df.query('`args.max_masking_ratio` == 100')
         df_goal = (df
-            .query('`args.max_masking_ratio` == 0')
-            .assign(**{
-                'args.masking_strategy': 'goal'
-            }))
+                   .query('`args.max_masking_ratio` == 0')
+                   .assign(**{
+                       'args.masking_strategy': 'goal'
+                   }))
         df_data = pd.concat([df_main, df_goal])
 
         df_plot = (df_data
-                .groupby(['args.model', 'args.dataset', 'args.max_epochs', 'args.masking_strategy'], group_keys=True)
-                .apply(bootstrap_confint(['metric']))
-                .reset_index())
+                   .groupby(['args.model', 'args.dataset', 'args.max_epochs', 'args.masking_strategy'], group_keys=True)
+                   .apply(bootstrap_confint(['metric']))
+                   .reset_index())
 
         # Generate plot
         p = (p9.ggplot(df_plot, p9.aes(x='args.model'))
-            + p9.geom_errorbar(p9.aes(ymin='metric_lower', ymax='metric_upper', color='args.masking_strategy'), position=p9.position_dodge(0.5), width=0.5)
-            + p9.geom_point(p9.aes(y='metric_mean', color='args.masking_strategy'), fill='black', shape='o', position=p9.position_dodge(0.5), alpha=1)
-            + p9.geom_jitter(p9.aes(y='metric', color='args.masking_strategy'),
-                                shape='+', alpha=0.8, position=p9.position_jitterdodge(0.25), data=df_data)
-            + p9.facet_wrap("args.dataset", scales="free_y", ncol=2)
-            + p9.scale_y_continuous(
-                labels=lambda ticks: [f'{tick:.0%}' for tick in ticks],
-                name='Unmasked performance'
-            )
+             + p9.geom_errorbar(p9.aes(ymin='metric_lower', ymax='metric_upper',
+                                color='args.masking_strategy'), position=p9.position_dodge(0.5), width=0.5)
+             + p9.geom_point(p9.aes(y='metric_mean', color='args.masking_strategy'),
+                             fill='black', shape='o', position=p9.position_dodge(0.5), alpha=1)
+             + p9.geom_jitter(p9.aes(y='metric', color='args.masking_strategy'),
+                              shape='+', alpha=0.8, position=p9.position_jitterdodge(0.25), data=df_data)
+             + p9.facet_wrap("args.dataset", scales="free_y", ncol=2)
+             + p9.scale_y_continuous(
+            labels=lambda ticks: [f'{tick:.0%}' for tick in ticks],
+            name='Unmasked performance'
+        )
             + p9.scale_x_discrete(
-                breaks = annotation.model.breaks,
-                labels = annotation.model.labels,
+                breaks=annotation.model.breaks,
+                labels=annotation.model.labels,
                 name=''
-            )
+        )
             + p9.scale_color_discrete(
-                breaks = annotation.masking_strategy.breaks,
-                labels = annotation.masking_strategy.labels,
-                aesthetics = ["colour", "fill"],
+                breaks=annotation.masking_strategy.breaks,
+                labels=annotation.masking_strategy.labels,
+                aesthetics=["colour", "fill"],
                 name='fine-tuning strategy'
-            )
+        )
             + p9.scale_shape_discrete(guide=False)
             + p9.theme(subplots_adjust={'wspace': 0.25}))
 
@@ -169,12 +173,12 @@ if __name__ == "__main__":
                 text=p9.element_text(size=11),
                 subplots_adjust={'bottom': 0.37, 'wspace': 0.5},
                 legend_position=(.5, .05),
-                axis_text_x = p9.element_text(angle = 45, hjust=1)
+                axis_text_x=p9.element_text(angle=45, hjust=1)
             )
         else:
             size = (20, 7)
             p += p9.ggtitle(experiment_id)
 
         os.makedirs(args.persistent_dir / 'plots' / args.format, exist_ok=True)
-        p.save(args.persistent_dir / 'plots'/ args.format / f'{experiment_id}.pdf', width=size[0], height=size[1], units='in')
-        p.save(args.persistent_dir / 'plots'/ args.format / f'{experiment_id}.png', width=size[0], height=size[1], units='in')
+        p.save(args.persistent_dir / 'plots' / args.format / f'{experiment_id}.pdf', width=size[0], height=size[1], units='in')
+        p.save(args.persistent_dir / 'plots' / args.format / f'{experiment_id}.png', width=size[0], height=size[1], units='in')

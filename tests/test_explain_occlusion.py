@@ -34,33 +34,34 @@ def model(tokenizer):
         '[BOS] [MASK] [MASK] [MASK] [MASK] [EOS]': (2.0, 0.0),
 
         #      [MASK]
-        '[BOS] [MASK] token  token  token  [EOS]': (2.0, 0.0), # 1:3
+        '[BOS] [MASK] token  token  token  [EOS]': (2.0, 0.0),  # 1:3
         #      [MASK] [MASK]
-        '[BOS] [MASK] [MASK] token  token  [EOS]': (3.0, 0.0), # 12:5*, 21:-2
-        '[BOS] [MASK] [MASK] [MASK] token  [EOS]': (3.0, 0.0), # 123:7, 312:5
-        '[BOS] [MASK] [MASK] token  [MASK] [EOS]': (5.0, 0.0), # 124:5, 421:3
+        '[BOS] [MASK] [MASK] token  token  [EOS]': (3.0, 0.0),  # 12:5*, 21:-2
+        '[BOS] [MASK] [MASK] [MASK] token  [EOS]': (3.0, 0.0),  # 123:7, 312:5
+        '[BOS] [MASK] [MASK] token  [MASK] [EOS]': (5.0, 0.0),  # 124:5, 421:3
         #      [MASK]        [MASK]
-        '[BOS] [MASK] token  [MASK] token  [EOS]': (6.0, 0.0), # 31:3*, 13:2*
-        '[BOS] [MASK] token  [MASK] [MASK] [EOS]': (2.0, 0.0), # 314:6
+        '[BOS] [MASK] token  [MASK] token  [EOS]': (6.0, 0.0),  # 31:3*, 13:2*
+        '[BOS] [MASK] token  [MASK] [MASK] [EOS]': (2.0, 0.0),  # 314:6
         #      [MASK]               [MASK]
-        '[BOS] [MASK] token  token  [MASK] [EOS]': (7.0, 0.0), # 14:1, 41:-2
+        '[BOS] [MASK] token  token  [MASK] [EOS]': (7.0, 0.0),  # 14:1, 41:-2
 
         #             [MASK]
-        '[BOS] token  [MASK] token  token  [EOS]': (9.0, 0.0), # 2:-4
+        '[BOS] token  [MASK] token  token  [EOS]': (9.0, 0.0),  # 2:-4
         #             [MASK] [MASK]
-        '[BOS] token  [MASK] [MASK] token  [EOS]': (8.0, 0.0), # 32:1, 23:-7
-        '[BOS] token  [MASK] [MASK] [MASK] [EOS]': (0.0, 0.0), # 423:8
+        '[BOS] token  [MASK] [MASK] token  [EOS]': (8.0, 0.0),  # 32:1, 23:-7
+        '[BOS] token  [MASK] [MASK] [MASK] [EOS]': (0.0, 0.0),  # 423:8
         #             [MASK]        [MASK]
-        '[BOS] token  [MASK] token  [MASK] [EOS]': (2.0, 0.0), # 42:3*, 24:-1
+        '[BOS] token  [MASK] token  [MASK] [EOS]': (2.0, 0.0),  # 42:3*, 24:-1
 
         #                    [MASK]
-        '[BOS] token  token  [MASK] token  [EOS]': (1.0, 0.0), # 3:4
+        '[BOS] token  token  [MASK] token  [EOS]': (1.0, 0.0),  # 3:4
         #                    [MASK] [MASK]
-        '[BOS] token  token  [MASK] [MASK] [EOS]': (8.0, 0.0), # 34:1, 42:-3
+        '[BOS] token  token  [MASK] [MASK] [EOS]': (8.0, 0.0),  # 34:1, 42:-3
 
         #                           [MASK]
-        '[BOS] token  token  token  [MASK] [EOS]': (5.0, 0.0), # 4:0
+        '[BOS] token  token  token  [MASK] [EOS]': (5.0, 0.0),  # 4:0
     })
+
 
 @pytest.fixture
 def x_12(tokenizer):
@@ -71,6 +72,7 @@ def x_12(tokenizer):
       .batch(2) \
       .get_single_element()
 
+
 @pytest.fixture
 def x_4(tokenizer):
     return tf.data.Dataset.from_tensor_slices([
@@ -78,6 +80,7 @@ def x_4(tokenizer):
     ]).map(lambda doc: tokenizer((doc, ))) \
       .batch(1) \
       .get_single_element()
+
 
 @pytest.fixture
 def x_124(tokenizer):
@@ -100,6 +103,7 @@ def test_explainer_leave_on_out_abs(tokenizer, model, x_12, config):
         [0, 1, 0, -1]
     ])
 
+
 @pytest.mark.parametrize("config", compile_configs, ids=lambda config: config.name)
 def test_explainer_leave_on_out_sign(tokenizer, model, x_12, config):
     explainer = LeaveOneOutSign(tokenizer, model, **config.args)
@@ -110,6 +114,7 @@ def test_explainer_leave_on_out_sign(tokenizer, model, x_12, config):
         [0, -1, 0, -1]
     ])
 
+
 @pytest.mark.parametrize("config", compile_configs, ids=lambda config: config.name)
 def test_explainer_beam_search_size_1(tokenizer, model, x_4, config):
     explainer = BeamSearch(tokenizer, model, beam_size=1, **config.args)
@@ -118,6 +123,7 @@ def test_explainer_beam_search_size_1(tokenizer, model, x_4, config):
     np.testing.assert_allclose(im, [
         [0, 3, 1, 4, 2, 0],
     ])
+
 
 @pytest.mark.parametrize("config", compile_configs, ids=lambda config: config.name)
 def test_explainer_beam_search_size_2(tokenizer, model, x_4, config):
@@ -128,6 +134,7 @@ def test_explainer_beam_search_size_2(tokenizer, model, x_4, config):
         [0, 4, 3, 2, 1, 0],
     ])
 
+
 @pytest.mark.parametrize("config", compile_configs, ids=lambda config: config.name)
 @pytest.mark.parametrize("beam_size", list(range(3, 10)))
 def test_explainer_beam_search_size_above_2(tokenizer, model, x_4, config, beam_size):
@@ -137,6 +144,7 @@ def test_explainer_beam_search_size_above_2(tokenizer, model, x_4, config, beam_
     np.testing.assert_allclose(im, [
         [0, 1, 3, 2, 4, 0],
     ])
+
 
 @pytest.mark.parametrize("config", compile_configs, ids=lambda config: config.name)
 def test_explainer_beam_search_batching(tokenizer, model, x_124, config):

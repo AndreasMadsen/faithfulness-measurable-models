@@ -9,6 +9,7 @@ def default_jit_compile(args):
     # these are quite slow, this makes them 2x faster
     return args.dataset in ['QQP', 'MNLI', 'QNLI', 'SNLI', 'IMDB']
 
+
 def default_max_epochs(args):
     if args.max_epochs is not None:
         return args.max_epochs
@@ -27,6 +28,7 @@ def default_max_epochs(args):
         'SNLI': 10,
         'SST2': 10,
     }).get(args.dataset, 20)
+
 
 def default_recursive(args):
     if args.recursive is not None:

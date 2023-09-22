@@ -8,6 +8,7 @@ from tensorflow.keras import backend as K
 FloatTensorLike = Union[tf.Tensor, float, np.float16, np.float32, np.float64]
 AcceptableDTypes = Union[tf.DType, np.dtype, type, int, str, None]
 
+
 class MatthewsCorrelationCoefficient(tf.keras.metrics.Metric):
     """Computes the Matthews Correlation Coefficient.
 

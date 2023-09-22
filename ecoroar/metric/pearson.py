@@ -11,6 +11,7 @@ class Covariance(tf.keras.metrics.Metric):
         https://github.com/allenai/allennlp/blob/67f32d3f1c2a4eb1301f6d858c89a7df9270e8a4/allennlp/training/metrics/covariance.py#L16
     this uses the weighted_batched_version. Although, weighted covariance is currently not supposed.
     """
+
     def __init__(self, name='pearson'):
         """Metric for computing the covariance
 
@@ -24,7 +25,7 @@ class Covariance(tf.keras.metrics.Metric):
         self._count = self.add_weight(name='count', shape=[], initializer='zeros')
 
     @tf.function
-    def update_state(self, y_true: tf.Tensor, y_pred: tf.Tensor, sample_weight: tf.Tensor=None):
+    def update_state(self, y_true: tf.Tensor, y_pred: tf.Tensor, sample_weight: tf.Tensor = None):
         """Update the internal first and second order momentums
 
         Args:
@@ -77,7 +78,7 @@ class Pearson(tf.keras.metrics.Metric):
         self._true_variance = Covariance()
 
     @tf.function
-    def update_state(self, y_true: tf.Tensor, y_pred: tf.Tensor, sample_weight: tf.Tensor=None):
+    def update_state(self, y_true: tf.Tensor, y_pred: tf.Tensor, sample_weight: tf.Tensor = None):
         """Updates internal covariance and variances
 
         Args:

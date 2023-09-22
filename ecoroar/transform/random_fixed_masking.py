@@ -5,6 +5,7 @@ import tensorflow as tf
 
 from ..types import TokenizedDict, InputTransform, Tokenizer
 
+
 def _float_int_multiple(float_tensor, int_tensor):
     return tf.cast(float_tensor * tf.cast(int_tensor, dtype=float_tensor.dtype), dtype=int_tensor.dtype)
 
@@ -85,8 +86,8 @@ class RandomFixedMasking(InputTransform):
                 # Select number_of_masked_values elements from maskable_indices without replacement
                 # selected_masked_indices = [1, 2]
                 _, random_indices = tf.math.top_k(self._rng.uniform_full_int([sequence_length[obs_i]]),
-                                                k=number_of_masked_values[obs_i],
-                                                sorted=False)
+                                                  k=number_of_masked_values[obs_i],
+                                                  sorted=False)
                 selected_masked_indices = tf.gather(maskable_indices, indices=random_indices)
 
                 # Append indices to masked_indices. Note indices are sorted to provide valid

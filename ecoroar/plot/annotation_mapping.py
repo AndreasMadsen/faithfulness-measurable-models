@@ -1,6 +1,7 @@
 
 from functools import cached_property
 
+
 class _AnnotationMapping(dict):
     @cached_property
     def breaks(self):
@@ -21,6 +22,7 @@ class _AnnotationMapping(dict):
 
     def __ior__(self, other):
         return super.__ior__(self, other)
+
 
 class _AllAnnotations():
     def __init__(self) -> None:

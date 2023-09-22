@@ -56,11 +56,13 @@ def masked_dataset_paired(tokenizer):
     ]).map(lambda doc, y: (tokenizer((doc, )), y)) \
       .batch(2)
 
+
 class ExplainerMaskingForcedIMCompute(ExplainerMasking):
     @tf.function(reduce_retracing=True)
     def _mask_input_100p(self, x, y):
         im = self._explainer(x, y).to_tensor(default_value=-np.inf, shape=tf.shape(x['input_ids']))
         return self._mask_input(x, y, im, tf.constant(1.0, dtype=tf.dtypes.float32))
+
 
 @dataclass
 class ExplainerMaskingConfig:
@@ -68,11 +70,13 @@ class ExplainerMaskingConfig:
     ExplainerMasking: int
     recursive: bool
 
+
 explainer_masking_configs = [
     ExplainerMaskingConfig('non-recursive', ExplainerMasking, False),
     ExplainerMaskingConfig('recursive', ExplainerMasking, True),
     ExplainerMaskingConfig('mocked', ExplainerMaskingForcedIMCompute, True)
 ]
+
 
 @pytest.mark.parametrize("config", explainer_masking_configs, ids=lambda config: config.name)
 def test_explainer_masking_from_plain(tokenizer, model, dataset, config):

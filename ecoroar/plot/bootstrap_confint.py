@@ -4,7 +4,8 @@ import numpy as np
 import scipy.stats
 from typing import Callable, List
 
-def bootstrap_confint(column_names: List[str], seed: int=0, aggregator: Callable[[np.ndarray], np.ndarray]=np.mean):
+
+def bootstrap_confint(column_names: List[str], seed: int = 0, aggregator: Callable[[np.ndarray], np.ndarray] = np.mean):
     """Implementes bootstrap based confidence interval.
 
     Such method is particularly useful for performance metrics which are definetly not

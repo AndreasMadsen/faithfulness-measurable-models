@@ -15,6 +15,7 @@ from ecoroar.dataset import datasets
 from ecoroar.plot import bootstrap_confint, annotation
 from ecoroar.util import generate_experiment_id
 
+
 def select_target_metric(df, selectors=dict()):
     add_columns = dict()
     for new_column, prefix in selectors.items():
@@ -23,12 +24,14 @@ def select_target_metric(df, selectors=dict()):
 
     return df.assign(**add_columns)
 
+
 def delete_columns(df, prefix):
     remove_columns = df.columns[df.columns.str.startswith(prefix)].to_numpy().tolist()
     return df.drop(columns=remove_columns)
 
+
 parser = argparse.ArgumentParser(
-    description = 'Plots the 0% masking test performance given different training masking ratios'
+    description='Plots the 0% masking test performance given different training masking ratios'
 )
 parser.add_argument('--persistent-dir',
                     action='store',
@@ -82,7 +85,7 @@ parser.add_argument('--validation-dataset',
                     help='The transformation applied to the validation dataset used for early stopping.')
 
 if __name__ == "__main__":
-    #pd.set_option('display.max_rows', None)
+    # pd.set_option('display.max_rows', None)
     args, unknown = parser.parse_known_args()
 
     dataset_mapping = pd.DataFrame([
@@ -94,9 +97,9 @@ if __name__ == "__main__":
     ])
 
     experiment_id = generate_experiment_id('epoch_by_valid',
-                                            model=args.model,
-                                            max_masking_ratio=args.max_masking_ratio,
-                                            validation_dataset=args.validation_dataset)
+                                           model=args.model,
+                                           max_masking_ratio=args.max_masking_ratio,
+                                           validation_dataset=args.validation_dataset)
 
     if args.stage in ['both', 'preprocess']:
         # Read JSON files into dataframe
@@ -124,19 +127,19 @@ if __name__ == "__main__":
         df = (df
               .merge(dataset_mapping, on='args.dataset')
               .transform(partial(select_target_metric, selectors={
-                'metric.train': 'history.',
-                'metric.val': 'history.val_',
-                'metric.val_0': 'history.val_0_',
-                'metric.val_10': 'history.val_10_',
-                'metric.val_20': 'history.val_20_',
-                'metric.val_30': 'history.val_30_',
-                'metric.val_40': 'history.val_40_',
-                'metric.val_50': 'history.val_50_',
-                'metric.val_60': 'history.val_60_',
-                'metric.val_70': 'history.val_70_',
-                'metric.val_80': 'history.val_80_',
-                'metric.val_90': 'history.val_90_',
-                'metric.val_100': 'history.val_100_'
+                  'metric.train': 'history.',
+                  'metric.val': 'history.val_',
+                  'metric.val_0': 'history.val_0_',
+                  'metric.val_10': 'history.val_10_',
+                  'metric.val_20': 'history.val_20_',
+                  'metric.val_30': 'history.val_30_',
+                  'metric.val_40': 'history.val_40_',
+                  'metric.val_50': 'history.val_50_',
+                  'metric.val_60': 'history.val_60_',
+                  'metric.val_70': 'history.val_70_',
+                  'metric.val_80': 'history.val_80_',
+                  'metric.val_90': 'history.val_90_',
+                  'metric.val_100': 'history.val_100_'
               }))
               .assign(**{'epoch': lambda df: df['history.epoch'] + 1})
               .transform(partial(delete_columns, prefix='history.'))
@@ -148,9 +151,9 @@ if __name__ == "__main__":
                         'metric.val_20', 'metric.val_30', 'metric.val_40',
                         'metric.val_50', 'metric.val_60', 'metric.val_70',
                         'metric.val_80', 'metric.val_90', 'metric.val_100'
-                    ],
-                    value_name='metric.value',
-                    var_name='metric.dataset'))
+              ],
+                  value_name='metric.value',
+                  var_name='metric.dataset'))
 
     if args.stage in ['preprocess']:
         os.makedirs(args.persistent_dir / 'pandas', exist_ok=True)
@@ -160,27 +163,27 @@ if __name__ == "__main__":
 
     if args.stage in ['both', 'plot']:
         df_epochs = (df
-            .groupby(['args.dataset', 'args.masking_strategy', 'epoch', 'metric.dataset'], group_keys=True)
-            .apply(bootstrap_confint(['metric.value']))
-            .reset_index())
+                     .groupby(['args.dataset', 'args.masking_strategy', 'epoch', 'metric.dataset'], group_keys=True)
+                     .apply(bootstrap_confint(['metric.value']))
+                     .reset_index())
 
         # Generate plot
         p = (p9.ggplot(df_epochs, p9.aes(x='epoch'))
-            + p9.geom_ribbon(p9.aes(ymin='metric.value_lower', ymax='metric.value_upper', fill='metric.dataset'), alpha=0.35)
-            + p9.geom_line(p9.aes(y='metric.value_mean', color='metric.dataset'))
-            + p9.facet_grid("args.masking_strategy ~ args.dataset", scales="free_x")
-            + p9.scale_x_continuous(name='Epoch')
-            + p9.scale_y_continuous(
-                labels=lambda ticks: [f'{tick:.0%}' for tick in ticks],
-                name='Performance'
-            )
+             + p9.geom_ribbon(p9.aes(ymin='metric.value_lower', ymax='metric.value_upper', fill='metric.dataset'), alpha=0.35)
+             + p9.geom_line(p9.aes(y='metric.value_mean', color='metric.dataset'))
+             + p9.facet_grid("args.masking_strategy ~ args.dataset", scales="free_x")
+             + p9.scale_x_continuous(name='Epoch')
+             + p9.scale_y_continuous(
+            labels=lambda ticks: [f'{tick:.0%}' for tick in ticks],
+            name='Performance'
+        )
             + p9.scale_color_manual(
-                values = ['#000000'] + brewer_pal(type='div', palette=8)(11),
-                breaks = annotation.validation.breaks,
-                labels = annotation.validation.labels,
-                aesthetics = ["colour", "fill"],
+                values=['#000000'] + brewer_pal(type='div', palette=8)(11),
+                breaks=annotation.validation.breaks,
+                labels=annotation.validation.labels,
+                aesthetics=["colour", "fill"],
                 name='Validation dataset',
-            )
+        )
             + p9.guides(shape=False))
 
         if args.format == 'half':
@@ -193,5 +196,5 @@ if __name__ == "__main__":
             p += p9.ggtitle(experiment_id)
 
         os.makedirs(args.persistent_dir / 'plots' / args.format, exist_ok=True)
-        p.save(args.persistent_dir / 'plots'/ args.format / f'{experiment_id}.pdf', width=size[0], height=size[1], units='in')
-        p.save(args.persistent_dir / 'plots'/ args.format / f'{experiment_id}.png', width=size[0], height=size[1], units='in')
+        p.save(args.persistent_dir / 'plots' / args.format / f'{experiment_id}.pdf', width=size[0], height=size[1], units='in')
+        p.save(args.persistent_dir / 'plots' / args.format / f'{experiment_id}.png', width=size[0], height=size[1], units='in')

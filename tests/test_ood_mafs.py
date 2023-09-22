@@ -9,6 +9,7 @@ from ecoroar.tokenizer import SimpleTestTokenizer
 from ecoroar.ood import ood_detectors
 from ecoroar.test import compile_configs
 
+
 @pytest.fixture
 def tokenizer():
     return SimpleTestTokenizer()
@@ -17,6 +18,7 @@ def tokenizer():
 @pytest.fixture
 def model():
     return SimpleTestModel()
+
 
 @pytest.fixture
 def dataset(tokenizer):
@@ -29,6 +31,7 @@ def dataset(tokenizer):
         '[BOS] [EOS] [PAD] [PAD]',
     ]).map(lambda doc: (tokenizer((doc, )), 0)) \
       .batch(2)
+
 
 @pytest.mark.parametrize("compile_config", compile_configs, ids=lambda config: config.name)
 @pytest.mark.parametrize("ood_detector", ood_detectors.values(), ids=lambda ood_detector: ood_detector._name)

@@ -12,14 +12,16 @@ from ecoroar.dataset import datasets
 from ecoroar.plot import bootstrap_confint, annotation
 from ecoroar.util import generate_experiment_id
 
+
 def tex_format_time(secs):
     if np.isnan(secs):
         return '--'
     hh, mm = divmod(secs // 60, 60)
     return f'{int(hh):02d}:{int(mm):02d}'
 
+
 parser = argparse.ArgumentParser(
-    description = 'Plots the 0% masking test performance given different training masking ratios'
+    description='Plots the 0% masking test performance given different training masking ratios'
 )
 parser.add_argument('--persistent-dir',
                     action='store',
@@ -59,13 +61,12 @@ parser.add_argument('--aggregate',
                     help='Datasets the macro-average should be calculated over')
 
 if __name__ == "__main__":
-    #pd.set_option('display.max_rows', None)
+    # pd.set_option('display.max_rows', None)
     args, unknown = parser.parse_known_args()
 
     all_datasets = set(args.datasets + args.aggregate)
     experiment_id = generate_experiment_id('walltime_importance-measure',
-                                            dataset=args.page)
-
+                                           dataset=args.page)
 
     if args.stage in ['both', 'preprocess']:
 
@@ -93,11 +94,11 @@ if __name__ == "__main__":
 
     if args.stage in ['both', 'plot']:
         df_tab = (df
-            .groupby(['args.model', 'args.dataset', 'args.explainer'], group_keys=True)
-            .apply(bootstrap_confint(['durations.explain']))
-            .reset_index()
-            .pivot(index=['args.dataset', 'args.explainer'], columns=['args.model'], values=['durations.explain_mean'])
-        )
+                  .groupby(['args.model', 'args.dataset', 'args.explainer'], group_keys=True)
+                  .apply(bootstrap_confint(['durations.explain']))
+                  .reset_index()
+                  .pivot(index=['args.dataset', 'args.explainer'], columns=['args.model'], values=['durations.explain_mean'])
+                  )
         explainers = df['args.explainer'].unique()
 
         os.makedirs(args.persistent_dir / 'tables' / args.format, exist_ok=True)
@@ -134,14 +135,15 @@ if __name__ == "__main__":
 
             if len(args.aggregate) > 0:
                 df_tab_total = (df_tab
-                    .query(' | '.join(f'`args.dataset` == "{dataset}"' for dataset in args.aggregate))
-                    .sum(axis=0))
+                                .query(' | '.join(f'`args.dataset` == "{dataset}"' for dataset in args.aggregate))
+                                .sum(axis=0))
                 roberta_sb = df_tab_total.loc["durations.explain_mean", :].loc["roberta-sb"]
                 roberta_sl = df_tab_total.loc["durations.explain_mean", :].loc["roberta-sl"]
 
                 print(r'\midrule', file=fp)
                 print(r'\midrule', file=fp)
                 print(f'\multicolumn{{2}}{{r}}{{sum}} & {tex_format_time(roberta_sb)} & {tex_format_time(roberta_sl)} \\\\', file=fp)
-                print(f'\multicolumn{{2}}{{r}}{{x5 seeds}} & {tex_format_time(roberta_sb * 5)} & {tex_format_time(roberta_sl * 5)} \\\\', file=fp)
+                print(
+                    f'\multicolumn{{2}}{{r}}{{x5 seeds}} & {tex_format_time(roberta_sb * 5)} & {tex_format_time(roberta_sl * 5)} \\\\', file=fp)
             print(r'\bottomrule', file=fp)
             print(r'\end{tabular}', file=fp)

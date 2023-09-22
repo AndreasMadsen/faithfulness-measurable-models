@@ -12,6 +12,7 @@ _CONVERTION_TABLE = {
     'roberta-m80': 'andreasmadsen/efficient_mlm_m0.80',
 }
 
+
 def model_name_to_huggingface_repo(short_model_name: str) -> str:
     """Converts a project specific short model name to a valid huggingface repo
 

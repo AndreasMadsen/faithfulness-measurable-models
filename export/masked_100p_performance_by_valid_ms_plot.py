@@ -13,11 +13,13 @@ from ecoroar.dataset import datasets
 from ecoroar.plot import bootstrap_confint, annotation
 from ecoroar.util import generate_experiment_id
 
+
 def select_target_metric(df):
     idx, cols = pd.factorize('results.' + df.loc[:, 'target_metric'])
     return df.assign(
-        metric = df.reindex(cols, axis=1).to_numpy()[np.arange(len(df)), idx]
+        metric=df.reindex(cols, axis=1).to_numpy()[np.arange(len(df)), idx]
     )
+
 
 def get_validation_performance(history, test_results):
     losses = [epoch_losses['loss'] for epoch_losses in history]
@@ -36,8 +38,9 @@ def get_validation_performance(history, test_results):
     ]
     return val_results
 
+
 parser = argparse.ArgumentParser(
-    description = 'Plots the 0% masking test performance given different training masking ratios')
+    description='Plots the 0% masking test performance given different training masking ratios')
 parser.add_argument('--persistent-dir',
                     action='store',
                     default=pathlib.Path(__file__).absolute().parent.parent,
@@ -120,10 +123,10 @@ if __name__ == "__main__":
     }
 
     experiment_id = generate_experiment_id('masked_100p_performance_by_valid_ms',
-                                            model=args.model_category,
-                                            dataset=args.page,
-                                            max_masking_ratio=args.max_masking_ratio,
-                                            split=args.split)
+                                           model=args.model_category,
+                                           dataset=args.page,
+                                           max_masking_ratio=args.max_masking_ratio,
+                                           split=args.split)
 
     if args.stage in ['both', 'preprocess']:
         # Read JSON files into dataframe
@@ -162,59 +165,62 @@ if __name__ == "__main__":
     if args.stage in ['both', 'plot']:
         df_main = df.query('`args.max_masking_ratio` == 100')
         df_goal = (df
-            .query('`args.max_masking_ratio` == 0')
-            .assign(**{
-                'args.masking_strategy': 'goal'
-            }))
+                   .query('`args.max_masking_ratio` == 0')
+                   .assign(**{
+                       'args.masking_strategy': 'goal'
+                   }))
         df_all = pd.concat([df_main, df_goal])
         df_show = df_all.query(' | '.join(f'`args.dataset` == "{dataset}"' for dataset in args.datasets))
 
         df_plot = (df_show
-                .groupby(['args.model', 'args.dataset', 'args.max_epochs', 'args.validation_dataset', 'args.masking_strategy'], group_keys=True)
-                .apply(bootstrap_confint(['metric', 'baseline']))
-                .reset_index())
+                   .groupby(['args.model', 'args.dataset', 'args.max_epochs', 'args.validation_dataset', 'args.masking_strategy'], group_keys=True)
+                   .apply(bootstrap_confint(['metric', 'baseline']))
+                   .reset_index())
 
         if len(args.aggregate) > 0:
             df_agg = (df_all
-                    .query(' | '.join(f'`args.dataset` == "{dataset}"' for dataset in args.aggregate))
-                    .groupby(['args.seed', 'args.model', 'args.validation_dataset', 'args.masking_strategy'], group_keys=True)
-                    .apply(lambda subset: pd.Series({
-                        'metric': subset['metric'].mean(),
-                        'baseline': subset['baseline'].mean()
-                    }))
-                    .groupby(['args.model', 'args.validation_dataset', 'args.masking_strategy'], group_keys=True)
-                    .apply(bootstrap_confint(['metric', 'baseline']))
-                    .reset_index()
-                    .assign(**{ 'args.dataset': 'All' }))
+                      .query(' | '.join(f'`args.dataset` == "{dataset}"' for dataset in args.aggregate))
+                      .groupby(['args.seed', 'args.model', 'args.validation_dataset', 'args.masking_strategy'], group_keys=True)
+                      .apply(lambda subset: pd.Series({
+                          'metric': subset['metric'].mean(),
+                          'baseline': subset['baseline'].mean()
+                      }))
+                      .groupby(['args.model', 'args.validation_dataset', 'args.masking_strategy'], group_keys=True)
+                      .apply(bootstrap_confint(['metric', 'baseline']))
+                      .reset_index()
+                      .assign(**{'args.dataset': 'All'}))
             df_plot = pd.concat([df_agg, df_plot])
 
         df_baseline = (df_plot
-                    .query('`args.validation_dataset` == "nomask" & `args.masking_strategy` == "goal"')
-                    .drop(columns=['args.validation_dataset', 'args.masking_strategy']))
+                       .query('`args.validation_dataset` == "nomask" & `args.masking_strategy` == "goal"')
+                       .drop(columns=['args.validation_dataset', 'args.masking_strategy']))
 
         # Generate plot
         p = (p9.ggplot(df_plot, p9.aes(x='args.validation_dataset'))
-            + p9.geom_hline(p9.aes(yintercept='baseline_mean'), linetype='dashed', data=df_baseline)
-            + p9.geom_errorbar(p9.aes(ymin='metric_lower', ymax='metric_upper', color='args.masking_strategy'), position=p9.position_dodge(0.5), width=0.5)
-            + p9.geom_point(p9.aes(y='metric_mean', color='args.masking_strategy'), fill='black', shape='o', position=p9.position_dodge(0.5), alpha=1)
-            + p9.geom_jitter(p9.aes(y='metric', color='args.masking_strategy'),
-                                shape='+', alpha=0.8, position=p9.position_jitterdodge(0.15), data=df_show)
-            + p9.facet_grid("args.dataset ~ args.model", scales="free_y", labeller=(annotation.dataset | annotation.model).labeller)
-            + p9.scale_y_continuous(
-                labels=lambda ticks: [f'{tick:.0%}' for tick in ticks],
-                name='100% masked performance'
-            )
+             + p9.geom_hline(p9.aes(yintercept='baseline_mean'), linetype='dashed', data=df_baseline)
+             + p9.geom_errorbar(p9.aes(ymin='metric_lower', ymax='metric_upper',
+                                color='args.masking_strategy'), position=p9.position_dodge(0.5), width=0.5)
+             + p9.geom_point(p9.aes(y='metric_mean', color='args.masking_strategy'),
+                             fill='black', shape='o', position=p9.position_dodge(0.5), alpha=1)
+             + p9.geom_jitter(p9.aes(y='metric', color='args.masking_strategy'),
+                              shape='+', alpha=0.8, position=p9.position_jitterdodge(0.15), data=df_show)
+             + p9.facet_grid("args.dataset ~ args.model", scales="free_y",
+                             labeller=(annotation.dataset | annotation.model).labeller)
+             + p9.scale_y_continuous(
+            labels=lambda ticks: [f'{tick:.0%}' for tick in ticks],
+            name='100% masked performance'
+        )
             + p9.scale_x_discrete(
-                breaks = annotation.validation_dataset.breaks,
-                labels = annotation.validation_dataset.labels,
+                breaks=annotation.validation_dataset.breaks,
+                labels=annotation.validation_dataset.labels,
                 name='Validation strategy'
-            )
-             + p9.scale_color_discrete(
-                 breaks = annotation.masking_strategy.breaks,
-                 labels = annotation.masking_strategy.labels,
-                 aesthetics = ["colour", "fill"],
+        )
+            + p9.scale_color_discrete(
+                 breaks=annotation.masking_strategy.breaks,
+                 labels=annotation.masking_strategy.labels,
+                 aesthetics=["colour", "fill"],
                  name='Training strategy'
-             )
+        )
             + p9.scale_shape_discrete(guide=False))
 
         if args.format == 'half':
@@ -225,7 +231,7 @@ if __name__ == "__main__":
                 text=p9.element_text(size=11),
                 subplots_adjust={'bottom': 0.37, 'wspace': 0.5},
                 legend_position=(.5, .05),
-                axis_text_x = p9.element_text(angle = 45, hjust=1)
+                axis_text_x=p9.element_text(angle=45, hjust=1)
             )
         elif args.format == 'paper':
             # The width is the \linewidth of a collumn in the LaTeX document
@@ -245,7 +251,7 @@ if __name__ == "__main__":
                 strip_background_x=p9.element_rect(height=0.25),
                 strip_background_y=p9.element_rect(width=0.2),
                 strip_text_x=p9.element_text(margin={'b': 2}),
-                axis_text_x=p9.element_text(angle = 60, hjust=2)
+                axis_text_x=p9.element_text(angle=60, hjust=2)
             )
         elif args.format == 'keynote':
             size = (3.03209, 4.5)
@@ -264,7 +270,7 @@ if __name__ == "__main__":
                 strip_background_x=p9.element_rect(height=0.25),
                 strip_background_y=p9.element_rect(width=0.2),
                 strip_text_x=p9.element_text(margin={'b': 2}),
-                axis_text_x=p9.element_text(angle = 60, hjust=2)
+                axis_text_x=p9.element_text(angle=60, hjust=2)
             )
         elif args.format == 'appendix':
             size = (6.30045, 8.8)
@@ -276,12 +282,12 @@ if __name__ == "__main__":
                 legend_box_margin=0,
                 legend_position=(.5, .05),
                 legend_background=p9.element_rect(fill='#F2F2F2'),
-                axis_text_x=p9.element_text(angle = 15, hjust=1)
+                axis_text_x=p9.element_text(angle=15, hjust=1)
             )
         else:
             size = (7, 20)
             p += p9.ggtitle(experiment_id)
 
         os.makedirs(args.persistent_dir / 'plots' / args.format, exist_ok=True)
-        p.save(args.persistent_dir / 'plots'/ args.format / f'{experiment_id}.pdf', width=size[0], height=size[1], units='in')
+        p.save(args.persistent_dir / 'plots' / args.format / f'{experiment_id}.pdf', width=size[0], height=size[1], units='in')
         # p.save(args.persistent_dir / 'plots'/ args.format / f'{experiment_id}.png', width=size[0], height=size[1], units='in')

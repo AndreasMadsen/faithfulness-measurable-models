@@ -9,8 +9,10 @@ from ..types import TokenizedDict, InputTransform
 def _slice_structure(structure, slicer):
     return tf.nest.map_structure(lambda tensor: tensor[slicer], structure)
 
+
 def _concat_structure(structures, **kwargs):
     return tf.nest.map_structure(lambda *tensors: tf.concat(tensors, **kwargs), *structures)
+
 
 class TransformSampler(InputTransform):
     def __init__(self, transforms: List[InputTransform], stochastic=False, seed: int = None):

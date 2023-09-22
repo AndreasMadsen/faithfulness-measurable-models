@@ -12,14 +12,16 @@ from ecoroar.dataset import datasets
 from ecoroar.plot import bootstrap_confint, ci_formatter, annotation
 from ecoroar.util import default_max_epochs
 
+
 def select_target_metric(df):
     idx, cols = pd.factorize('results.' + df.loc[:, 'target_metric'])
     return df.assign(
-        metric = df.reindex(cols, axis=1).to_numpy()[np.arange(len(df)), idx]
+        metric=df.reindex(cols, axis=1).to_numpy()[np.arange(len(df)), idx]
     )
 
+
 parser = argparse.ArgumentParser(
-    description = 'Plots the 0% masking test performance given different training masking ratios'
+    description='Plots the 0% masking test performance given different training masking ratios'
 )
 parser.add_argument('--persistent-dir',
                     action='store',
@@ -53,7 +55,7 @@ parser.add_argument('--performance-metric',
                     help='Which metric to use as a performance metric.')
 
 if __name__ == "__main__":
-    #pd.set_option('display.max_rows', None)
+    # pd.set_option('display.max_rows', None)
     args, unknown = parser.parse_known_args()
 
     dataset_mapping = pd.DataFrame([
@@ -102,11 +104,11 @@ if __name__ == "__main__":
 
     if args.stage in ['both', 'plot']:
         df_tab = (df
-                .groupby(['args.model', 'args.dataset', 'max_epoch'], group_keys=True)
-                .apply(bootstrap_confint(['metric']))
-                .reset_index()
-                .transform(ci_formatter(['metric']))
-                .pivot(index=['args.dataset', 'max_epoch'], columns=['args.model'], values=['metric_format']))
+                  .groupby(['args.model', 'args.dataset', 'max_epoch'], group_keys=True)
+                  .apply(bootstrap_confint(['metric']))
+                  .reset_index()
+                  .transform(ci_formatter(['metric']))
+                  .pivot(index=['args.dataset', 'max_epoch'], columns=['args.model'], values=['metric_format']))
 
         os.makedirs(args.persistent_dir / 'tables' / args.format, exist_ok=True)
         with open(args.persistent_dir / 'tables' / args.format / f'{output_name}.tex', 'w') as fp:

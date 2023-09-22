@@ -5,6 +5,7 @@ import tensorflow as tf
 
 from ..types import TokenizedDict, EmbeddingDict
 
+
 class Model(tf.keras.Model, metaclass=ABCMeta):
     @abstractmethod
     def inputs_embeds(self, x: TokenizedDict, training=False) -> EmbeddingDict:

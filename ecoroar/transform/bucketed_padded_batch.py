@@ -5,15 +5,17 @@ import tensorflow as tf
 from typing import List, Callable
 from ..types import InputTransform
 
+
 @tf.function
 def _get_bounding_shape(x, y):
     return x['input_ids'].bounding_shape(out_type=tf.dtypes.int32)
 
+
 class BucketedPaddedBatch(InputTransform):
     def __init__(self, datasets: List[tf.data.Dataset],
                  quantiles: List[float] = [0.25, 0.5, 0.75, 0.9],
-                 batch_size: int=16,
-                 bounding_shape: Callable[[tf.Tensor, tf.Tensor], tf.Tensor]=_get_bounding_shape):
+                 batch_size: int = 16,
+                 bounding_shape: Callable[[tf.Tensor, tf.Tensor], tf.Tensor] = _get_bounding_shape):
         """Pads observations to fixed lengths using a quantile heuristic
 
         When using XLA JIT a new program needs to be compiled for every input shape.

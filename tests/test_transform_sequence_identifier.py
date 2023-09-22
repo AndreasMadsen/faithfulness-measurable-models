@@ -10,6 +10,7 @@ from ecoroar.transform import SequenceIndentifier
 from ecoroar.util import get_compiler
 from ecoroar.test import compile_configs
 
+
 @pytest.fixture
 def tokenizer():
     return SimpleTestTokenizer()
@@ -26,6 +27,7 @@ def x(tokenizer):
     ]).map(lambda doc: tokenizer((doc, ))) \
       .batch(5) \
       .get_single_element()
+
 
 @pytest.mark.parametrize("config", compile_configs, ids=lambda config: config.name)
 def test_sequence_identifier(tokenizer, x, config):

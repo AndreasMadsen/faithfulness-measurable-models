@@ -2,6 +2,7 @@
 import tensorflow as tf
 from ..types import Tokenizer, TokenizedDict
 
+
 class SimpleTestTokenizer(Tokenizer):
     def __init__(self):
         self.unk_token = '[UNK]'
@@ -10,7 +11,7 @@ class SimpleTestTokenizer(Tokenizer):
         self.pad_token_id = tf.constant(2, tf.dtypes.int32)
 
         self.bos_token = '[BOS]'
-        self.bos_token_id =tf.constant(0, tf.dtypes.int32)
+        self.bos_token_id = tf.constant(0, tf.dtypes.int32)
         self.eos_token = '[EOS]'
         self.eos_token_id = tf.constant(1, tf.dtypes.int32)
 
@@ -35,7 +36,7 @@ class SimpleTestTokenizer(Tokenizer):
             'token',
             self.mask_token
         ]
-        self._token_to_id = { token: i for i, token in enumerate(self.vocab) }
+        self._token_to_id = {token: i for i, token in enumerate(self.vocab)}
 
     def _wrap_tokenizer_call(self, texts):
         input_ids = []

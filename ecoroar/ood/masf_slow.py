@@ -7,7 +7,8 @@ from ..types import TokenizedDict, Tokenizer, Model
 from ..util import get_compiler
 from ..transform import MapOnGPU
 
-def _emerical_cdf_scan(dist: tf.Tensor, samples: tf.Tensor)-> tf.Tensor:
+
+def _emerical_cdf_scan(dist: tf.Tensor, samples: tf.Tensor) -> tf.Tensor:
     """Evalute the CDF of samples given the distribution from _emerical_fit_scan
 
     This one uses O(1) for fit and O(n) for cdf.
@@ -30,7 +31,8 @@ def _emerical_cdf_scan(dist: tf.Tensor, samples: tf.Tensor)-> tf.Tensor:
     probs = counts / num_of_obs
     return tf.cast(probs, dtype=tf.dtypes.float32)
 
-def _reduce_simes(p_values: tf.Tensor, axis: int=-1) -> tf.Tensor:
+
+def _reduce_simes(p_values: tf.Tensor, axis: int = -1) -> tf.Tensor:
     """Implements Simes reduction along the axis
 
     Args:
@@ -46,7 +48,8 @@ def _reduce_simes(p_values: tf.Tensor, axis: int=-1) -> tf.Tensor:
     test_statistic = tf.math.reduce_min(p_values_sorted * ratios, axis=axis)
     return test_statistic
 
-def _reduce_fisher(p_values: tf.Tensor, axis: int=-1, eps: float=1e-8) -> tf.Tensor:
+
+def _reduce_fisher(p_values: tf.Tensor, axis: int = -1, eps: float = 1e-8) -> tf.Tensor:
     """Implements Fisher reduction along the axis
 
     Args:
@@ -59,6 +62,7 @@ def _reduce_fisher(p_values: tf.Tensor, axis: int=-1, eps: float=1e-8) -> tf.Ten
     """
     return -2 * tf.math.reduce_sum(tf.math.log(p_values + eps), axis=axis)
 
+
 def _two_sided_p_value(cdf_values: tf.Tensor) -> tf.Tensor:
     """Converts CDF probabilies (technically also p-values) to two-sided p-values.
 
@@ -69,6 +73,7 @@ def _two_sided_p_value(cdf_values: tf.Tensor) -> tf.Tensor:
         tf.Tensor: two-sided p-values
     """
     return tf.math.minimum(cdf_values, 1 - cdf_values)
+
 
 class MaSFSlow():
     _name: str = 'masf-slow'
@@ -115,7 +120,8 @@ class MaSFSlow():
         hidden_states = self._model(x, output_hidden_states=True).hidden_states  # Tuple[tf.Tensor[B, T, D]]
         hidden_states = tf.stack(hidden_states, axis=1)  # tf.Tensor[B, L, T, D]
 
-        mask = tf.reshape(x['input_ids'] == self._tokenizer.pad_token_id, (batch_size, 1, sequence_length, 1)) # tf.Tensor[B, 1, T, 1]
+        mask = tf.reshape(x['input_ids'] == self._tokenizer.pad_token_id,
+                          (batch_size, 1, sequence_length, 1))  # tf.Tensor[B, 1, T, 1]
         hidden_states = tf.where(mask, -tf.cast(np.inf, dtype=hidden_states.dtype), hidden_states)  # tf.Tensor[B, L, T, D]
         hidden_states = tf.math.reduce_max(hidden_states, axis=2)  # tf.Tensor[B, L, D]
         return hidden_states

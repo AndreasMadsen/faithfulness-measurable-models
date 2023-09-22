@@ -8,11 +8,13 @@ from ..types import TokenizedDict, InputTransform, Tokenizer
 from .map_on_gpu import MapOnGPU
 from .sequence_identifier import SequenceIndentifier
 
+
 def _float_int_multiple(float_tensor, int_tensor):
     return tf.cast(float_tensor * tf.cast(int_tensor, dtype=float_tensor.dtype), dtype=int_tensor.dtype)
 
+
 class ExplainerMasking(InputTransform):
-    def __init__(self, explainer, tokenizer: Tokenizer, recursive: bool=True):
+    def __init__(self, explainer, tokenizer: Tokenizer, recursive: bool = True):
         """Masks the input according to the importance measure provided by an explainer
 
         Args:
@@ -93,20 +95,22 @@ class ExplainerMasking(InputTransform):
         if masking_ratio == 0.0:
             if self._recursive:
                 return lambda dataset: dataset.map(
-                   lambda x, y: (x, y, tf.zeros((tf.shape(x['input_ids'])[0], 0), dtype=tf.dtypes.float32))
+                    lambda x, y: (x, y, tf.zeros((tf.shape(x['input_ids'])[0], 0), dtype=tf.dtypes.float32))
                 )
             else:
                 def _mapper(x, y):
                     im = self._explainer(x, y).to_tensor(default_value=-np.inf, shape=tf.shape(x['input_ids']))
                     return (x, y, im)
+
                 def _output_signature(dataset):
                     return (*tf.data.experimental.get_structure(dataset),
-                            tf.TensorSpec(shape=(None,None), dtype=tf.dtypes.float32))
+                            tf.TensorSpec(shape=(None, None), dtype=tf.dtypes.float32))
 
         elif masking_ratio == 1.0:
             # Avoid computing importance measure at 100% masking
             def _mapper(x, y, im):
                 return (self._mask_input_100p(x, y), y, im)
+
             def _output_signature(dataset):
                 return tf.data.experimental.get_structure(dataset)
 

@@ -6,10 +6,12 @@ import tensorflow as tf
 
 from ..types import TokenizedDict, EmbeddingDict, Model, Tokenizer
 
+
 @dataclass
 class SimpleOutput():
     logits: tf.Tensor
     hidden_states: Optional[tf.Tensor] = None
+
 
 class LookupTestConfig():
     model_type = 'lookup test'
@@ -28,6 +30,7 @@ class LookupTestConfig():
     @property
     def hidden_size(self) -> tf.Variable:
         raise NotImplementedError('hidden_size does not exist for LookupTestConfig')
+
 
 class LookupTestModel(Model):
     def __init__(self, keys: TokenizedDict, values: tf.Tensor, vocab_size=5) -> None:
@@ -87,7 +90,7 @@ class LookupTestModel(Model):
         input_ids = tf.ensure_shape(inputs['input_ids'], (None, None))
         attention_mask = tf.ensure_shape(inputs['attention_mask'], (None, None))
 
-        _, sequence_length =  tf.unstack(tf.shape(input_ids), num=2)
+        _, sequence_length = tf.unstack(tf.shape(input_ids), num=2)
         pows = self._base ** tf.range(sequence_length)
         parts = tf.where(attention_mask == 1, (input_ids + 1) * pows, 0)
         integer = tf.math.reduce_sum(parts, axis=1)

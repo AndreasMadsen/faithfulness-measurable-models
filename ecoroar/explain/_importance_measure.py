@@ -143,7 +143,7 @@ class ImportanceMeasureBatch(ImportanceMeasure):
         """
 
         raise NotImplementedError('_explain_batch is not implemented.'
-                            ' Either _explain_observation or _explain_batch should be implemented.')
+                                  ' Either _explain_observation or _explain_batch should be implemented.')
 
     def _explain(self, x: TokenizedDict, y: tf.Tensor) -> tf.RaggedTensor:
         """Converts the tensor output of _explain_batch to a RaggedTensor.

@@ -3,6 +3,7 @@ import tensorflow_datasets as tfds
 from ._abstract_dataset import AbstractDataset
 from .local import LocalBabi
 
+
 class _BabiDatasetGeneralized(AbstractDataset):
     _metrics = ['accuracy', 'micro_f1']
     _early_stopping_metric = 'micro_f1'
@@ -21,6 +22,7 @@ class _BabiDatasetGeneralized(AbstractDataset):
         x = (item['paragraph'], item['question'])
         return x, item['answer']
 
+
 class Babi1Dataset(_BabiDatasetGeneralized):
     _name = 'bAbI-1'
     _class_count_train = [1315, 1328, 1317, 1316, 1317, 1407]
@@ -30,6 +32,7 @@ class Babi1Dataset(_BabiDatasetGeneralized):
     def _builder(self, data_dir):
         return LocalBabi(data_dir=data_dir, config='en-10k/qa1')
 
+
 class Babi2Dataset(_BabiDatasetGeneralized):
     _name = 'bAbI-2'
     _class_count_train = [1417, 1387, 1235, 1298, 1390, 1273]
@@ -38,6 +41,7 @@ class Babi2Dataset(_BabiDatasetGeneralized):
 
     def _builder(self, data_dir):
         return LocalBabi(data_dir=data_dir, config='en-10k/qa2')
+
 
 class Babi3Dataset(_BabiDatasetGeneralized):
     _name = 'bAbI-3'

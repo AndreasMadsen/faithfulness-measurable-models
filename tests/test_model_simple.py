@@ -4,6 +4,7 @@ import numpy as np
 
 from ecoroar.model import SimpleTestModel
 
+
 def test_simple_model():
     model = SimpleTestModel()
     model.compile()

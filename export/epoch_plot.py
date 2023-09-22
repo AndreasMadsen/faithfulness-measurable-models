@@ -15,6 +15,7 @@ from ecoroar.dataset import datasets
 from ecoroar.plot import bootstrap_confint, annotation
 from ecoroar.util import generate_experiment_id
 
+
 def select_target_metric(df, selectors=dict()):
     add_columns = dict()
     for new_column, prefix in selectors.items():
@@ -23,12 +24,14 @@ def select_target_metric(df, selectors=dict()):
 
     return df.assign(**add_columns)
 
+
 def delete_columns(df, prefix):
     remove_columns = df.columns[df.columns.str.startswith(prefix)].to_numpy().tolist()
     return df.drop(columns=remove_columns)
 
+
 parser = argparse.ArgumentParser(
-    description = 'Plots the 0% masking test performance given different training masking ratios'
+    description='Plots the 0% masking test performance given different training masking ratios'
 )
 parser.add_argument('--persistent-dir',
                     action='store',
@@ -88,7 +91,7 @@ parser.add_argument('--validation-dataset',
                     help='The transformation applied to the validation dataset used for early stopping.')
 
 if __name__ == "__main__":
-    #pd.set_option('display.max_rows', None)
+    # pd.set_option('display.max_rows', None)
     args, unknown = parser.parse_known_args()
 
     dataset_mapping = pd.DataFrame([
@@ -104,11 +107,11 @@ if __name__ == "__main__":
     }
 
     experiment_id = generate_experiment_id('epoch',
-                                            model=args.model_category,
-                                            dataset=args.page,
-                                            masking_strategy=args.masking_strategy,
-                                            max_masking_ratio=args.max_masking_ratio,
-                                            validation_dataset=args.validation_dataset)
+                                           model=args.model_category,
+                                           dataset=args.page,
+                                           masking_strategy=args.masking_strategy,
+                                           max_masking_ratio=args.max_masking_ratio,
+                                           validation_dataset=args.validation_dataset)
 
     if args.stage in ['both', 'preprocess']:
         # Read JSON files into dataframe
@@ -137,7 +140,7 @@ if __name__ == "__main__":
         df = (df
               .merge(dataset_mapping, on='args.dataset')
               .transform(partial(select_target_metric, selectors={
-                'metric.val_0': 'history.val_0_',
+                  'metric.val_0': 'history.val_0_',
               }))
               .assign(**{'epoch': lambda df: df['history.epoch'] + 1})
               .transform(partial(delete_columns, prefix='history.'))
@@ -156,28 +159,29 @@ if __name__ == "__main__":
         })
 
         df_epochs = (df
-            .groupby(['args.model', 'args.dataset', 'plot.max_masking_ratio', 'epoch'], group_keys=True)
-            .apply(bootstrap_confint(['metric.val_0']))
-            .reset_index())
+                     .groupby(['args.model', 'args.dataset', 'plot.max_masking_ratio', 'epoch'], group_keys=True)
+                     .apply(bootstrap_confint(['metric.val_0']))
+                     .reset_index())
 
         # Generate plot
         p = (p9.ggplot(df_epochs, p9.aes(x='epoch'))
-            + p9.geom_ribbon(p9.aes(ymin='metric.val_0_lower', ymax='metric.val_0_upper', fill='plot.max_masking_ratio'), alpha=0.35)
-            + p9.geom_line(p9.aes(y='metric.val_0_mean', color='plot.max_masking_ratio'))
-            + p9.geom_jitter(p9.aes(y='metric.val_0', color='plot.max_masking_ratio'),
-                             shape='+', alpha=0.5, position=p9.position_jitterdodge(0.05), data=df)
-            + p9.facet_grid("args.dataset ~ args.model", scales="free_y", labeller=annotation.model.labeller)
-            + p9.scale_x_continuous(name='Epoch')
-            + p9.scale_y_continuous(
-                labels=lambda ticks: [f'{tick:.0%}' for tick in ticks],
-                name='0% masked validation performance'
-            )
+             + p9.geom_ribbon(p9.aes(ymin='metric.val_0_lower', ymax='metric.val_0_upper',
+                              fill='plot.max_masking_ratio'), alpha=0.35)
+             + p9.geom_line(p9.aes(y='metric.val_0_mean', color='plot.max_masking_ratio'))
+             + p9.geom_jitter(p9.aes(y='metric.val_0', color='plot.max_masking_ratio'),
+                              shape='+', alpha=0.5, position=p9.position_jitterdodge(0.05), data=df)
+             + p9.facet_grid("args.dataset ~ args.model", scales="free_y", labeller=annotation.model.labeller)
+             + p9.scale_x_continuous(name='Epoch')
+             + p9.scale_y_continuous(
+            labels=lambda ticks: [f'{tick:.0%}' for tick in ticks],
+            name='0% masked validation performance'
+        )
             + p9.scale_color_discrete(
-                breaks = annotation.max_masking_ratio.breaks,
-                labels = annotation.max_masking_ratio.labels,
-                aesthetics = ["colour", "fill"],
+                breaks=annotation.max_masking_ratio.breaks,
+                labels=annotation.max_masking_ratio.labels,
+                aesthetics=["colour", "fill"],
                 name='Fine-tuning method'
-            )
+        )
             + p9.scale_shape_discrete(guide=False))
 
         if args.format == 'half':
@@ -199,7 +203,7 @@ if __name__ == "__main__":
                 strip_background_x=p9.element_rect(height=0.2),
                 strip_background_y=p9.element_rect(width=0.2),
                 strip_text_x=p9.element_text(margin={'b': 5}),
-                axis_text_x=p9.element_text(angle = 60, hjust=1)
+                axis_text_x=p9.element_text(angle=60, hjust=1)
             )
         elif args.format == 'appendix':
             size = (6.30045, 8.6)
@@ -211,12 +215,12 @@ if __name__ == "__main__":
                 legend_box_margin=0,
                 legend_position=(.5, .05),
                 legend_background=p9.element_rect(fill='#F2F2F2'),
-                axis_text_x=p9.element_text(angle = 15, hjust=1)
+                axis_text_x=p9.element_text(angle=15, hjust=1)
             )
         else:
             size = (20, 7)
             p += p9.ggtitle(experiment_id)
 
         os.makedirs(args.persistent_dir / 'plots' / args.format, exist_ok=True)
-        p.save(args.persistent_dir / 'plots'/ args.format / f'{experiment_id}.pdf', width=size[0], height=size[1], units='in')
+        p.save(args.persistent_dir / 'plots' / args.format / f'{experiment_id}.pdf', width=size[0], height=size[1], units='in')
         # p.save(args.persistent_dir / 'plots'/ args.format / f'{experiment_id}.png', width=size[0], height=size[1], units='in')

@@ -20,10 +20,12 @@ _defalt_kernel = [
     [0, 0, 0]
 ]
 
+
 @dataclass
 class SimpleOutput():
     logits: tf.Tensor
     hidden_states: Optional[tf.Tensor] = None
+
 
 class SimpleTestConfig():
     model_type = 'simple test'
@@ -33,6 +35,7 @@ class SimpleTestConfig():
         self.layers = 1
         self.num_hidden_layers = 1
         self.hidden_size = 3
+
 
 class SimpleTestModel(Model):
     def __init__(self,

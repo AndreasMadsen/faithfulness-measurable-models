@@ -14,6 +14,7 @@ def test_local_snli():
         assert hypothesis.numpy() == b'Washing clothes on a camping trip.'
         assert answer.numpy() == 1
 
+
 def test_local_babi_1():
     dataset = Babi1Dataset(persistent_dir=pathlib.Path('.'), use_snapshot=False, use_cache=False)
 
@@ -28,6 +29,7 @@ def test_local_babi_1():
         )
         assert question.numpy() == b'Where is Sandra?'
         assert answer.numpy() == 2
+
 
 def test_local_babi_2():
     dataset = Babi2Dataset(persistent_dir=pathlib.Path('.'), use_snapshot=False, use_cache=False)
@@ -49,6 +51,7 @@ def test_local_babi_2():
         )
         assert question.numpy() == b'Where is the football?'
         assert answer.numpy() == 4
+
 
 def test_local_babi_3():
     dataset = Babi3Dataset(persistent_dir=pathlib.Path('.'), use_snapshot=False, use_cache=False)
@@ -103,6 +106,7 @@ def test_local_babi_3():
         assert question.numpy() == b'Where was the milk before the bathroom?'
         assert answer.numpy() == 2
 
+
 def test_local_mimic_diabetes():
     dataset = MimicDiabetesDataset(persistent_dir=pathlib.Path('.'), use_snapshot=False, use_cache=False)
 
@@ -110,6 +114,7 @@ def test_local_mimic_diabetes():
     for (text, ), answer in dataset.train().take(1):
         assert len(text.numpy().decode('utf-8').split(' ')) == 1546
         assert answer.numpy() == 0
+
 
 def test_local_mimic_anemia():
     dataset = MimicAnemiaDataset(persistent_dir=pathlib.Path('.'), use_snapshot=False, use_cache=False)

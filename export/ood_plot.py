@@ -13,15 +13,16 @@ from ecoroar.dataset import datasets
 from ecoroar.plot import bootstrap_confint, annotation
 from ecoroar.util import generate_experiment_id
 
+
 def select_target_metric(df):
     idx, cols = pd.factorize('results.' + df.loc[:, 'target_metric'])
     return df.assign(
-        metric = df.reindex(cols, axis=1).to_numpy()[np.arange(len(df)), idx]
+        metric=df.reindex(cols, axis=1).to_numpy()[np.arange(len(df)), idx]
     )
 
 
 parser = argparse.ArgumentParser(
-    description = 'Plots the 0% masking test performance given different training masking ratios'
+    description='Plots the 0% masking test performance given different training masking ratios'
 )
 parser.add_argument('--persistent-dir',
                     action='store',
@@ -155,17 +156,17 @@ if __name__ == "__main__":
             df_data = df.query('`results.threshold` == @args.threshold')
 
         df_plot = (df_data
-            .groupby(['args.dataset', 'args.max_masking_ratio', 'args.explainer',
-                      'results.masking_ratio'], group_keys=True)
-            .apply(bootstrap_confint(['results.value']))
-            .reset_index())
+                   .groupby(['args.dataset', 'args.max_masking_ratio', 'args.explainer',
+                             'results.masking_ratio'], group_keys=True)
+                   .apply(bootstrap_confint(['results.value']))
+                   .reset_index())
 
         # Create model baseline
         df_baseline_model = (df_data
-            .query('`args.max_masking_ratio` == 0 & `args.explainer` == "rand" & `results.masking_ratio` == 0')
-            .groupby(['args.dataset'], group_keys=True)
-            .apply(bootstrap_confint(['results.value']))
-            .reset_index())
+                             .query('`args.max_masking_ratio` == 0 & `args.explainer` == "rand" & `results.masking_ratio` == 0')
+                             .groupby(['args.dataset'], group_keys=True)
+                             .apply(bootstrap_confint(['results.value']))
+                             .reset_index())
         df_baseline_model = pd.concat([
             df_baseline_model.assign(**{
                 'args.max_masking_ratio': max_masking_ratio,
@@ -185,9 +186,9 @@ if __name__ == "__main__":
 
         # Creat p-value baseline
         df_baseline_pvalue = (df_data
-            .groupby(['args.max_masking_ratio', 'args.dataset'], group_keys=True)
-            .apply(lambda _: pd.Series({ 'threshold': args.threshold }))
-            .reset_index())
+                              .groupby(['args.max_masking_ratio', 'args.dataset'], group_keys=True)
+                              .apply(lambda _: pd.Series({'threshold': args.threshold}))
+                              .reset_index())
 
         # Conditional y-axis name
         if args.method == 'proportion':
@@ -197,28 +198,31 @@ if __name__ == "__main__":
 
         # Generate plot
         p = (p9.ggplot(df_plot, p9.aes(x='results.masking_ratio'))
-            + p9.geom_hline(p9.aes(yintercept='threshold'), color='black', linetype='dashed', data=df_baseline_pvalue)
-            + p9.geom_ribbon(p9.aes(ymin='results.value_lower', ymax='results.value_upper'), fill='green', alpha=0.35, data=df_baseline_model_with_x_axis)
-            + p9.geom_hline(p9.aes(yintercept='results.value_mean'), color='green', linetype='dashed', data=df_baseline_model)
-            + p9.geom_ribbon(p9.aes(ymin='results.value_lower', ymax='results.value_upper', fill='args.explainer'), alpha=0.35)
-            + p9.geom_point(p9.aes(y='results.value_mean', color='args.explainer'))
-            + p9.geom_line(p9.aes(y='results.value_mean', color='args.explainer'))
-            + p9.facet_grid("args.dataset ~ args.max_masking_ratio", scales="free_y", labeller=(annotation.dataset | annotation.max_masking_ratio).labeller)
-            + p9.scale_x_continuous(
-                labels=lambda ticks: [f'{tick:.0%}' for tick in ticks],
-                name='Masking ratio')
+             + p9.geom_hline(p9.aes(yintercept='threshold'), color='black', linetype='dashed', data=df_baseline_pvalue)
+             + p9.geom_ribbon(p9.aes(ymin='results.value_lower', ymax='results.value_upper'),
+                              fill='green', alpha=0.35, data=df_baseline_model_with_x_axis)
+             + p9.geom_hline(p9.aes(yintercept='results.value_mean'), color='green', linetype='dashed', data=df_baseline_model)
+             + p9.geom_ribbon(p9.aes(ymin='results.value_lower', ymax='results.value_upper',
+                              fill='args.explainer'), alpha=0.35)
+             + p9.geom_point(p9.aes(y='results.value_mean', color='args.explainer'))
+             + p9.geom_line(p9.aes(y='results.value_mean', color='args.explainer'))
+             + p9.facet_grid("args.dataset ~ args.max_masking_ratio", scales="free_y",
+                             labeller=(annotation.dataset | annotation.max_masking_ratio).labeller)
+             + p9.scale_x_continuous(
+            labels=lambda ticks: [f'{tick:.0%}' for tick in ticks],
+            name='Masking ratio')
             + p9.coord_cartesian(xlim=[0, 1])
             + p9.scale_y_continuous(
-                labels=lambda ticks: [f'{tick:.0%}' for tick in ticks],
-                limits=[0, None],
-                name=y_axis_name
-            )
+            labels=lambda ticks: [f'{tick:.0%}' for tick in ticks],
+            limits=[0, None],
+            name=y_axis_name
+        )
             + p9.scale_color_discrete(
-                breaks = annotation.explainer.breaks,
-                labels = annotation.explainer.labels,
-                aesthetics = ["colour", "fill"],
+                breaks=annotation.explainer.breaks,
+                labels=annotation.explainer.labels,
+                aesthetics=["colour", "fill"],
                 name='importance measure (IM)'
-            )
+        )
             + p9.scale_shape_discrete(guide=False))
 
         if args.format == 'half':
@@ -245,7 +249,7 @@ if __name__ == "__main__":
                 strip_background_x=p9.element_rect(height=0.25),
                 strip_background_y=p9.element_rect(width=0.2),
                 strip_text_x=p9.element_text(margin={'b': 5}),
-                axis_text_x=p9.element_text(angle = 60, hjust=1)
+                axis_text_x=p9.element_text(angle=60, hjust=1)
             )
         elif args.format == 'keynote':
             # The width is the \linewidth of a collumn in the LaTeX document
@@ -266,7 +270,7 @@ if __name__ == "__main__":
                 strip_background_x=p9.element_rect(height=0.17),
                 strip_background_y=p9.element_rect(width=0.2),
                 strip_text_x=p9.element_text(margin={'b': 3}),
-                axis_text_x=p9.element_text(angle = 60, hjust=1)
+                axis_text_x=p9.element_text(angle=60, hjust=1)
             )
         elif args.format == 'appendix':
             size = (6.30045, 8.5)
@@ -278,12 +282,12 @@ if __name__ == "__main__":
                 legend_box_margin=0,
                 legend_position=(.5, .05),
                 legend_background=p9.element_rect(fill='#F2F2F2'),
-                axis_text_x=p9.element_text(angle = 15, hjust=1)
+                axis_text_x=p9.element_text(angle=15, hjust=1)
             )
         else:
             size = (20, 7)
             p += p9.ggtitle(experiment_id)
 
         os.makedirs(args.persistent_dir / 'plots' / args.format, exist_ok=True)
-        p.save(args.persistent_dir / 'plots'/ args.format / f'{experiment_id}.pdf', width=size[0], height=size[1], units='in')
-        #p.save(args.persistent_dir / 'plots'/ args.format / f'{experiment_id}.png', width=size[0], height=size[1], units='in')
+        p.save(args.persistent_dir / 'plots' / args.format / f'{experiment_id}.pdf', width=size[0], height=size[1], units='in')
+        # p.save(args.persistent_dir / 'plots'/ args.format / f'{experiment_id}.png', width=size[0], height=size[1], units='in')

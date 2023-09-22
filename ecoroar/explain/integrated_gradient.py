@@ -66,11 +66,11 @@ class IntegratedGradientSignExplainer(ImportanceMeasureBatch):
             yc_wrt_x_compact = tf.linalg.einsum(
                 '...i,...i->...', yc_wrt_embedding, embedding_matrix_compact,
                 optimize='optimal'
-            ) # (B, T)
+            )  # (B, T)
 
             # Update the online mean (Knuth Algorithm), this is more memory
             # efficient that storing x_yc_wrt_x for each Riemann step.
-            online_mean += (yc_wrt_x_compact - online_mean)/tf.cast(riemann_step, dtype)
+            online_mean += (yc_wrt_x_compact - online_mean) / tf.cast(riemann_step, dtype)
 
         # Return the signed explanation
         return online_mean  # (B, T)

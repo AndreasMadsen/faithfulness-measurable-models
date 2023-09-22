@@ -3,6 +3,7 @@ import tensorflow_datasets as tfds
 from ._abstract_dataset import AbstractDataset
 from .local import LocalMimic
 
+
 class _MimicDatasetGeneralized(AbstractDataset):
     _metrics = ['accuracy', 'macro_f1']
     _early_stopping_metric = 'macro_f1'
@@ -19,6 +20,7 @@ class _MimicDatasetGeneralized(AbstractDataset):
         x = (item['text'], )
         return x, item['diagnosis']
 
+
 class MimicAnemiaDataset(_MimicDatasetGeneralized):
     _name = 'MIMIC-a'
 
@@ -28,6 +30,7 @@ class MimicAnemiaDataset(_MimicDatasetGeneralized):
 
     def _builder(self, data_dir):
         return LocalMimic(data_dir=data_dir, config='anemia')
+
 
 class MimicDiabetesDataset(_MimicDatasetGeneralized):
     _name = 'MIMIC-d'

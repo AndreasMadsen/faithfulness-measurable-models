@@ -7,10 +7,12 @@ import pytest
 
 from ecoroar.dataset import datasets
 
+
 @dataclass
 class DatasetExample:
     name: str
     expected: Tuple[str]
+
 
 # NOTE: This does not include MIMIC datasets, as that would be a HIPPA violation
 expected_sizes = [
@@ -45,7 +47,7 @@ expected_sizes = [
         "yeah lots of people for the right life "
     )),
     DatasetExample('MRPC', (
-    "The show 's closure affected third-quarter earnings per share by a penny .",
+        "The show 's closure affected third-quarter earnings per share by a penny .",
         "The company said this impacted earnings by a penny a share ."
     )),
     DatasetExample('QNLI', (
@@ -72,6 +74,7 @@ expected_sizes = [
         "We rescued the older students."
     ))
 ]
+
 
 @pytest.mark.parametrize("info", expected_sizes, ids=lambda info: info.name)
 def test_dataset_output(info):

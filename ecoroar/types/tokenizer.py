@@ -9,9 +9,11 @@ class TokenizedDict(TypedDict):
     input_ids: Union[tf.Tensor, tf.RaggedTensor]
     attention_mask: Union[tf.Tensor, tf.RaggedTensor]
 
+
 class EmbeddingDict(TypedDict):
     inputs_embeds: Union[tf.Tensor, tf.RaggedTensor]
     attention_mask: Union[tf.Tensor, tf.RaggedTensor]
+
 
 class Tokenizer(metaclass=ABCMeta):
 
@@ -37,7 +39,7 @@ class Tokenizer(metaclass=ABCMeta):
     vocab_size: tf.Tensor
 
     padding_values: TokenizedDict
-    vocab:  List[str]
+    vocab: List[str]
 
     @abstractmethod
     def __call__(self, texts: Iterable[tf.Tensor]) -> TokenizedDict:

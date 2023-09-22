@@ -9,14 +9,16 @@ import pandas as pd
 from ecoroar.dataset import datasets
 from ecoroar.plot import annotation
 
+
 def select_target_metric(df):
     idx, cols = pd.factorize('results.' + df.loc[:, 'metric'])
     return df.assign(
-        metric = df.reindex(cols, axis=1).to_numpy()[np.arange(len(df)), idx]
+        metric=df.reindex(cols, axis=1).to_numpy()[np.arange(len(df)), idx]
     )
 
+
 parser = argparse.ArgumentParser(
-    description = 'Plots the 0% masking test performance given different training masking ratios'
+    description='Plots the 0% masking test performance given different training masking ratios'
 )
 parser.add_argument('--persistent-dir',
                     action='store',
@@ -44,7 +46,7 @@ parser.add_argument('--datasets',
                     help='The datasets to plot')
 
 if __name__ == "__main__":
-    #pd.set_option('display.max_rows', None)
+    # pd.set_option('display.max_rows', None)
     args, unknown = parser.parse_known_args()
 
     output_name = 'datasets'
@@ -77,6 +79,7 @@ if __name__ == "__main__":
                 else:
                     aux = f'\\texttt{{{row["auxilary"]}}}'
 
-                print(f'{annotation.dataset.labeller(row["name"])} & ${row["train"]}$ & ${row["valid"]}$ & ${row["test"]}$ & \\texttt{{{row["masked"]}}} & {aux} & ${row["baseline"]*100:.0f}\\%$ \\\\', file=fp)
+                print(
+                    f'{annotation.dataset.labeller(row["name"])} & ${row["train"]}$ & ${row["valid"]}$ & ${row["test"]}$ & \\texttt{{{row["masked"]}}} & {aux} & ${row["baseline"]*100:.0f}\\%$ \\\\', file=fp)
             print(r'\bottomrule', file=fp)
             print(r'\end{tabular}', file=fp)

@@ -3,6 +3,7 @@ import tensorflow_datasets as tfds
 from ._abstract_dataset import AbstractDataset
 from .local import LocalSNLI
 
+
 class SNLIDataset(AbstractDataset):
     _name = 'SNLI'
     _metrics = ['accuracy', 'macro_f1']

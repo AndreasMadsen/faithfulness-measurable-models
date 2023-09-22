@@ -11,6 +11,7 @@ from ecoroar.tokenizer import SimpleTestTokenizer
 def tokenizer():
     return SimpleTestTokenizer()
 
+
 @pytest.fixture
 def dummy_input_tokenized():
     return {
@@ -23,6 +24,7 @@ def dummy_input_tokenized():
             [1, 1, 1, 0, 0]
         ], dtype=tf.dtypes.int8)
     }
+
 
 @pytest.fixture
 def dummy_input_mapping():
@@ -41,33 +43,34 @@ def dummy_input_mapping():
         '[BOS] [MASK] [MASK] [MASK] [MASK] [EOS]': (2.0, 0.0),
 
         #      [MASK]
-        '[BOS] [MASK] token  token  token  [EOS]': (2.0, 0.0), # 1:3
+        '[BOS] [MASK] token  token  token  [EOS]': (2.0, 0.0),  # 1:3
         #      [MASK] [MASK]
-        '[BOS] [MASK] [MASK] token  token  [EOS]': (3.0, 0.0), # 12:5
-        '[BOS] [MASK] [MASK] [MASK] token  [EOS]': (3.0, 0.0), # 123:7, 312:5
-        '[BOS] [MASK] [MASK] token  [MASK] [EOS]': (5.0, 0.0), # 124:5
+        '[BOS] [MASK] [MASK] token  token  [EOS]': (3.0, 0.0),  # 12:5
+        '[BOS] [MASK] [MASK] [MASK] token  [EOS]': (3.0, 0.0),  # 123:7, 312:5
+        '[BOS] [MASK] [MASK] token  [MASK] [EOS]': (5.0, 0.0),  # 124:5
         #      [MASK]        [MASK]
-        '[BOS] [MASK] token  [MASK] token  [EOS]': (6.0, 0.0), # 31:3, 13:2
-        '[BOS] [MASK] token  [MASK] [MASK] [EOS]': (2.0, 0.0), # 314:6
+        '[BOS] [MASK] token  [MASK] token  [EOS]': (6.0, 0.0),  # 31:3, 13:2
+        '[BOS] [MASK] token  [MASK] [MASK] [EOS]': (2.0, 0.0),  # 314:6
         #      [MASK]               [MASK]
-        '[BOS] [MASK] token  token  [MASK] [EOS]': (7.0, 0.0), # 14:1
+        '[BOS] [MASK] token  token  [MASK] [EOS]': (7.0, 0.0),  # 14:1
 
         #             [MASK]
-        '[BOS] token  [MASK] token  token  [EOS]': (9.0, 0.0), # 2:-4
+        '[BOS] token  [MASK] token  token  [EOS]': (9.0, 0.0),  # 2:-4
         #             [MASK] [MASK]
-        '[BOS] token  [MASK] [MASK] token  [EOS]': (8.0, 0.0), # 3:4, 32:1
-        '[BOS] token  [MASK] [MASK] [MASK] [EOS]': (0.0, 0.0), # lowest
+        '[BOS] token  [MASK] [MASK] token  [EOS]': (8.0, 0.0),  # 3:4, 32:1
+        '[BOS] token  [MASK] [MASK] [MASK] [EOS]': (0.0, 0.0),  # lowest
         #             [MASK]        [MASK]
         '[BOS] token  [MASK] token  [MASK] [EOS]': (2.0, 0.0),
 
         #                    [MASK]
-        '[BOS] token  token  [MASK] token  [EOS]': (1.0, 0.0), # 3:4
+        '[BOS] token  token  [MASK] token  [EOS]': (1.0, 0.0),  # 3:4
         #                    [MASK] [MASK]
-        '[BOS] token  token  [MASK] [MASK] [EOS]': (8.0, 0.0), # 34:1
+        '[BOS] token  token  [MASK] [MASK] [EOS]': (8.0, 0.0),  # 34:1
 
         #                           [MASK]
-        '[BOS] token  token  token  [MASK] [EOS]': (5.0, 0.0), # 4:0
+        '[BOS] token  token  token  [MASK] [EOS]': (5.0, 0.0),  # 4:0
     }
+
 
 def test_lookup_model_constructor(dummy_input_tokenized):
     values = tf.constant([[0.2, 0.2], [0.5, 0.4]], dtype=tf.dtypes.float32)
@@ -77,6 +80,7 @@ def test_lookup_model_constructor(dummy_input_tokenized):
 
     np.testing.assert_allclose(model(dummy_input_tokenized).logits.numpy(), values)
     np.testing.assert_allclose(model(dummy_input_tokenized).logits.numpy(), values)
+
 
 def test_lookup_model_from_string(tokenizer, dummy_input_mapping):
     mapping_tf = [

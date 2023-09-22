@@ -8,6 +8,7 @@ from tensorflow.keras import backend as K
 FloatTensorLike = Union[tf.Tensor, float, np.float16, np.float32, np.float64]
 AcceptableDTypes = Union[tf.DType, np.dtype, type, int, str, None]
 
+
 class FBetaScore(tf.keras.metrics.Metric):
     r"""Computes F-Beta score.
 

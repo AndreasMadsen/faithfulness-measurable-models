@@ -42,7 +42,7 @@ class InputTimesGradientSignExplainer(ImportanceMeasureBatch):
         yc_wrt_x_compact = tf.linalg.einsum(
             '...i,...i->...', yc_wrt_embedding, embedding_matrix_compact,
             optimize='optimal'
-        ) # (B, T)
+        )  # (B, T)
 
         # Return the signed explanation
         return yc_wrt_x_compact

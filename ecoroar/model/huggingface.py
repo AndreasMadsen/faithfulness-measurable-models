@@ -8,12 +8,14 @@ from transformers import AutoConfig
 from ..types import Model
 from .roberta import TFRoBERTaForSequenceClassificationExtra, TFRoBERTaPreLayerNormForSequenceClassificationExtra
 
+
 @contextmanager
 def silence_huggingface():
     level = transformers.logging.get_verbosity()
     transformers.logging.set_verbosity_error()
     yield
     transformers.logging.set_verbosity(level)
+
 
 def huggingface_constructor(config: AutoConfig):
     """Returns a sequence classification class
@@ -31,6 +33,7 @@ def huggingface_constructor(config: AutoConfig):
             return TFRoBERTaPreLayerNormForSequenceClassificationExtra
 
     raise NotImplementedError(f'An embedding abstraction have been implemented for a {config.model_type} model')
+
 
 def huggingface_model_from_repo(repo: str, persistent_dir: pathlib.Path, num_classes: int) -> Model:
     """Creates a sequence classification model
@@ -53,6 +56,7 @@ def huggingface_model_from_repo(repo: str, persistent_dir: pathlib.Path, num_cla
             num_labels=num_classes,
             cache_dir=persistent_dir / 'cache' / 'transformers'
         )
+
 
 def huggingface_model_from_local(filepath: str) -> Model:
     """Creates a sequence classification model

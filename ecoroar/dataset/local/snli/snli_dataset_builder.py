@@ -4,6 +4,7 @@ import json
 
 import tensorflow_datasets as tfds
 
+
 class LocalSNLI(tfds.core.GeneratorBasedBuilder):
     """DatasetBuilder for SNLI dataset."""
 

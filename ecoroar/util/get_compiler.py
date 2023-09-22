@@ -9,7 +9,7 @@ def get_compiler(run_eagerly, jit_compile):
         if jit_compile:
             raise ValueError('run_eagerly must be false when jit_compile is True')
         else:
-            compiler = lambda x: x
+            def compiler(x): return x
     else:
         if jit_compile:
             compiler = tf.function(reduce_retracing=True, jit_compile=True)

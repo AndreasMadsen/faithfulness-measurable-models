@@ -10,12 +10,14 @@ import pandas as pd
 from ecoroar.dataset import datasets
 from ecoroar.plot import bootstrap_confint, annotation
 
+
 def tex_format_time(secs):
     hh, mm = divmod(secs // 60, 60)
     return f'{int(hh):02d}:{int(mm):02d}'
 
+
 parser = argparse.ArgumentParser(
-    description = 'Plots the 0% masking test performance given different training masking ratios'
+    description='Plots the 0% masking test performance given different training masking ratios'
 )
 parser.add_argument('--persistent-dir',
                     action='store',
@@ -43,7 +45,7 @@ parser.add_argument('--datasets',
                     help='The datasets to plot')
 
 if __name__ == "__main__":
-    #pd.set_option('display.max_rows', None)
+    # pd.set_option('display.max_rows', None)
     args, unknown = parser.parse_known_args()
 
     output_name = 'walltime_faithfulness'
@@ -74,10 +76,10 @@ if __name__ == "__main__":
 
     if args.stage in ['both', 'plot']:
         df_tab = (df
-                .groupby(['args.model', 'args.dataset'], group_keys=True)
-                .apply(bootstrap_confint(['durations.evaluate']))
-                .reset_index()
-                .pivot(index=['args.dataset'], columns=['args.model'], values=['durations.evaluate_mean']))
+                  .groupby(['args.model', 'args.dataset'], group_keys=True)
+                  .apply(bootstrap_confint(['durations.evaluate']))
+                  .reset_index()
+                  .pivot(index=['args.dataset'], columns=['args.model'], values=['durations.evaluate_mean']))
 
         df_tab_total = df_tab.sum(axis=0)
 

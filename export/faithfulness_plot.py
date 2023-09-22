@@ -14,15 +14,18 @@ from ecoroar.plot import bootstrap_confint, annotation
 from ecoroar.util import generate_experiment_id
 from ecoroar.explain import explainers
 
+
 def select_target_metric(df):
     idx, cols = pd.factorize('results.' + df.loc[:, 'target_metric'])
     return df.assign(
-        metric = df.reindex(cols, axis=1).to_numpy()[np.arange(len(df)), idx]
+        metric=df.reindex(cols, axis=1).to_numpy()[np.arange(len(df)), idx]
     )
+
 
 def check_converged(df):
     unmasked_performance = df.query('`results.masking_ratio` == 0')
     return unmasked_performance['metric'] > unmasked_performance['convergence_threshold']
+
 
 def annotate_explainer(df):
     sign_lookup = {
@@ -48,8 +51,9 @@ def annotate_explainer(df):
 
     return x
 
+
 parser = argparse.ArgumentParser(
-    description = 'Plots the 0% masking test performance given different training masking ratios'
+    description='Plots the 0% masking test performance given different training masking ratios'
 )
 parser.add_argument('--persistent-dir',
                     action='store',
@@ -121,11 +125,11 @@ if __name__ == "__main__":
     ])
 
     experiment_id = generate_experiment_id('faithfulness',
-                                            model=args.model,
-                                            dataset=args.page,
-                                            max_masking_ratio=args.max_masking_ratio,
-                                            masking_strategy=args.masking_strategy,
-                                            split=args.split)
+                                           model=args.model,
+                                           dataset=args.page,
+                                           max_masking_ratio=args.max_masking_ratio,
+                                           masking_strategy=args.masking_strategy,
+                                           split=args.split)
 
     if args.stage in ['both', 'preprocess']:
         # Read JSON files into dataframe
@@ -162,33 +166,34 @@ if __name__ == "__main__":
 
     if args.stage in ['both', 'plot']:
         df_plot = (df
-            .groupby(['args.seed', 'args.dataset', 'args.explainer'], group_keys=True)
-            .filter(check_converged)
-            .reset_index()
-            .groupby(['args.dataset', 'args.explainer', 'results.masking_ratio'], group_keys=True)
-            .apply(bootstrap_confint(['metric']))
-            .reset_index())
+                   .groupby(['args.seed', 'args.dataset', 'args.explainer'], group_keys=True)
+                   .filter(check_converged)
+                   .reset_index()
+                   .groupby(['args.dataset', 'args.explainer', 'results.masking_ratio'], group_keys=True)
+                   .apply(bootstrap_confint(['metric']))
+                   .reset_index())
         df_plot = annotate_explainer(df_plot)
 
         # Generate plot
         p = (p9.ggplot(df_plot, p9.aes(x='results.masking_ratio'))
-            + p9.geom_ribbon(p9.aes(ymin='metric_lower', ymax='metric_upper', fill='plot.explainer_base'), alpha=0.35)
-            + p9.geom_point(p9.aes(y='metric_mean', color='plot.explainer_base'))
-            + p9.geom_line(p9.aes(y='metric_mean', color='plot.explainer_base'))
-            + p9.facet_grid("args.dataset ~ plot.explainer_sign", scales="free_y", labeller=(annotation.dataset | annotation.explainer_sign).labeller)
-            + p9.scale_x_continuous(
-                labels=lambda ticks: [f'{tick:.0%}' for tick in ticks],
-                name='Masking ratio')
+             + p9.geom_ribbon(p9.aes(ymin='metric_lower', ymax='metric_upper', fill='plot.explainer_base'), alpha=0.35)
+             + p9.geom_point(p9.aes(y='metric_mean', color='plot.explainer_base'))
+             + p9.geom_line(p9.aes(y='metric_mean', color='plot.explainer_base'))
+             + p9.facet_grid("args.dataset ~ plot.explainer_sign", scales="free_y",
+                             labeller=(annotation.dataset | annotation.explainer_sign).labeller)
+             + p9.scale_x_continuous(
+            labels=lambda ticks: [f'{tick:.0%}' for tick in ticks],
+            name='Masking ratio')
             + p9.scale_y_continuous(
-                labels=lambda ticks: [f'{tick:.0%}' for tick in ticks],
-                name='IM masked performance'
-            )
+            labels=lambda ticks: [f'{tick:.0%}' for tick in ticks],
+            name='IM masked performance'
+        )
             + p9.scale_color_discrete(
-                breaks = annotation.explainer_base.breaks,
-                labels = annotation.explainer_base.labels,
-                aesthetics = ["colour", "fill"],
+                breaks=annotation.explainer_base.breaks,
+                labels=annotation.explainer_base.labels,
+                aesthetics=["colour", "fill"],
                 name='importance measure (IM)'
-            )
+        )
             + p9.scale_shape_discrete(guide=False))
 
         if args.format == 'half':
@@ -214,7 +219,7 @@ if __name__ == "__main__":
                 strip_background_x=p9.element_rect(height=0.25),
                 strip_background_y=p9.element_rect(width=0.2),
                 strip_text_x=p9.element_text(margin={'b': 5}),
-                axis_text_x=p9.element_text(angle = 60, hjust=1)
+                axis_text_x=p9.element_text(angle=60, hjust=1)
             )
         elif args.format == 'keynote':
             # The width is the \linewidth of a collumn in the LaTeX document
@@ -234,7 +239,7 @@ if __name__ == "__main__":
                 strip_background_x=p9.element_rect(height=0.17),
                 strip_background_y=p9.element_rect(width=0.2),
                 strip_text_x=p9.element_text(margin={'b': 3}),
-                axis_text_x=p9.element_text(angle = 60, hjust=1)
+                axis_text_x=p9.element_text(angle=60, hjust=1)
             )
         elif args.format == 'appendix':
             size = (6.30045, 8.5)
@@ -246,12 +251,12 @@ if __name__ == "__main__":
                 legend_box_margin=0,
                 legend_position=(.5, .05),
                 legend_background=p9.element_rect(fill='#F2F2F2'),
-                axis_text_x=p9.element_text(angle = 15, hjust=1)
+                axis_text_x=p9.element_text(angle=15, hjust=1)
             )
         else:
             size = (20, 7)
             p += p9.ggtitle(experiment_id)
 
         os.makedirs(args.persistent_dir / 'plots' / args.format, exist_ok=True)
-        p.save(args.persistent_dir / 'plots'/ args.format / f'{experiment_id}.pdf', width=size[0], height=size[1], units='in')
+        p.save(args.persistent_dir / 'plots' / args.format / f'{experiment_id}.pdf', width=size[0], height=size[1], units='in')
         # p.save(args.persistent_dir / 'plots'/ args.format / f'{experiment_id}.png', width=size[0], height=size[1], units='in')

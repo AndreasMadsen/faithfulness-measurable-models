@@ -12,10 +12,12 @@ import scipy.stats
 
 from ecoroar.metric import AUROC, F1Score, Pearson, Matthew
 
+
 @dataclass
 class MetricExpectPair:
     Metric: Callable[[], tf.keras.metrics.Metric]
     expect: Callable[[np.array, np.array], np.array]
+
 
 metrics = [
     MetricExpectPair(
@@ -40,11 +42,12 @@ metrics = [
     )
 ]
 
+
 @pytest.mark.parametrize("info", metrics, ids=lambda info: info.Metric().name)
 def test_metric(info):
     metric = info.Metric()
 
-    rng  = tf.random.Generator.from_seed(1)
+    rng = tf.random.Generator.from_seed(1)
     y_pred = rng.uniform([20, 2], minval=-2, maxval=2)
     y_true = rng.uniform([20, 1], minval=0, maxval=2, dtype=tf.dtypes.int64)
 

@@ -3,6 +3,7 @@ from typing import Callable, Any
 
 import tensorflow as tf
 
+
 class MapOnGPU:
     def __init__(self, mapper: Callable[..., Any], output_signature: Callable[[tf.data.Dataset], Any]) -> None:
         self._mapper = mapper

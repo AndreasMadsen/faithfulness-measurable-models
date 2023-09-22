@@ -8,6 +8,7 @@ from ._importance_measure import ImportanceMeasureBatch
 from ._util_evaluate import BatchEvaluator
 from ._util_batch_parallel import batch_parallel
 
+
 @tf.function(reduce_retracing=True)
 def _create_mask(maskable_tokens):
     # Identify which tokens should be probed
@@ -21,6 +22,7 @@ def _create_mask(maskable_tokens):
     )
 
     return (mask_patterns, token_idx_to_mask)
+
 
 class LeaveOneOutSign(ImportanceMeasureBatch):
     _name = 'loo-sign'

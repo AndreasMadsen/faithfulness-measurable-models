@@ -11,7 +11,8 @@ class Matthew(tfa_MatthewsCorrelationCoefficient):
         sparse labels indices of shape [None, 1]. This wrapper converts the sparse
         labels to the expected one_hot encoding.
     """
-    def __init__(self, num_classes: int, name: str='matthew'):
+
+    def __init__(self, num_classes: int, name: str = 'matthew'):
         """Computes Matthew's Correlation Coefficient
 
         Args:

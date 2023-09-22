@@ -1,6 +1,7 @@
 
 _backslash = '\\'
 
+
 def ci_formatter(column_names=[]):
     """Format upper, mean, and lower columns to latex.
 

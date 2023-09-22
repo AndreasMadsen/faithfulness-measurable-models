@@ -6,11 +6,13 @@ from ..types import Model
 from ..util import get_compiler
 from ..types import TokenizedDict
 
+
 @tf.function
 def _log2int(x):
     log2 = tf.math.log(tf.cast(2, dtype=tf.dtypes.float32))
     x_float = tf.cast(x, dtype=tf.dtypes.float32)
     return tf.cast(tf.math.log(x_float) / log2, dtype=x.dtype)
+
 
 def _create_sub_sizes(batch_size):
     sub_batch_sizes = []
@@ -20,10 +22,11 @@ def _create_sub_sizes(batch_size):
         sub_batch_sizes.append(remain)
     return tf.stack(sub_batch_sizes)
 
+
 class BatchEvaluator:
     def __init__(self, model: Model, batch_size: tf.Tensor,
                  run_eagerly: bool = False, jit_compile: bool = False,
-                 num_parallel_calls: int=10) -> None:
+                 num_parallel_calls: int = 10) -> None:
         self._model = model
         self._batch_size = batch_size
         self._batch_sub_size = _create_sub_sizes(batch_size)
