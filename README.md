@@ -1,5 +1,14 @@
 # Faithfulness measurable masked language models
 
+This repo contains the code for the paper _faithfulness measurable masked language models_.
+
+A faithfulness measurable model, is a model that somehow supports that the faithfulness
+of an explanation can be validated. In this paper, we propose _masked fine-tuning_ which
+makes any permulation of token masking be in-distribution. We apply that method to RoBERTa.
+
+Additionally, we validate that the masking is in-distribution using MaSF, and evaluate
+faithfullness on a large array of datasets and explanations.
+
 ## Install
 
 This module is not published on PyPi but you can install directly with:
