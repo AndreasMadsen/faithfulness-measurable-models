@@ -51,7 +51,6 @@ parser.add_argument('--performance-metric',
                     help='Which metric to use as a performance metric.')
 
 if __name__ == "__main__":
-    # pd.set_option('display.max_rows', None)
     args, unknown = parser.parse_known_args()
 
     output_name = 'walltime_fine-tune'

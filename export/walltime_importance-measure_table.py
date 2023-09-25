@@ -61,7 +61,6 @@ parser.add_argument('--aggregate',
                     help='Datasets the macro-average should be calculated over')
 
 if __name__ == "__main__":
-    # pd.set_option('display.max_rows', None)
     args, unknown = parser.parse_known_args()
 
     all_datasets = set(args.datasets + args.aggregate)

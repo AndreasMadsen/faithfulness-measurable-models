@@ -45,7 +45,6 @@ parser.add_argument('--datasets',
                     help='The datasets to plot')
 
 if __name__ == "__main__":
-    # pd.set_option('display.max_rows', None)
     args, unknown = parser.parse_known_args()
 
     output_name = 'walltime_faithfulness'

@@ -85,7 +85,6 @@ parser.add_argument('--validation-dataset',
                     help='The transformation applied to the validation dataset used for early stopping.')
 
 if __name__ == "__main__":
-    # pd.set_option('display.max_rows', None)
     args, unknown = parser.parse_known_args()
 
     dataset_mapping = pd.DataFrame([
