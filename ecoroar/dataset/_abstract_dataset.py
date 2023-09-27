@@ -1,7 +1,7 @@
 import pathlib
 import shutil
 from functools import cached_property, partial
-from typing import List, Tuple, Dict, Union, Iterable, Optional
+from typing import List, Tuple, Dict, Union, Iterable, Optional, Literal
 from abc import ABCMeta, abstractmethod
 
 import numpy as np
@@ -80,6 +80,16 @@ class AbstractDataset(metaclass=ABCMeta):
 
     @classmethod
     def majority_classifier_performance(cls, split: str = 'test'):
+        """Computes the majority class baseline
+
+        Args:
+            split (str, optional): The performance of the split dataset,
+                when trained on the training dataset. Defaults to 'test'.
+
+        Returns:
+            dict: a dictionary of different metrics and the values. Metrics included are:
+                loss, accuarcy, auroc, macro_f1, micro_f1, matthew.
+        """
         class_count_train = np.asarray(cls._class_count_train)
         class_count_measure = np.asarray(getattr(cls, f'_class_count_{split}'))
         best_class_idx = np.argmax(class_count_train)
@@ -104,6 +114,19 @@ class AbstractDataset(metaclass=ABCMeta):
 
     @classmethod
     def summary(cls):
+        """Return statistics and basic information on the dataset.
+
+        Returns:
+            dict: has the properties,
+                name: the dataset name
+                metric: the main metric
+                baseline: The majority class baseline, given the main metric.
+                train: number of training observations
+                valid: number of valid observations
+                test: number of test observations
+                masked: Name of the sequence that is masked
+                auxilary: Name of the sequece that is not masked, if applicable.
+        """
         return {
             'name': cls._name,
             'metric': cls._early_stopping_metric,
@@ -195,7 +218,16 @@ class AbstractDataset(metaclass=ABCMeta):
             dataset = self._process_dataset(dataset, tokenizer)
             dataset.save(str(path))
 
-    def is_preprocess_valid(self, tokenizer: Tokenizer = None):
+    def is_preprocess_valid(self, tokenizer: Tokenizer = None) -> bool:
+        """Checks if the preprocessed dataset is valid
+
+        Args:
+            tokenizer (Tokenizer, optional): A tokenizer object used to preprocess the dataset.
+                If None, no tokenization is performed. Defaults to None.
+
+        Returns:
+            bool: Return true if valid
+        """
         for name, split in [('train', self._split_train), ('valid', self._split_valid), ('test', self._split_test)]:
             path = self._preprocess_path(name, tokenizer)
             if not path.exists():
@@ -207,7 +239,19 @@ class AbstractDataset(metaclass=ABCMeta):
                 return False
         return True
 
-    def load(self, split: Union['train', 'valid', 'test'], tokenizer: Tokenizer = None):
+    def load(self, split: Literal['train', 'valid', 'test'], tokenizer: Tokenizer = None) -> tf.data.Dataset:
+        """Load a dataset with the given split
+
+        Args:
+            split (Literal['train', 'valid', 'test']): The dataset split.
+            tokenizer (Tokenizer, optional): A tokenizer object, used to tokenize the text. Defaults to None.
+
+        Raises:
+            IOError: If the preprocessed dataset is missing
+
+        Returns:
+            tf.data.Dataset: the dataset split
+        """
         if self._use_snapshot:
             path = self._preprocess_path(split, tokenizer)
             if not path.exists():
@@ -222,7 +266,18 @@ class AbstractDataset(metaclass=ABCMeta):
 
         return dataset
 
-    def num_examples(self, split: Union['train', 'valid', 'test']):
+    def num_examples(self, split: Literal['train', 'valid', 'test']) -> int:
+        """Return the number of exampels for a given split
+
+        Args:
+            split (Literal['train', 'valid', 'test']): the dataset split
+
+        Raises:
+            ValueError: If the split was not train, valid, or test.
+
+        Returns:
+            int: the number of examples in the split
+        """
         match split:
             case 'train':
                 return self.train_num_examples

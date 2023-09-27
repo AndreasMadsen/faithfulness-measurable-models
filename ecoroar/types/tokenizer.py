@@ -43,4 +43,13 @@ class Tokenizer(metaclass=ABCMeta):
 
     @abstractmethod
     def __call__(self, texts: Iterable[tf.Tensor]) -> TokenizedDict:
+        """Tokenizes a text tensor
+
+        Args:
+            texts (Iterable[tf.Tensor]): text tensors to be tokenized
+
+        Returns:
+            TokenizedDict: the tokenized text. Dict has
+                input_ids and attention_mask properties.
+        """
         ...

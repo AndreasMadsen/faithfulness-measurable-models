@@ -25,4 +25,9 @@ class Model(tf.keras.Model, metaclass=ABCMeta):
     @property
     @abstractmethod
     def embedding_matrix(self) -> tf.Variable:
+        """Return this word-embedding matrix of the model
+
+        Returns:
+            tf.Variable: word-embedding matrix
+        """
         pass

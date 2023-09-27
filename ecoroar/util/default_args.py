@@ -1,5 +1,13 @@
 
 def default_jit_compile(args):
+    """Return the default jit_compile setting based on other arguments
+
+    Args:
+        args (Namespace): The argsparse namespace
+
+    Returns:
+        bool: the jit_compile flag
+    """
     if args.jit_compile is not None:
         return args.jit_compile
 
@@ -11,6 +19,14 @@ def default_jit_compile(args):
 
 
 def default_max_epochs(args):
+    """Return the default max_epochs setting based on other arguments
+
+    Args:
+        args (Namespace): The argsparse namespace
+
+    Returns:
+        int: the max_epoch setting
+    """
     if args.max_epochs is not None:
         return args.max_epochs
 
@@ -31,6 +47,14 @@ def default_max_epochs(args):
 
 
 def default_recursive(args):
+    """Return the default recursive setting based on other arguments
+
+    Args:
+        args (Namespace): The argsparse namespace
+
+    Returns:
+        bool: the recursive setting
+    """
     if args.recursive is not None:
         return args.recursive
 
