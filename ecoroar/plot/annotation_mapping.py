@@ -48,6 +48,11 @@ class _AllAnnotations():
             'roberta-sb': 'RoBERTa base',
             'roberta-sl': 'RoBERTa large'
         })
+        self.simple_strategy = _AnnotationMapping({
+            'goal': 'Plain fine-tuning',
+            'uni': 'Only masking',
+            'half-det': 'Masked fine-tuning'
+        })
         self.masking_strategy = _AnnotationMapping({
             'goal': 'No masking',
             'uni': 'Maksing',

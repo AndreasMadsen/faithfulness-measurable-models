@@ -74,8 +74,8 @@ appendix-tables:
 appendix: appendix-train appendix-ood appendix-epoch appendix-faithfulness appendix-tables
 
 paper-train:
-	python export/unmasked_performance_by_valid_ms_plot.py --dataset MRPC BoolQ --aggregate bAbI-1 bAbI-2 bAbI-3 BoolQ CB CoLA MIMIC-a MIMIC-d MRPC RTE SST2 SNLI IMDB MNLI QNLI QQP --model-category size --max-masking-ratio 100 --format paper
-	python export/masked_100p_performance_by_valid_ms_plot.py --dataset MRPC BoolQ --aggregate bAbI-1 bAbI-2 bAbI-3 BoolQ CB CoLA MIMIC-a MIMIC-d MRPC RTE SST2 SNLI IMDB MNLI QNLI QQP --model-category size --max-masking-ratio 100 --format paper
+	python export/unmasked_performance_by_both_plot.py --dataset MRPC BoolQ --aggregate bAbI-1 bAbI-2 bAbI-3 BoolQ CB CoLA MIMIC-a MIMIC-d MRPC RTE SST2 SNLI IMDB MNLI QNLI QQP --model-category size --max-masking-ratio 100 --format paper
+	python export/masked_100p_performance_by_both_plot.py --dataset MRPC BoolQ --aggregate bAbI-1 bAbI-2 bAbI-3 BoolQ CB CoLA MIMIC-a MIMIC-d MRPC RTE SST2 SNLI IMDB MNLI QNLI QQP --model-category size --max-masking-ratio 100 --format paper
 
 paper-ood:
 	python export/ood_plot.py --dataset MRPC BoolQ --model roberta-sb --max-masking-ratio 100 --masking-strategy half-det --validation-dataset both --dist-repeat 1 --method simes --threshold 0.05 --format paper
