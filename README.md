@@ -1,6 +1,6 @@
 # Faithfulness measurable masked language models
 
-This repo contains the code for the paper _faithfulness measurable masked language models_.
+This repo contains the code for the paper [_faithfulness measurable masked language models_](https://arxiv.org/abs/2310.07819).
 
 A faithfulness measurable model, is a model that somehow supports that the faithfulness
 of an explanation can be validated. In this paper, we propose _masked fine-tuning_ which
