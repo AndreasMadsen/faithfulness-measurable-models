@@ -20,6 +20,9 @@ def select_target_metric(df):
         metric=df.reindex(cols, axis=1).to_numpy()[np.arange(len(df)), idx]
     )
 
+def check_converged(df):
+    unmasked_performance = df.query('`results.masking_ratio` == 0')
+    return unmasked_performance['metric'] > unmasked_performance['convergence_threshold']
 
 def get_validation_performance(history, test_results):
     losses = [epoch_losses['loss'] for epoch_losses in history]
@@ -110,10 +113,11 @@ if __name__ == "__main__":
 
     dataset_mapping = pd.DataFrame([
         {
-            'args.dataset': dataset_name,
-            'target_metric': datasets[dataset_name]._early_stopping_metric if args.performance_metric == 'primary' else args.performance_metric
+            'args.dataset': dataset._name,
+            'target_metric': dataset._early_stopping_metric if args.performance_metric == 'primary' else args.performance_metric,
+            'convergence_threshold': dataset._convergence_threshold,
         }
-        for dataset_name in args.datasets
+        for dataset in datasets.values()
     ])
     model_categories = {
         'masking-ratio': ['roberta-m15', 'roberta-m20', 'roberta-m30', 'roberta-m40', 'roberta-m50'],
@@ -178,6 +182,8 @@ if __name__ == "__main__":
         if len(args.aggregate) > 0:
             df_agg = (df_all
                       .query(' | '.join(f'`args.dataset` == "{dataset}"' for dataset in args.aggregate))
+                      .groupby(['args.seed', 'args.dataset', 'args.model', 'args.validation_dataset', 'args.masking_strategy'], group_keys=True)
+                      .filter(check_converged)
                       .groupby(['args.seed', 'args.model', 'args.validation_dataset', 'args.masking_strategy'], group_keys=True)
                       .apply(lambda subset: pd.Series({'metric': subset['metric'].mean()}))
                       .groupby(['args.model', 'args.validation_dataset', 'args.masking_strategy'], group_keys=True)

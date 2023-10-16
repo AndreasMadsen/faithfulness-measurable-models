@@ -20,6 +20,9 @@ def select_target_metric(df):
         metric=df.reindex(cols, axis=1).to_numpy()[np.arange(len(df)), idx]
     )
 
+def check_converged(df):
+    unmasked_performance = df.query('`results.masking_ratio` == 0')
+    return unmasked_performance['metric'] > unmasked_performance['convergence_threshold']
 
 def get_validation_performance(history, test_results):
     losses = [epoch_losses['loss'] for epoch_losses in history]
@@ -113,7 +116,8 @@ if __name__ == "__main__":
             'target_metric': dataset._early_stopping_metric if args.performance_metric == 'primary' else args.performance_metric,
             'baseline': dataset.majority_classifier_performance(args.split)[
                 dataset._early_stopping_metric if args.performance_metric == 'primary' else args.performance_metric
-            ]
+            ],
+            'convergence_threshold': dataset._convergence_threshold
         }
         for dataset in datasets.values()
     ])
@@ -154,7 +158,7 @@ if __name__ == "__main__":
         df = (df
               .merge(dataset_mapping, on='args.dataset')
               .transform(select_target_metric)
-              .query('`results.masking_ratio` == 1'))
+              .query('`results.masking_ratio` == 1 | `results.masking_ratio` == 0'))
 
     if args.stage in ['preprocess']:
         os.makedirs(args.persistent_dir / 'pandas', exist_ok=True)
@@ -170,7 +174,9 @@ if __name__ == "__main__":
                        'args.masking_strategy': 'goal'
                    }))
         df_all = pd.concat([df_main, df_goal])
-        df_show = df_all.query(' | '.join(f'`args.dataset` == "{dataset}"' for dataset in args.datasets))
+        df_show = (df_all
+            .query('`results.masking_ratio` == 1')
+            .query(' | '.join(f'`args.dataset` == "{dataset}"' for dataset in args.datasets)))
 
         df_plot = (df_show
                    .groupby(['args.model', 'args.dataset', 'args.max_epochs', 'args.validation_dataset', 'args.masking_strategy'], group_keys=True)
@@ -180,6 +186,9 @@ if __name__ == "__main__":
         if len(args.aggregate) > 0:
             df_agg = (df_all
                       .query(' | '.join(f'`args.dataset` == "{dataset}"' for dataset in args.aggregate))
+                      .groupby(['args.seed', 'args.dataset', 'args.model', 'args.validation_dataset', 'args.masking_strategy'], group_keys=True)
+                      .filter(check_converged)
+                      .query('`results.masking_ratio` == 1')
                       .groupby(['args.seed', 'args.model', 'args.validation_dataset', 'args.masking_strategy'], group_keys=True)
                       .apply(lambda subset: pd.Series({
                           'metric': subset['metric'].mean(),

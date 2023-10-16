@@ -203,7 +203,7 @@ if __name__ == "__main__":
             p += p9.theme(text=p9.element_text(size=11), subplots_adjust={'bottom': 0.38}, legend_position=(.5, .05))
         elif args.format == 'paper':
             # The width is the \linewidth of a collumn in the LaTeX document
-            size = (3.03209, 3.4)
+            size = (3.03209, 4.4)
             p += p9.guides(color=p9.guide_legend(ncol=3))
             p += p9.scale_y_continuous(
                 labels=lambda ticks: [f'{tick:.0%}' for tick in ticks],
@@ -211,7 +211,7 @@ if __name__ == "__main__":
             )
             p += p9.theme(
                 text=p9.element_text(size=10, fontname='Times New Roman'),
-                subplots_adjust={'bottom': 0.38},
+                subplots_adjust={'bottom': 0.30},
                 panel_spacing=.05,
                 legend_box_margin=0,
                 legend_position=(.5, .05),

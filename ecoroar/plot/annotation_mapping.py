@@ -55,7 +55,7 @@ class _AllAnnotations():
         })
         self.masking_strategy = _AnnotationMapping({
             'goal': 'No masking',
-            'uni': 'Maksing',
+            'uni': 'Masking',
             'half-det': 'Use 50/50'
         })
         self.max_masking_ratio = _AnnotationMapping({
@@ -64,7 +64,7 @@ class _AllAnnotations():
         })
         self.validation_dataset = _AnnotationMapping({
             'nomask': 'No masking',
-            'mask': 'Maksing',
+            'mask': 'Masking',
             'both': 'Use both'
         })
         self.validation = _AnnotationMapping({

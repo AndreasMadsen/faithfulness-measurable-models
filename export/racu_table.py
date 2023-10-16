@@ -58,6 +58,9 @@ def tex_format_ci(mean, lower, upper):
     return f'${mean*100:.1f}_{{{-(mean - lower)*100:.1f}}}^{{+{(upper - mean)*100:.1f}}}$'
 
 
+def tex_gray_text(str):
+    return f'{{\color{{black!30}}{str}}}'
+
 def annotate_explainer(df):
     sign_lookup = {
         name: 'sign' if explainer._signed else 'abs'
@@ -148,6 +151,10 @@ parser.add_argument('--split',
                     choices=['train', 'valid', 'test'],
                     type=str,
                     help='The dataset split to evaluate faithfulness on')
+parser.add_argument('--highlight',
+                    action=argparse.BooleanOptionalAction,
+                    default=None,
+                    help='If you use colors to highlight the important part')
 
 if __name__ == "__main__":
     pd.set_option('display.max_rows', None)
@@ -272,7 +279,8 @@ if __name__ == "__main__":
                   .transform(annotate_explainer)
                   .set_index(['args.dataset', 'args.explainer']))
 
-        explainers = [x for x in args.explainers if x in set(df['args.explainer'].unique()) and x != 'rand']
+        show_explainers = [x for x in args.explainers if x in set(df['args.explainer'].unique()) and x != 'rand']
+        is_signed_explainers = [x in {'inp-grad-sign', 'int-grad-sign', 'loo-sign', 'beam-sign-10'} for x in show_explainers]
 
         os.makedirs(args.persistent_dir / 'tables' / args.format, exist_ok=True)
         with open(args.persistent_dir / 'tables' / args.format / f'{experiment_id}.tex', 'w') as fp:
@@ -287,7 +295,7 @@ if __name__ == "__main__":
             first_row = True
             for dataset_name in args.datasets:
                 first_dataset_row = True
-                for im_name in explainers:
+                for im_name, im_signed in zip(show_explainers, is_signed_explainers):
                     try:
                         dur = df_tab.loc[pd.IndexSlice[dataset_name, im_name], :]
                         our_racu = tex_format_ci(dur['racu_mean'], dur['racu_lower'], dur['racu_upper'])
@@ -298,6 +306,13 @@ if __name__ == "__main__":
                         our_acu = tex_format_ci(np.nan, np.nan, np.nan)
                         rroar_racu = tex_format_ci(np.nan, np.nan, np.nan)
 
+                    if args.highlight:
+                        if im_signed:
+                            our_racu = tex_gray_text(our_racu)
+                            rroar_racu = tex_gray_text(rroar_racu)
+                        else:
+                            our_acu = tex_gray_text(our_acu)
+
                     if first_dataset_row and not first_row:
                         print(r'\cmidrule{1-5}', file=fp)
                     if first_row:
@@ -305,7 +320,7 @@ if __name__ == "__main__":
 
                     if first_dataset_row:
                         first_dataset_row = False
-                        dataset_str = f'\multirow[c]{{{len(explainers)}}}{{*}}{{{annotation.dataset.labeller(dataset_name)}}}'
+                        dataset_str = f'\multirow[c]{{{len(show_explainers)}}}{{*}}{{{annotation.dataset.labeller(dataset_name)}}}'
                     else:
                         dataset_str = ''
 
